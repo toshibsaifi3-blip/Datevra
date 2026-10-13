@@ -24,6 +24,7 @@ const Legal = lazy(() => import("./pages/public/Legal"));
 const Login = lazy(() => import("./pages/public/Login"));
 const Register = lazy(() => import("./pages/public/Register"));
 const Forgot = lazy(() => import("./pages/public/Forgot"));
+const ResetPassword = lazy(() => import("./pages/public/ResetPassword"));
 
 /* Dual-mode pages: marketing for visitors, full functionality for members */
 const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
@@ -127,6 +128,7 @@ export default function App() {
               <Route path="login" element={<Splash><Login /></Splash>} />
               <Route path="register" element={<Splash><Register /></Splash>} />
               <Route path="forgot" element={<Splash><Forgot /></Splash>} />
+              <Route path="reset-password" element={<Splash><ResetPassword /></Splash>} />
 
               {/* member */}
               <Route element={<ProtectedRoute />}>

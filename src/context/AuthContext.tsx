@@ -19,10 +19,13 @@ import {
   supaGetProfile,
   supaGetUserId,
   supaOnAuthChange,
+  supaResendSignupOtp,
   supaSendPasswordReset,
   supaSignIn,
   supaSignOut,
   supaSignUp,
+  supaUpdatePassword,
+  supaVerifySignupOtp,
   type SupaSignUpInput,
 } from "../lib/supabase/auth";
 import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
@@ -41,6 +44,13 @@ interface AuthContextValue {
   mode: "demo" | "supabase";
   login: (email: string, password: string) => Promise<AuthResult>;
   register: (input: SupaSignUpInput) => Promise<AuthResult>;
+  verifySignupOtp: (
+    email: string,
+    token: string,
+    profile: Omit<SupaSignUpInput, "email" | "password">,
+  ) => Promise<AuthResult>;
+  resendSignupOtp: (email: string) => Promise<AuthResult>;
+  updatePassword: (password: string) => Promise<AuthResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<AuthResult>;
@@ -126,9 +136,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return {
           ok: true,
           notice:
-            "Account created — please check your email for the verification link, then sign in.",
+            "Account created — please check your email for the 6-digit verification code.",
         };
       }
+      await refresh();
+      return { ok: true };
+    },
+    [refresh],
+  );
+
+  const verifySignupOtp = useCallback(
+    async (
+      email: string,
+      token: string,
+      profile: Omit<SupaSignUpInput, "email" | "password">,
+    ): Promise<AuthResult> => {
+      if (!isSupabaseConfigured) {
+        return { ok: false, error: "Email verification needs a live connection." };
+      }
+      const r = await supaVerifySignupOtp(email, token, profile);
+      if (!r.ok) return { ok: false, error: r.error ?? "Verification failed." };
+      await refresh();
+      return { ok: true };
+    },
+    [refresh],
+  );
+
+  const resendSignupOtp = useCallback(
+    async (email: string): Promise<AuthResult> => {
+      if (!isSupabaseConfigured) {
+        return { ok: false, error: "Email verification needs a live connection." };
+      }
+      const r = await supaResendSignupOtp(email);
+      return r.ok ? { ok: true } : { ok: false, error: r.error ?? "Could not resend the code." };
+    },
+    [],
+  );
+
+  const updatePassword = useCallback(
+    async (password: string): Promise<AuthResult> => {
+      if (!isSupabaseConfigured) {
+        return { ok: false, error: "Password update needs a live connection." };
+      }
+      const r = await supaUpdatePassword(password);
+      if (!r.ok) return { ok: false, error: r.error ?? "Could not update password." };
       await refresh();
       return { ok: true };
     },
@@ -150,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Demo mode has no email provider — honest no-op.
       return {
         ok: true,
-        notice: "Demo mode: no reset email is sent. Use a demo account to sign in.",
+        notice: "Password reset is unavailable in offline demo mode.",
       };
     }
     const r = await supaSendPasswordReset(email);
@@ -162,9 +213,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       session, user, isAdmin: session?.role === "admin", ready, mode,
-      login, register, logout, refresh, sendPasswordReset,
+      login, register, verifySignupOtp, resendSignupOtp, updatePassword,
+      logout, refresh, sendPasswordReset,
     }),
-    [session, user, ready, mode, login, register, logout, refresh, sendPasswordReset],
+    [session, user, ready, mode, login, register, verifySignupOtp, resendSignupOtp, updatePassword, logout, refresh, sendPasswordReset],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

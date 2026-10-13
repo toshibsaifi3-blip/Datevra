@@ -4,11 +4,6 @@ import { motion } from "framer-motion";
 import { Field, Logo, inputCls } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 
-const DEMOS = [
-  { label: "Member", email: "demo@datevra.in", password: "demo1234" },
-  { label: "Admin", email: "admin@datevra.in", password: "admin1234" },
-];
-
 export default function Login() {
   const { login, session } = useAuth();
   const navigate = useNavigate();
@@ -41,12 +36,6 @@ export default function Login() {
     } finally {
       setBusy(false);
     }
-  };
-
-  const fill = (d: { email: string; password: string }) => {
-    setEmail(d.email);
-    setPassword(d.password);
-    setError("");
   };
 
   return (
@@ -109,28 +98,6 @@ export default function Login() {
             </Link>
           </div>
         </form>
-
-        <div className="mt-6 glass rounded-2xl p-5">
-          <p className="text-[0.68rem] uppercase tracking-[0.25em] text-mist mb-3">
-            Demo access — tap to fill
-          </p>
-          <div className="flex gap-2.5">
-            {DEMOS.map((d) => (
-              <button
-                key={d.label}
-                type="button"
-                onClick={() => fill(d)}
-                className="btn-ghost rounded-full px-5 py-2.5 text-xs flex-1"
-              >
-                {d.label}
-                <span className="block text-mist/70 mt-0.5 font-mono">{d.email}</span>
-              </button>
-            ))}
-          </div>
-          <p className="text-[0.7rem] text-mist/60 mt-3 font-mono">
-            member: demo@datevra.in / demo1234 · admin: admin@datevra.in / admin1234
-          </p>
-        </div>
 
         <p className="text-center mt-6">
           <Link to="/" className="text-xs text-mist hover:text-ivory transition-colors">

@@ -126,7 +126,82 @@ export async function supaSignOut(): Promise<void> {
 }
 
 export async function supaSendPasswordReset(email: string): Promise<AuthResult> {
-  const { error } = await client().auth.resetPasswordForEmail(email.trim().toLowerCase());
+  const { error } = await client().auth.resetPasswordForEmail(
+    email.trim().toLowerCase(),
+    // Land on the in-app recovery page on whichever domain served the app.
+    { redirectTo: `${window.location.origin}/reset-password` },
+  );
+  if (error) return { ok: false, error: friendlyAuthError(error.message) };
+  return { ok: true };
+}
+
+/**
+ * Verify the 6-digit email OTP sent at signup. On success Supabase creates
+ * a session; we then create the profile + match preferences so the user
+ * lands authenticated (mirrors the confirmed-signup branch of supaSignUp).
+ */
+export async function supaVerifySignupOtp(
+  email: string,
+  token: string,
+  profile: Omit<SupaSignUpInput, "email" | "password">,
+): Promise<AuthResult> {
+  const c = client();
+  const cleanEmail = email.trim().toLowerCase();
+  const { data, error } = await c.auth.verifyOtp({
+    email: cleanEmail,
+    token: token.trim(),
+    type: "signup",
+  });
+  if (error) return { ok: false, error: friendlyOtpError(error.message) };
+  const uid = data.user?.id;
+  if (!uid) return { ok: false, error: "Verification failed. Please try again." };
+
+  // Create profile if missing (idempotent — safe on double-verify).
+  const existing = await supaGetProfile(uid);
+  if (!existing) {
+    const { error: pErr } = await c.from("profiles").insert({
+      id: uid,
+      email: cleanEmail,
+      first_name: profile.firstName,
+      age: profile.age,
+      gender: profile.gender,
+      interested_in: profile.interestedIn,
+      city: profile.city,
+      profile_complete: 35,
+      last_active: new Date().toISOString(),
+    });
+    if (pErr) {
+      await c.auth.signOut();
+      return { ok: false, error: "Verified, but your profile could not be saved. Please contact support." };
+    }
+    await c.from("match_preferences").insert({
+      user_id: uid,
+      ...unmapPrefs({
+        ageMin: 18,
+        ageMax: 60,
+        interestedIn: "everyone",
+        cities: [profile.city],
+        maxDistanceKm: 50,
+        relationshipIntents: [],
+        minSharedInterests: 1,
+      }),
+    });
+  }
+  return { ok: true, userId: uid };
+}
+
+export async function supaResendSignupOtp(email: string): Promise<AuthResult> {
+  const { error } = await client().auth.resend({
+    type: "signup",
+    email: email.trim().toLowerCase(),
+  });
+  if (error) return { ok: false, error: friendlyAuthError(error.message) };
+  return { ok: true };
+}
+
+/** Set a new password for the currently authenticated (recovery) session. */
+export async function supaUpdatePassword(password: string): Promise<AuthResult> {
+  const { error } = await client().auth.updateUser({ password });
   if (error) return { ok: false, error: friendlyAuthError(error.message) };
   return { ok: true };
 }
@@ -136,10 +211,19 @@ export function supaOnAuthChange(cb: () => void): () => void {
   return () => data.subscription.unsubscribe();
 }
 
+function friendlyOtpError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("expired") || m.includes("invalid") || m.includes("token"))
+    return "That code is invalid or has expired. Please request a new one.";
+  if (m.includes("rate limit") || m.includes("too many"))
+    return "Too many attempts. Please wait a moment and try again.";
+  return message;
+}
+
 function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "Invalid email or password.";
-  if (m.includes("email not confirmed")) return "Please verify your email first — check your inbox for the confirmation link.";
+  if (m.includes("email not confirmed")) return "Please verify your email first — check your inbox for the 6-digit code.";
   if (m.includes("already registered") || m.includes("already exists"))
     return "An account with this email already exists. Try signing in.";
   if (m.includes("password")) return "Password does not meet the requirements.";
