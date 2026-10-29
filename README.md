@@ -22,12 +22,14 @@ npm run dev      # local dev server
 npm run build    # production build (outputs to dist/)
 ```
 
-## Demo credentials (localStorage demo mode)
+## Demo sign-in (localStorage demo mode)
 
-| Role  | Email              | Password   |
-|-------|--------------------|------------|
-| User  | `demo@datevra.in`  | `demo1234` |
-| Admin | `admin@datevra.in` | `admin1234` |
+Demo mode runs entirely offline in the browser — no real users, no real data. Sign in with either seeded demo profile using **any** password; the demo credential is created locally on first sign-in (no passwords are hardcoded anywhere in the app or its bundle).
+
+| Role  | Email              |
+|-------|--------------------|
+| User  | `demo@datevra.in`  |
+| Admin | `admin@datevra.in` |
 
 Demo mode works with zero configuration — open the app and log in with either account. Reset demo data from Settings → "Reset demo data".
 

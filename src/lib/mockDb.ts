@@ -249,10 +249,9 @@ function seed(): DbShape {
 
   return {
     users: [demoUser, adminUser, ...DEMO_PROFILES],
-    credentials: {
-      "demo@datevra.in": { password: "demo1234", userId: "you-1", role: "user" },
-      "admin@datevra.in": { password: "admin1234", userId: "admin-1", role: "admin" },
-    },
+    // No hardcoded passwords. Demo-mode login auto-provisions a credential
+    // for a seeded demo profile on first sign-in (see login()).
+    credentials: {},
     prefs: { "you-1": defaultPrefs("Mumbai") },
     likes: [
       { id: "lk-seed-1", fromUserId: "u-kabir", toUserId: "you-1", createdAt: iso(now - 86400000 * 1) },
@@ -416,8 +415,24 @@ export function login(
   password: string,
 ): { ok: true; session: Session } | { ok: false; error: string } {
   const db = load();
-  const cred = db.credentials[email.trim().toLowerCase()];
-  if (!cred || cred.password !== password) {
+  const key = email.trim().toLowerCase();
+  let cred = db.credentials[key];
+  if (!cred) {
+    // Demo mode is local/offline only — no real data is ever at stake.
+    // The first sign-in with a seeded demo profile's email auto-provisions
+    // its credential with whatever password was entered, so local demos keep
+    // working without any password ever being hardcoded in the bundle.
+    const profile = db.users.find((u) => u.email.toLowerCase() === key);
+    if (!profile) return { ok: false, error: "Invalid email or password." };
+    cred = {
+      password,
+      userId: profile.id,
+      role: profile.id === "admin-1" ? "admin" : "user",
+    };
+    db.credentials[key] = cred;
+    save(db);
+  }
+  if (cred.password !== password) {
     return { ok: false, error: "Invalid email or password." };
   }
   const session = { userId: cred.userId, role: cred.role };
