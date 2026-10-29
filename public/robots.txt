@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /app
+Disallow: /blocked
+Disallow: /chat
+Disallow: /discover
+Disallow: /forgot
+Disallow: /likes
+Disallow: /login
+Disallow: /matches
+Disallow: /notifications
+Disallow: /passes
+Disallow: /profile
+Disallow: /register
+Disallow: /reset-password
+Disallow: /settings
+
+Sitemap: https://www.datevra.com/sitemap.xml
