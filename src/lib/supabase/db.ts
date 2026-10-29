@@ -1005,20 +1005,16 @@ async function createComplimentaryPass(
   return mapComplimentaryPass(res.data as Row);
 }
 
-async function redeemComplimentaryPass(code: string, userId: string): Promise<ComplimentaryPass> {
+async function redeemComplimentaryPass(code: string, _userId: string): Promise<ComplimentaryPass> {
+  // Server-side redemption via the SECURITY DEFINER redeem_pass() RPC:
+  // atomic row-locked update enforcing eligibility, expiry and single-use.
+  // Direct table SELECT/UPDATE is blocked by RLS for non-admins (unassigned
+  // codes are invisible, no UPDATE policy), so the RPC is the only path.
+  // The acting user is derived from auth.uid() server-side, not the param.
   const normalized = code.toUpperCase().trim();
-  const res = await sb().from("complimentary_passes").select("*").eq("code", normalized).single();
-  if (res.error) throw new Error("Invalid pass code.");
-  const pass = mapComplimentaryPass(res.data as Row);
-  if (pass.status !== "active") throw new Error(`This pass is ${pass.status}.`);
-  if (pass.issuedToUserId && pass.issuedToUserId !== userId) throw new Error("This pass was issued to another member.");
-  if (pass.expiresAt && new Date(pass.expiresAt) < new Date()) throw new Error("This pass has expired.");
-  const upd = await sb().from("complimentary_passes").update({
-    status: "redeemed", redeemed_at: new Date().toISOString(),
-    ...(pass.issuedToUserId ? {} : { issued_to_user_id: userId }),
-  }).eq("id", pass.id).select("*").single();
-  if (upd.error) throw new Error(upd.error.message);
-  return mapComplimentaryPass(upd.data as Row);
+  const res = await sb().rpc("redeem_pass", { p_code: normalized });
+  if (res.error) throw new Error(res.error.message);
+  return mapComplimentaryPass(res.data as Row);
 }
 
 async function revokeComplimentaryPass(id: string, adminId: string): Promise<void> {
@@ -1054,34 +1050,15 @@ async function createMatchProposal(userAId: string, userBId: string, message: st
   return mapMatchProposal(res.data as Row);
 }
 
-async function respondToMatchProposal(proposalId: string, userId: string, accept: boolean): Promise<MatchProposal> {
-  const cur = await sb().from("match_proposals").select("*").eq("id", proposalId).single();
-  if (cur.error) throw new Error("Proposal not found.");
-  const p = mapMatchProposal(cur.data as Row);
-  if (p.status !== "pending") throw new Error("This proposal is no longer pending.");
-  const patch: Record<string, unknown> = {};
-  if (userId === p.userAId) patch.user_a_response = accept;
-  else if (userId === p.userBId) patch.user_b_response = accept;
-  else throw new Error("You are not part of this proposal.");
-
-  const aResp = userId === p.userAId ? accept : p.userAResponse;
-  const bResp = userId === p.userBId ? accept : p.userBResponse;
-  if (!accept) {
-    patch.status = "declined";
-    patch.responded_at = new Date().toISOString();
-  } else if (aResp === true && bResp === true) {
-    patch.status = "accepted";
-    patch.responded_at = new Date().toISOString();
-  }
-  const upd = await sb().from("match_proposals").update(patch).eq("id", proposalId).select("*").single();
-  if (upd.error) throw new Error(upd.error.message);
-  const updated = mapMatchProposal(upd.data as Row);
-  // Both accepted → create mutual match
-  if (updated.status === "accepted") {
-    const [a, b] = [updated.userAId, updated.userBId].sort();
-    await sb().from("matches").upsert({ user_a: a, user_b: b }, { onConflict: "user_a,user_b" });
-  }
-  return updated;
+async function respondToMatchProposal(proposalId: string, _userId: string, accept: boolean): Promise<MatchProposal> {
+  // Server-side response via the SECURITY DEFINER respond_to_proposal() RPC:
+  // validates the caller is a participant, records the response, and on dual
+  // accept atomically creates the match, conversation and notifications.
+  // Direct table UPDATE is blocked by RLS for non-admins, so the RPC is the
+  // only path. The acting user is derived from auth.uid() server-side.
+  const res = await sb().rpc("respond_to_proposal", { p_proposal_id: proposalId, p_accept: accept });
+  if (res.error) throw new Error(res.error.message);
+  return mapMatchProposal(res.data as Row);
 }
 
 async function revenueSummary(): Promise<{
