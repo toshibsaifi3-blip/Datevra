@@ -11,6 +11,13 @@
 --
 -- Run in the Supabase SQL Editor. Idempotent — safe to run once.
 -- Does NOT modify existing tables' data. Only adds new tables + one column.
+--
+-- Schema-compatibility note (validated Oct 30 against
+-- 000_full_setup_LATEST_2026-10-04_v2.sql): cafes.id is TEXT, so
+-- complimentary_passes.cafe_id is TEXT (uuid would fail the FK).
+-- matches(user_a, user_b) has UNIQUE(user_a, user_b); conversations.match_id
+-- is UNIQUE; notifications has (user_id, kind, title, body, link);
+-- public.is_admin() exists. All 010 references check out.
 -- ============================================================================
 
 -- 1. Add menu column to cafes (if not exists)
@@ -21,7 +28,10 @@ ALTER TABLE public.cafes
 CREATE TABLE IF NOT EXISTS public.complimentary_passes (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   code              text NOT NULL UNIQUE,
-  cafe_id           uuid NOT NULL REFERENCES public.cafes(id) ON DELETE CASCADE,
+  -- cafes.id is TEXT (stable seed ids like 'c-roastery-mum'), so cafe_id
+  -- must be text too — a uuid FK would fail to create. Matches the
+  -- existing bookings/date_bookings convention.
+  cafe_id           text NOT NULL REFERENCES public.cafes(id) ON DELETE CASCADE,
   issued_to_user_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   issued_by_admin_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
   status            text NOT NULL DEFAULT 'active'
