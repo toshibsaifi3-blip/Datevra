@@ -215,6 +215,7 @@ export function Footer() {
               ["/terms", "Terms of service"],
               ["/privacy", "Privacy policy"],
               ["/refund", "Refund policy"],
+              ["/admin", "Admin Panel"],
             ].map(([to, label]) => (
               <li key={to}>
                 <Link to={to} className="hover:text-champagne transition-colors">{label}</Link>
