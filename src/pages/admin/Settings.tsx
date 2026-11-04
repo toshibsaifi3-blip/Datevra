@@ -49,7 +49,8 @@ export default function Settings() {
     }
   };
 
-  const Toggle = ({ on, onClick }: { on: boolean; onClick: () => void }) => (
+function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
     <button
       onClick={onClick}
       className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
@@ -63,6 +64,7 @@ export default function Settings() {
       />
     </button>
   );
+}
 
   return (
     <div className="px-5 pb-24 pt-10 md:pt-14">

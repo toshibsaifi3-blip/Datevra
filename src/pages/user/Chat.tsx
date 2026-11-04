@@ -263,8 +263,6 @@ export default function Chat() {
     }
   };
 
-  if (!me) return null;
-
   const selectConv = (id: string) => {
     setParams({ c: id });
     setMenuOpen(false);
@@ -290,7 +288,7 @@ export default function Chat() {
   const filteredConvs = convs.filter((c) => {
     const q = convSearch.trim().toLowerCase();
     if (!q) return true;
-    const pid = c.participantIds.find((p) => p !== me.id);
+    const pid = c.participantIds.find((p) => p !== me?.id);
     const p = pid ? profileMap.get(pid) : undefined;
     return (
       (p?.firstName ?? "").toLowerCase().includes(q) ||
@@ -317,7 +315,7 @@ export default function Chat() {
   }, [visibleMsgs]);
 
   const doUnmatch = async () => {
-    if (!active) return;
+    if (!active || !me) return;
     try {
       await db.unmatch(active.matchId, me.id);
       setConfirmUnmatch(false);
@@ -329,7 +327,7 @@ export default function Chat() {
   };
 
   const doBlock = async () => {
-    if (!partner) return;
+    if (!partner || !me) return;
     try {
       await db.blockUser(me.id, partner.id);
       setConfirmBlock(false);
@@ -341,7 +339,7 @@ export default function Chat() {
   };
 
   const submitReport = async () => {
-    if (!partner) return;
+    if (!partner || !me) return;
     try {
       await db.fileReport({
         reporterId: me.id,
@@ -357,6 +355,8 @@ export default function Chat() {
       toast(e instanceof Error ? e.message : "Couldn't submit the report.", "rose");
     }
   };
+
+  if (!me) return null;
 
   return (
     <div className="relative">
