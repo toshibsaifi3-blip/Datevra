@@ -19,7 +19,10 @@ import type {
   Match,
   MatchPreferences,
   MatchProposal,
+  MembershipPass,
+  CreateMembershipPassInput,
   MembershipPlan,
+  RedeemMembershipPassResult,
   Message,
   Payment,
   PlanId,
@@ -27,6 +30,7 @@ import type {
   Report,
   Subscription,
   UserProfile,
+  RevokeComplimentaryPassResult,
 } from "../types";
 import {
   mapActivity,
@@ -36,6 +40,7 @@ import {
   mapCafe,
   mapCms,
   mapComplimentaryPass,
+  mapMembershipPass,
   mapConversation,
   mapExperience,
   mapInvestor,
@@ -346,6 +351,14 @@ async function matchesFor(userId: string): Promise<Match[]> {
   return throwIf(res, "Could not load matches").map((r) => mapMatch(r as Record<string, unknown>));
 }
 
+async function allMatches(): Promise<Match[]> {
+  const res = await sb()
+    .from("matches")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return throwIf(res, "Could not load matches").map((r) => mapMatch(r as Record<string, unknown>));
+}
+
 async function unmatch(matchId: string, byUserId: string): Promise<void> {
   const mRes = await sb().from("matches").select("*").eq("id", matchId).maybeSingle();
   const mrow = throwIf(mRes, "Match not found");
@@ -394,16 +407,18 @@ async function blockedBy(userId: string): Promise<Block[]> {
 }
 
 async function isBlocked(a: string, b: string): Promise<boolean> {
-  // RLS only exposes blocks the caller created; the profiles_public view
-  // already hides blocked pairs in both directions for discovery.
+  // Check bidirectional blocks using the SECURITY DEFINER blocked_pair RPC
+  const rpcRes = await sb().rpc("blocked_pair", { a, b });
+  if (!rpcRes.error && typeof rpcRes.data === "boolean") {
+    return rpcRes.data;
+  }
+  // Fallback to direct table check in both directions
   const res = await sb()
     .from("blocks")
     .select("id")
-    .eq("blocker_id", a)
-    .eq("blocked_id", b)
-    .maybeSingle();
+    .or(`and(blocker_id.eq.${a},blocked_id.eq.${b}),and(blocker_id.eq.${b},blocked_id.eq.${a})`);
   if (res.error) throw new Error(`Block check failed: ${res.error.message}`);
-  return !!res.data;
+  return (res.data?.length ?? 0) > 0;
 }
 
 async function fileReport(report: Omit<Report, "id" | "status" | "createdAt">): Promise<Report> {
@@ -420,8 +435,11 @@ async function listReports(): Promise<Report[]> {
   return throwIf(res, "Could not load reports").map((r) => mapReport(r as Record<string, unknown>));
 }
 
-async function setReportStatus(id: string, status: Report["status"]): Promise<void> {
-  const res = await sb().from("reports").update({ status }).eq("id", id);
+async function setReportStatus(id: string, status: Report["status"], _actorId?: string): Promise<void> {
+  const res = await sb().rpc("set_report_status", {
+    p_report_id: id,
+    p_status: status,
+  });
   if (res.error) throw new Error(`Could not update report: ${res.error.message}`);
 }
 
@@ -534,7 +552,8 @@ function subscribeMessages(conversationId: string, cb: (m: Message) => void): ()
 import { PLANS } from "../../data/seed";
 
 async function logActivity(actorId: string, action: string, detail: string): Promise<void> {
-  await sb().from("activity_logs").insert({ actor_id: actorId, actor_role: "admin", action, detail });
+  const res = await sb().from("activity_logs").insert({ actor_id: actorId, actor_role: "admin", action, detail });
+  if (res.error) throw new Error(`Could not log activity: ${res.error.message}`);
 }
 
 /* ---------------- notifications ---------------- */
@@ -961,10 +980,13 @@ async function allUsers(): Promise<UserProfile[]> {
   return throwIf(res, "Could not load users").map((r) => mapProfile(r as Record<string, unknown>));
 }
 
-async function setUserVerified(id: string, verified: boolean, actorId: string): Promise<void> {
-  const res = await sb().from("profiles").update({ verified }).eq("id", id);
+async function setUserVerified(id: string, verified: boolean, _actorId: string, note?: string): Promise<void> {
+  const res = await sb().rpc("set_user_verified", {
+    p_user_id: id,
+    p_verified: verified,
+    p_note: note ?? null,
+  });
   if (res.error) throw new Error(`Could not update verification: ${res.error.message}`);
-  await logActivity(actorId, "user.verify", `User ${id} verification → ${verified}`);
 }
 
 /* ---------------- complimentary passes (Supabase) ---------------- */
@@ -972,18 +994,44 @@ async function setUserVerified(id: string, verified: boolean, actorId: string): 
 function genPassCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "DVR-";
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    for (let i = 0; i < 6; i++) {
+      code += chars[bytes[i] % chars.length];
+    }
+  } else {
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+  }
   return code;
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const e = error as { code?: string; message?: string; details?: string };
+  // PostgreSQL error code 23505 is unique_violation
+  if (e.code === "23505") return true;
+  const msg = `${e.message ?? ""} ${e.details ?? ""}`.toLowerCase();
+  return msg.includes("unique") && msg.includes("code");
+}
+
 async function listComplimentaryPasses(): Promise<ComplimentaryPass[]> {
-  const res = await sb().from("complimentary_passes").select("*").order("created_at", { ascending: false });
+  const res = await sb()
+    .from("complimentary_passes")
+    .select("*, cafes(name), profiles:issued_to_user_id(first_name)")
+    .order("created_at", { ascending: false });
   if (res.error) throw new Error(res.error.message);
   return (res.data as Row[]).map(mapComplimentaryPass);
 }
 
 async function myComplimentaryPasses(userId: string): Promise<ComplimentaryPass[]> {
-  const res = await sb().from("complimentary_passes").select("*").eq("issued_to_user_id", userId).order("created_at", { ascending: false });
+  const res = await sb()
+    .from("complimentary_passes")
+    .select("*, cafes(name)")
+    .eq("issued_to_user_id", userId)
+    .order("created_at", { ascending: false });
   if (res.error) throw new Error(res.error.message);
   return (res.data as Row[]).map(mapComplimentaryPass);
 }
@@ -992,17 +1040,40 @@ async function createComplimentaryPass(
   input: { cafeId: string; issuedToUserId?: string | null; note?: string | null; expiresAt?: string | null },
   adminId: string
 ): Promise<ComplimentaryPass> {
-  const res = await sb().from("complimentary_passes").insert({
-    code: genPassCode(),
-    cafe_id: input.cafeId,
-    issued_to_user_id: input.issuedToUserId ?? null,
-    issued_by_admin_id: adminId,
-    note: input.note ?? null,
-    expires_at: input.expiresAt ?? null,
-  }).select("*").single();
-  if (res.error) throw new Error(res.error.message);
-  await logActivity(adminId, "pass.create", `Complimentary pass ${(res.data as Row).code} created`);
-  return mapComplimentaryPass(res.data as Row);
+  const MAX_RETRIES = 5;
+  let lastErrorMsg = "";
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const code = genPassCode();
+    const res = await sb()
+      .from("complimentary_passes")
+      .insert({
+        code,
+        cafe_id: input.cafeId,
+        issued_to_user_id: input.issuedToUserId ?? null,
+        issued_by_admin_id: adminId,
+        note: input.note ?? null,
+        expires_at: input.expiresAt ?? null,
+      })
+      .select("*, cafes(name), profiles:issued_to_user_id(first_name)")
+      .single();
+
+    if (!res.error) {
+      await logActivity(adminId, "pass.create", `Complimentary pass ${(res.data as Row).code} created`);
+      return mapComplimentaryPass(res.data as Row);
+    }
+
+    // Only retry on code unique-constraint violations (PostgreSQL error 23505)
+    if (isUniqueViolation(res.error)) {
+      lastErrorMsg = res.error.message;
+      continue;
+    }
+
+    // Non-collision database errors fail immediately
+    throw new Error(res.error.message);
+  }
+
+  throw new Error(`Failed to generate a unique café pass code after ${MAX_RETRIES} attempts (${lastErrorMsg || "unique violation"}). Please try again.`);
 }
 
 async function redeemComplimentaryPass(code: string, _userId: string): Promise<ComplimentaryPass> {
@@ -1017,22 +1088,211 @@ async function redeemComplimentaryPass(code: string, _userId: string): Promise<C
   return mapComplimentaryPass(res.data as Row);
 }
 
-async function revokeComplimentaryPass(id: string, adminId: string): Promise<void> {
-  const res = await sb().from("complimentary_passes").update({ status: "revoked" }).eq("id", id);
+async function revokeComplimentaryPass(
+  id: string,
+  adminId: string,
+  reason?: string | null,
+): Promise<RevokeComplimentaryPassResult> {
+  // Fetch current status and existing note to verify it is active
+  const existingRes = await sb()
+    .from("complimentary_passes")
+    .select("id, code, note, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (existingRes.error) {
+    throw new Error(`Failed to check pass status: ${existingRes.error.message}`);
+  }
+  if (!existingRes.data) {
+    throw new Error("Café pass not found.");
+  }
+  if (existingRes.data.status !== "active") {
+    throw new Error(`This pass is no longer active (current status: ${existingRes.data.status}).`);
+  }
+
+  const existingNote = (existingRes.data.note as string | null) ?? null;
+  const trimmedReason = reason?.trim();
+  const updatedNote = trimmedReason
+    ? (existingNote ? `${existingNote} | Revoked: ${trimmedReason}` : `Revoked: ${trimmedReason}`)
+    : existingNote;
+
+  // Atomic update ensuring status is active
+  const res = await sb()
+    .from("complimentary_passes")
+    .update({ status: "revoked", note: updatedNote })
+    .eq("id", id)
+    .eq("status", "active")
+    .select("id, code, note, status")
+    .maybeSingle();
+
   if (res.error) throw new Error(res.error.message);
-  await logActivity(adminId, "pass.revoke", `Complimentary pass ${id} revoked`);
+  if (!res.data) {
+    throw new Error("This pass is no longer active and cannot be revoked.");
+  }
+
+  const passCode = (res.data.code as string) || (existingRes.data.code as string) || id;
+  const detail = trimmedReason
+    ? `Complimentary pass ${passCode} (${id}) revoked: ${trimmedReason}`
+    : `Complimentary pass ${passCode} (${id}) revoked`;
+
+  let warning: string | undefined;
+  try {
+    await logActivity(adminId, "pass.revoke", detail);
+  } catch (logErr) {
+    console.error("Activity logging failed after pass revocation:", logErr);
+    warning = "Pass was revoked, but the activity log could not be saved.";
+  }
+
+  return { success: true, code: passCode, warning };
+}
+
+/* ---------------- membership passes (Supabase) ---------------- */
+
+async function listMembershipPasses(): Promise<MembershipPass[]> {
+  const res = await sb()
+    .from("membership_passes")
+    .select("*, profiles:issued_to_user_id(first_name, email)")
+    .order("created_at", { ascending: false });
+  if (res.error) throw new Error(res.error.message);
+  return (res.data as Row[]).map(mapMembershipPass);
+}
+
+async function createMembershipPass(
+  input: CreateMembershipPassInput,
+  _adminId: string,
+): Promise<MembershipPass> {
+  const res = await sb().rpc("create_membership_pass", {
+    p_plan_id: input.planId,
+    p_duration_days: input.durationDays,
+    p_expires_at: input.expiresAt ?? null,
+    p_issued_to_user_id: input.issuedToUserId ?? null,
+    p_note: input.note ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  const row = res.data as Row;
+  return mapMembershipPass(row);
+}
+
+async function revokeMembershipPass(
+  passId: string,
+  reason: string | null,
+  _adminId: string,
+): Promise<MembershipPass> {
+  const res = await sb().rpc("revoke_membership_pass", {
+    p_pass_id: passId,
+    p_reason: reason ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  const row = res.data as Row;
+  return mapMembershipPass(row);
+}
+
+async function redeemMembershipPass(code: string): Promise<RedeemMembershipPassResult> {
+  const normalized = code.trim().toUpperCase();
+  const res = await sb().rpc("redeem_membership_pass", { p_code: normalized });
+  if (res.error) {
+    return {
+      success: false,
+      error: res.error.code ?? "RPC_ERROR",
+      message: res.error.message || "Failed to communicate with membership pass service.",
+    };
+  }
+
+  const data = res.data as {
+    success: boolean;
+    error?: string;
+    message?: string;
+    code?: string;
+    plan_id?: string;
+    duration_days?: number;
+    expires_at?: string;
+    payment_id?: string;
+    subscription_id?: string;
+  } | null;
+
+  if (!data) {
+    return {
+      success: false,
+      error: "INVALID_RPC_RESPONSE",
+      message: "The server returned an empty redemption response.",
+    };
+  }
+
+  // Preserve genuine SQL failure codes and messages
+  if (data.success !== true) {
+    return {
+      success: false,
+      error: data.error ?? "REDEMPTION_FAILED",
+      message: data.message ?? "This pass could not be redeemed.",
+    };
+  }
+
+  // Strict validation: require all essential success confirmation fields
+  const confirmedCode = typeof data.code === "string" ? data.code.trim() : "";
+  const rawPlan = data.plan_id;
+  const isPlanId = rawPlan === "connect" || rawPlan === "plus" || rawPlan === "elite";
+  if (!isPlanId) {
+    return {
+      success: false,
+      error: "INVALID_RPC_RESPONSE",
+      message: "The server returned an invalid membership plan.",
+    };
+  }
+
+  const planId: PlanId = rawPlan;
+  const durationDays = typeof data.duration_days === "number" ? data.duration_days : 0;
+  const expiresAt = typeof data.expires_at === "string" ? data.expires_at.trim() : "";
+  const paymentId = typeof data.payment_id === "string" ? data.payment_id.trim() : "";
+  const subscriptionId = typeof data.subscription_id === "string" ? data.subscription_id.trim() : "";
+
+  const isValidCode = confirmedCode.length > 0;
+  const isValidPlan = isPlanId;
+  const isValidDuration = Number.isFinite(durationDays) && durationDays > 0;
+  const isValidExpiresAt = expiresAt.length > 0 && !Number.isNaN(Date.parse(expiresAt));
+  const isValidPaymentId = paymentId.length > 0;
+  const isValidSubscriptionId = subscriptionId.length > 0;
+
+  if (
+    !isValidCode ||
+    !isValidPlan ||
+    !isValidDuration ||
+    !isValidExpiresAt ||
+    !isValidPaymentId ||
+    !isValidSubscriptionId
+  ) {
+    return {
+      success: false,
+      error: "INVALID_RPC_RESPONSE",
+      message: "The server response was missing or contained invalid membership confirmation fields.",
+    };
+  }
+
+  return {
+    success: true,
+    code: confirmedCode,
+    planId,
+    durationDays,
+    expiresAt,
+    paymentId,
+    subscriptionId,
+  };
 }
 
 /* ---------------- match proposals (Supabase) ---------------- */
 
 async function listMatchProposals(): Promise<MatchProposal[]> {
-  const res = await sb().from("match_proposals").select("*").order("created_at", { ascending: false });
+  const res = await sb()
+    .from("match_proposals")
+    .select("*, user_a:user_a_id(first_name), user_b:user_b_id(first_name)")
+    .order("created_at", { ascending: false });
   if (res.error) throw new Error(res.error.message);
   return (res.data as Row[]).map(mapMatchProposal);
 }
 
 async function myMatchProposals(userId: string): Promise<MatchProposal[]> {
-  const res = await sb().from("match_proposals").select("*")
+  const res = await sb()
+    .from("match_proposals")
+    .select("*, user_a:user_a_id(first_name), user_b:user_b_id(first_name)")
     .or(`user_a_id.eq.${userId},user_b_id.eq.${userId}`)
     .order("created_at", { ascending: false });
   if (res.error) throw new Error(res.error.message);
@@ -1041,11 +1301,19 @@ async function myMatchProposals(userId: string): Promise<MatchProposal[]> {
 
 async function createMatchProposal(userAId: string, userBId: string, message: string | null, adminId: string): Promise<MatchProposal> {
   if (userAId === userBId) throw new Error("Cannot propose a match with the same person.");
+  if (await isBlocked(userAId, userBId)) {
+    throw new Error("This introduction cannot be created because a blocking restriction exists.");
+  }
   const res = await sb().from("match_proposals").insert({
     user_a_id: userAId, user_b_id: userBId,
     proposed_by_admin_id: adminId, message,
   }).select("*").single();
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "23505" || res.error.message.includes("idx_match_proposals_unique_pending_pair")) {
+      throw new Error("A proposal is already pending between these members.");
+    }
+    throw new Error(res.error.message);
+  }
   await logActivity(adminId, "proposal.create", `Match proposal ${userAId} ↔ ${userBId}`);
   return mapMatchProposal(res.data as Row);
 }
@@ -1119,6 +1387,7 @@ const EVENT_TABLES: Record<BackendEvent, string[]> = {
   investors: ["investors"],
   activity: ["activity_logs"],
   passes: ["complimentary_passes"],
+  membership_passes: ["membership_passes"],
   proposals: ["match_proposals"],
 };
 
@@ -1168,6 +1437,7 @@ export const supabaseBackend = {
   likesReceived,
   likesSent,
   matchesFor,
+  allMatches,
   unmatch,
   saveProfile,
   unsaveProfile,
@@ -1223,6 +1493,7 @@ export const supabaseBackend = {
   upsertInvestor,
   recordInvestorPayout,
   listActivity,
+  logActivity,
   getCmsPage,
   saveCmsPage,
   getSettings,
@@ -1235,6 +1506,10 @@ export const supabaseBackend = {
   redeemComplimentaryPass,
   revokeComplimentaryPass,
   myComplimentaryPasses,
+  listMembershipPasses,
+  createMembershipPass,
+  revokeMembershipPass,
+  redeemMembershipPass,
   listMatchProposals,
   createMatchProposal,
   respondToMatchProposal,

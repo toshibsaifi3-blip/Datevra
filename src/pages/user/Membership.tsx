@@ -43,6 +43,8 @@ export default function Membership() {
   const [agreed, setAgreed] = useState(false);
   const [pending, setPending] = useState<Payment | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [passCode, setPassCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
 
   const {
     data,
@@ -119,6 +121,71 @@ export default function Membership() {
     }
   };
 
+  const handleRedeemPass = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (redeeming) return;
+
+    const trimmed = passCode.trim().toUpperCase();
+    if (!trimmed) {
+      toast("Please enter a membership pass code.", "rose");
+      return;
+    }
+
+    // Auto-normalize if user enters 12 or 15 alphanumeric characters without hyphens
+    let normalized = trimmed;
+    const alphanumericOnly = trimmed.replace(/[^A-Z0-9]/g, "");
+    if (alphanumericOnly.length === 12 && !alphanumericOnly.startsWith("MEM")) {
+      normalized = `MEM-${alphanumericOnly.slice(0, 4)}-${alphanumericOnly.slice(4, 8)}-${alphanumericOnly.slice(8, 12)}`;
+    } else if (alphanumericOnly.length === 15 && alphanumericOnly.startsWith("MEM")) {
+      const core = alphanumericOnly.slice(3);
+      normalized = `MEM-${core.slice(0, 4)}-${core.slice(4, 8)}-${core.slice(8, 12)}`;
+    }
+
+    const PASS_REGEX = /^MEM-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+    if (!PASS_REGEX.test(normalized)) {
+      toast("Pass codes must follow the MEM-XXXX-XXXX-XXXX format.", "rose");
+      return;
+    }
+
+    setRedeeming(true);
+    try {
+      const res = await db.redeemMembershipPass(normalized);
+      if (res.success) {
+        const planObj = PLANS.find((p) => p.id === res.planId);
+        const planName =
+          planObj?.name ??
+          (res.planId === "elite" ? "Privé" : res.planId === "plus" ? "Signature" : "Select");
+        toast(`Membership pass activated — welcome to ${planName}.`, "gold");
+        setPassCode("");
+
+        // 1. Refresh local subscription/payment queries (synchronous state update)
+        try {
+          refreshData();
+        } catch (refreshDataErr) {
+          console.warn("Local membership refresh warning after activation:", refreshDataErr);
+        }
+
+        // 2. Refresh auth profile state (asynchronous promise)
+        try {
+          await refresh();
+        } catch (authRefreshErr) {
+          // Never misreport an already-confirmed database redemption as failed
+          console.warn("Auth profile refresh warning after activation:", authRefreshErr);
+        }
+      } else {
+        // Structured failure from Migration 011 RPC or invalid RPC response
+        toast(res.message || "Membership pass could not be redeemed.", "rose");
+      }
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : "Membership pass could not be redeemed.",
+        "rose",
+      );
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   return (
     <div className="relative max-w-6xl mx-auto px-5 py-10">
       {/* dreamy ambience */}
@@ -155,7 +222,7 @@ export default function Membership() {
         <>
           {/* Current status */}
           <Reveal>
-            <div className="glass-strong glow-border rounded-[2rem] p-6 md:p-8 mb-10 relative overflow-hidden">
+            <div className="glass-strong glow-border rounded-[2rem] p-6 md:p-8 mb-6 relative overflow-hidden">
               <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-burgundy/40 blur-[100px] animate-aura-shift" />
               <div className="relative flex flex-wrap items-center gap-6">
                 <div className="flex-1 min-w-[220px]">
@@ -179,6 +246,53 @@ export default function Membership() {
                 <div className="text-sm text-mist max-w-xs leading-relaxed">
                   {MEMBERSHIP_DISCLAIMER}
                 </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Redeem a Membership Pass */}
+          <Reveal delay={0.06}>
+            <div className="glass rounded-[2rem] p-5 md:p-6 mb-10 border border-white/10 relative overflow-hidden">
+              <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-champagne/10 blur-[70px] pointer-events-none" />
+              <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div className="flex-1 min-w-[240px]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-rosegold text-xs">✦</span>
+                    <p className="text-[0.72rem] uppercase tracking-[0.24em] text-rosegold">Privilege Pass</p>
+                  </div>
+                  <h3 className="font-display text-lg text-ivory mt-0.5">Have a membership pass?</h3>
+                  <p className="text-xs text-mist mt-1 leading-relaxed">
+                    Enter your complimentary code to unlock Select, Signature, or Privé membership privileges.
+                  </p>
+                </div>
+                <form
+                  onSubmit={handleRedeemPass}
+                  className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0"
+                >
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={passCode}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        const sanitized = val.replace(/[^A-Z0-9-]/g, "").slice(0, 19);
+                        setPassCode(sanitized);
+                      }}
+                      placeholder="MEM-XXXX-XXXX-XXXX"
+                      maxLength={19}
+                      disabled={redeeming}
+                      className="bg-black/40 border border-white/15 focus:border-champagne/60 rounded-full px-5 py-2.5 text-sm font-mono tracking-wider text-ivory placeholder:text-mist/40 outline-none w-full sm:w-60 transition-all uppercase"
+                      aria-label="Membership pass code"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={redeeming || !passCode.trim()}
+                    className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    {redeeming ? "Activating…" : "Redeem Pass"}
+                  </button>
+                </form>
               </div>
             </div>
           </Reveal>

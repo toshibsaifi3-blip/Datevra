@@ -1,6 +1,38 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  ScrollText,
+  Users,
+  ShieldCheck,
+  ShieldAlert,
+  HeartHandshake,
+  Crown,
+  CreditCard,
+  TrendingUp,
+  Landmark,
+  Percent,
+  CalendarCheck,
+  Sparkles,
+  Coffee,
+  Ticket,
+  Gift,
+  Handshake,
+  Bell as LucideBell,
+  FileEdit,
+  Scale,
+  Sliders,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ArrowUpRight,
+  LogOut,
+  UserCheck,
+  Menu,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { Logo, GlowOrbs, PetalField, Badge } from "./ui";
 import { useBackend, useAsync } from "../lib/data";
@@ -487,27 +519,47 @@ export function UserShell() {
 
 /* ============================== Admin shell ============================== */
 
-const ADMIN_LINKS: { to: string; label: string; group: string }[] = [
-  { to: "/admin", label: "Overview", group: "Command" },
-  { to: "/admin/activity", label: "Activity logs", group: "Command" },
-  { to: "/admin/users", label: "Users", group: "People" },
-  { to: "/admin/verification", label: "Verification", group: "People" },
-  { to: "/admin/reports", label: "Reports & safety", group: "People" },
-  { to: "/admin/matchmaking", label: "Matchmaking", group: "People" },
-  { to: "/admin/memberships", label: "Memberships", group: "Revenue" },
-  { to: "/admin/payments", label: "Payments", group: "Revenue" },
-  { to: "/admin/analytics", label: "Revenue analytics", group: "Revenue" },
-  { to: "/admin/investors", label: "Investor ledger", group: "Revenue" },
-  { to: "/admin/commissions", label: "Commissions", group: "Revenue" },
-  { to: "/admin/applications", label: "Date applications", group: "Experiences" },
-  { to: "/admin/bookings", label: "Bookings", group: "Experiences" },
-  { to: "/admin/cafes", label: "Cafés", group: "Experiences" },
-  { to: "/admin/passes", label: "Comp. passes", group: "Experiences" },
-  { to: "/admin/partnerships", label: "Partnerships", group: "Experiences" },
-  { to: "/admin/notifications", label: "Notifications", group: "Platform" },
-  { to: "/admin/cms", label: "CMS", group: "Platform" },
-  { to: "/admin/legal", label: "Legal pages", group: "Platform" },
-  { to: "/admin/settings", label: "Settings", group: "Platform" },
+/* ============================== Admin shell ============================== */
+
+export interface AdminNavItem {
+  to: string;
+  label: string;
+  group: "Command" | "People" | "Revenue" | "Experiences" | "Platform";
+  icon: LucideIcon;
+  badge?: string;
+}
+
+const ADMIN_LINKS: AdminNavItem[] = [
+  // Command
+  { to: "/admin", label: "Overview", group: "Command", icon: LayoutDashboard },
+  { to: "/admin/activity", label: "Activity logs", group: "Command", icon: ScrollText },
+
+  // People
+  { to: "/admin/users", label: "Users", group: "People", icon: Users },
+  { to: "/admin/verification", label: "Verification", group: "People", icon: ShieldCheck },
+  { to: "/admin/reports", label: "Reports & safety", group: "People", icon: ShieldAlert },
+  { to: "/admin/matchmaking", label: "Matchmaking", group: "People", icon: HeartHandshake },
+
+  // Revenue
+  { to: "/admin/memberships", label: "Memberships", group: "Revenue", icon: Crown },
+  { to: "/admin/membership-passes", label: "Membership passes", group: "Revenue", icon: Gift },
+  { to: "/admin/payments", label: "Payments", group: "Revenue", icon: CreditCard },
+  { to: "/admin/analytics", label: "Revenue analytics", group: "Revenue", icon: TrendingUp },
+  { to: "/admin/investors", label: "Investor ledger", group: "Revenue", icon: Landmark },
+  { to: "/admin/commissions", label: "Commissions", group: "Revenue", icon: Percent },
+
+  // Experiences
+  { to: "/admin/applications", label: "Date applications", group: "Experiences", icon: Sparkles },
+  { to: "/admin/bookings", label: "Bookings", group: "Experiences", icon: CalendarCheck },
+  { to: "/admin/cafes", label: "Cafés", group: "Experiences", icon: Coffee },
+  { to: "/admin/passes", label: "Comp. passes", group: "Experiences", icon: Ticket },
+  { to: "/admin/partnerships", label: "Partnerships", group: "Experiences", icon: Handshake },
+
+  // Platform
+  { to: "/admin/notifications", label: "Notifications", group: "Platform", icon: LucideBell },
+  { to: "/admin/cms", label: "CMS", group: "Platform", icon: FileEdit },
+  { to: "/admin/legal", label: "Legal pages", group: "Platform", icon: Scale },
+  { to: "/admin/settings", label: "Settings", group: "Platform", icon: Sliders },
 ];
 
 function AdminBell() {
@@ -527,12 +579,13 @@ function AdminBell() {
   return (
     <button
       onClick={() => nav("/admin/notifications")}
-      className="relative rounded-full p-2.5 glass hover:border-rosegold/40 transition-colors"
+      className="relative rounded-xl p-2.5 glass hover:border-rosegold/40 transition-all text-ivory-dim hover:text-ivory group"
       aria-label={`Admin notifications, ${count} unread`}
+      title="Notifications"
     >
-      <span className="text-lg">◉</span>
+      <LucideBell size={18} className="transition-transform group-hover:scale-105" />
       {count > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-burgundy-soft text-[0.68rem] flex items-center justify-center border border-rosegold/40">
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-rosegold to-burgundy text-[0.62rem] font-bold text-ivory flex items-center justify-center border border-rosegold/50 shadow-sm animate-pulse">
           {count}
         </span>
       )}
@@ -541,61 +594,258 @@ function AdminBell() {
 }
 
 export function AdminShell() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("datevra:admin_sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const loc = useLocation();
-  useEffect(() => setMobileOpen(false), [loc.pathname]);
   const nav = useNavigate();
 
-  let lastGroup = "";
-  const sidebar = (
-    <div className="flex flex-col h-full">
-      <Link to="/" className="px-6 pt-7 pb-2">
-        <Logo size={30} />
-      </Link>
-      <p className="px-6 pb-4">
-        <Badge tone="rose">Admin console</Badge>
-      </p>
-      <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Admin">
-        {ADMIN_LINKS.map((l) => {
-          const header =
-            l.group !== lastGroup ? (
-              <p key={l.group} className="px-4 pt-4 pb-1.5 text-[0.66rem] uppercase tracking-[0.3em] text-mist">
-                {l.group}
-              </p>
-            ) : null;
-          lastGroup = l.group;
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileOpen(false);
+    setSearchOpen(false);
+    setSearchQuery("");
+  }, [loc.pathname]);
+
+  // Save collapsed state
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("datevra:admin_sidebar_collapsed", String(next));
+      } catch {
+        /* no-op */
+      }
+      return next;
+    });
+  };
+
+  // Keyboard shortcut Ctrl/Cmd + K for quick route search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      } else if (e.key === "Escape") {
+        setSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Compute current page info & breadcrumb
+  const currentLink =
+    ADMIN_LINKS.find((l) =>
+      l.to === "/admin"
+        ? loc.pathname === "/admin"
+        : loc.pathname === l.to || loc.pathname.startsWith(`${l.to}/`),
+    ) ?? ADMIN_LINKS[0];
+
+  // Filtered links for search dialog
+  const filteredSearchLinks = searchQuery.trim()
+    ? ADMIN_LINKS.filter(
+        (l) =>
+          l.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          l.group.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          l.to.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : ADMIN_LINKS;
+
+  // Sidebar navigation markup builder
+  const renderNavLinks = (isSidebarCollapsed: boolean) => {
+    return (
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-0.5" aria-label="Admin Navigation">
+        {ADMIN_LINKS.map((l, idx) => {
+          const isFirstInGroup = idx === 0 || l.group !== ADMIN_LINKS[idx - 1]?.group;
+          const showHeader = !isSidebarCollapsed && isFirstInGroup;
+          const Icon = l.icon;
+
           return (
             <div key={l.to}>
-              {header}
-              <NavLink
-                to={l.to}
-                end={l.to === "/admin"}
-                className={({ isActive }) =>
-                  `flex items-center px-4 py-2 rounded-lg text-[0.9rem] transition-all ${
-                    isActive
-                      ? "bg-gradient-to-r from-burgundy/70 to-burgundy-deep/40 text-ivory border border-rosegold/25"
-                      : "text-ivory-dim/80 hover:text-ivory hover:bg-white/5 border border-transparent"
-                  }`
-                }
-              >
-                {l.label}
-              </NavLink>
+              {showHeader && (
+                <p className="px-3 pt-4 pb-1 text-[0.62rem] uppercase tracking-[0.25em] text-mist/75 font-semibold">
+                  {l.group}
+                </p>
+              )}
+              {isSidebarCollapsed && isFirstInGroup && idx > 0 && (
+                <div className="h-px bg-white/5 my-2 mx-2" />
+              )}
+              <div className="relative group/tooltip">
+                <NavLink
+                  to={l.to}
+                  end={l.to === "/admin"}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl transition-all font-medium ${
+                      isSidebarCollapsed
+                        ? "justify-center h-10 w-10 mx-auto"
+                        : "px-3 py-2 text-[0.87rem]"
+                    } ${
+                      isActive
+                        ? "bg-gradient-to-r from-burgundy/80 via-burgundy-deep/60 to-transparent text-ivory border-l-2 border-rosegold shadow-sm shadow-burgundy/20"
+                        : "text-ivory-dim/75 hover:text-ivory hover:bg-white/[0.04] border-l-2 border-transparent"
+                    }`
+                  }
+                  title={isSidebarCollapsed ? l.label : undefined}
+                >
+                  <Icon
+                    size={18}
+                    className={`shrink-0 transition-colors ${
+                      loc.pathname === l.to || (l.to !== "/admin" && loc.pathname.startsWith(l.to))
+                        ? "text-rosegold"
+                        : "text-mist/80 group-hover/tooltip:text-ivory"
+                    }`}
+                  />
+                  {!isSidebarCollapsed && (
+                    <span className="truncate flex-1 tracking-wide">{l.label}</span>
+                  )}
+                </NavLink>
+
+                {/* Tooltip in collapsed mode */}
+                {isSidebarCollapsed && (
+                  <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover/tooltip:flex items-center z-[70]">
+                    <div className="px-2.5 py-1 rounded-lg bg-onyx text-ivory text-xs whitespace-nowrap shadow-xl border hairline">
+                      <span className="text-[0.68rem] uppercase tracking-wider text-mist block text-[0.6rem]">
+                        {l.group}
+                      </span>
+                      {l.label}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </nav>
-      <div className="p-4 border-t hairline space-y-1">
-        <Link to="/app" className="block px-4 py-2 rounded-xl text-sm text-ivory-dim/85 hover:text-ivory hover:bg-white/5">
-          View as member
+    );
+  };
+
+  const desktopSidebar = (
+    <div className="flex flex-col h-full bg-[#0b0614]/95 backdrop-blur-2xl">
+      {/* Brand Header */}
+      <div
+        className={`flex items-center border-b hairline h-[68px] ${
+          collapsed ? "justify-center px-2" : "justify-between px-5"
+        }`}
+      >
+        <Link to="/" className="flex items-center gap-2 overflow-hidden group">
+          <Logo size={28} withWordmark={!collapsed} />
+        </Link>
+        {!collapsed && (
+          <span className="text-[0.65rem]">
+            <Badge tone="rose">Admin</Badge>
+          </span>
+        )}
+      </div>
+
+      {/* Nav List */}
+      {renderNavLinks(collapsed)}
+
+      {/* Footer Utility Actions */}
+      <div className={`border-t hairline bg-black/20 ${collapsed ? "p-2 space-y-1" : "p-3 space-y-1"}`}>
+        {/* Switch to member view */}
+        <Link
+          to="/app"
+          className={`flex items-center rounded-xl text-ivory-dim/80 hover:text-ivory hover:bg-white/5 transition-colors group/tooltip relative ${
+            collapsed ? "justify-center h-10 w-10 mx-auto" : "px-3 py-2 text-xs gap-2.5"
+          }`}
+          title={collapsed ? "Switch to Member View" : undefined}
+        >
+          <ArrowUpRight size={16} className="text-mist group-hover/tooltip:text-rosegold transition-colors shrink-0" />
+          {!collapsed && <span className="font-medium">Switch to Member View</span>}
+          {collapsed && (
+            <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover/tooltip:block z-[70]">
+              <div className="px-2.5 py-1 rounded-lg bg-onyx text-ivory text-xs whitespace-nowrap shadow-xl border hairline">
+                Switch to Member View
+              </div>
+            </div>
+          )}
+        </Link>
+
+        {/* Sign out */}
+        <button
+          onClick={() => {
+            logout();
+            nav("/");
+          }}
+          className={`w-full flex items-center rounded-xl text-mist hover:text-rose-300 hover:bg-rose-500/10 transition-colors group/tooltip relative ${
+            collapsed ? "justify-center h-10 w-10 mx-auto" : "px-3 py-2 text-xs gap-2.5 text-left"
+          }`}
+          title={collapsed ? "Sign out" : undefined}
+        >
+          <LogOut size={16} className="text-mist group-hover/tooltip:text-rose-400 transition-colors shrink-0" />
+          {!collapsed && <span className="font-medium">Sign out</span>}
+          {collapsed && (
+            <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover/tooltip:block z-[70]">
+              <div className="px-2.5 py-1 rounded-lg bg-onyx text-ivory text-xs whitespace-nowrap shadow-xl border hairline">
+                Sign out
+              </div>
+            </div>
+          )}
+        </button>
+
+        {/* Collapse toggle button */}
+        <div className="pt-1">
+          <button
+            onClick={toggleCollapsed}
+            className={`w-full flex items-center rounded-xl text-mist/75 hover:text-ivory hover:bg-white/5 transition-colors ${
+              collapsed ? "justify-center h-9 w-10 mx-auto" : "px-3 py-1.5 text-[0.72rem] justify-between"
+            }`}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {!collapsed && <span className="uppercase tracking-widest text-[0.62rem]">Collapse menu</span>}
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const mobileSidebar = (
+    <div className="flex flex-col h-full bg-[#0d0718] text-ivory">
+      {/* Mobile Header */}
+      <div className="flex items-center justify-between px-5 h-[68px] border-b hairline">
+        <Link to="/" className="flex items-center gap-2">
+          <Logo size={28} />
+        </Link>
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="p-2 rounded-lg text-mist hover:text-ivory hover:bg-white/5"
+          aria-label="Close menu"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Links */}
+      {renderNavLinks(false)}
+
+      {/* Mobile Footer */}
+      <div className="p-4 border-t hairline space-y-2 bg-black/20">
+        <Link
+          to="/app"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-ivory-dim hover:text-ivory hover:bg-white/5 font-medium"
+        >
+          <ArrowUpRight size={16} className="text-rosegold" />
+          Switch to Member View
         </Link>
         <button
           onClick={() => {
             logout();
             nav("/");
           }}
-          className="w-full text-left px-4 py-2 rounded-xl text-sm text-mist hover:text-ivory hover:bg-white/5"
+          className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl text-sm text-mist hover:text-rose-300 hover:bg-white/5 font-medium"
         >
+          <LogOut size={16} />
           Sign out
         </button>
       </div>
@@ -603,33 +853,91 @@ export function AdminShell() {
   );
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="min-h-screen lg:flex bg-[#0b0614] text-ivory antialiased selection:bg-rosegold/30 selection:text-ivory">
       <GlowOrbs />
-      <aside className="hidden lg:block w-[264px] shrink-0 border-r hairline bg-[#0d080d]/90 backdrop-blur-xl sticky top-0 h-screen">
-        {sidebar}
+
+      {/* Desktop Collapsible Sidebar */}
+      <aside
+        className={`hidden lg:block shrink-0 border-r hairline sticky top-0 h-screen transition-all duration-300 ease-in-out z-40 ${
+          collapsed ? "w-[72px]" : "w-[260px]"
+        }`}
+      >
+        {desktopSidebar}
       </aside>
+
+      {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="sticky top-0 z-40 glass-strong border-b hairline">
-          <div className="flex items-center justify-between px-4 md:px-8 h-[68px]">
-            <div className="flex items-center gap-3">
+        {/* Top Navigation Bar */}
+        <header className="sticky top-0 z-30 glass-strong border-b hairline bg-[#0b0614]/85 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 h-[68px] gap-3">
+            {/* Left: Mobile trigger & Breadcrumbs */}
+            <div className="flex items-center gap-3 min-w-0">
               <button
-                className="lg:hidden text-2xl text-ivory px-1"
+                className="lg:hidden p-2 rounded-xl text-ivory glass hover:border-rosegold/40 transition-colors"
                 onClick={() => setMobileOpen(true)}
-                aria-label="Open menu"
+                aria-label="Open navigation menu"
               >
-                ☰
+                <Menu size={20} />
               </button>
-              <p className="font-display text-xl text-ivory hidden sm:block">
-                Admin <span className="text-gradient-gold">console</span>
-              </p>
+
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-mist/75">
+                  <span className="hover:text-ivory transition-colors">Admin</span>
+                  <span>/</span>
+                  <span className="text-mist">{currentLink.group}</span>
+                </div>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1 className="font-display text-lg sm:text-xl font-medium tracking-wide text-ivory truncate">
+                    {currentLink.label}
+                  </h1>
+                </div>
+              </div>
             </div>
-            <AdminBell />
+
+            {/* Right: Quick Search + Notifications + Admin Identity */}
+            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+              {/* Quick Route Search Button */}
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-all group"
+                aria-label="Search admin navigation"
+              >
+                <Search size={14} className="text-mist group-hover:text-rosegold transition-colors" />
+                <span className="hidden sm:inline">Search...</span>
+                <kbd className="hidden md:inline-block px-1.5 py-0.5 rounded bg-white/10 text-[0.62rem] text-ivory-dim font-mono border border-white/10">
+                  ⌘K
+                </kbd>
+              </button>
+
+              {/* Notification Bell (reusing safe backend notifications) */}
+              <AdminBell />
+
+              {/* Admin Identity Area */}
+              <div className="flex items-center gap-2.5 pl-2 border-l hairline">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-burgundy to-rosegold/40 flex items-center justify-center text-ivory font-display font-semibold text-sm border border-rosegold/30 shadow-inner">
+                  {user?.firstName ? user.firstName[0]?.toUpperCase() : user?.email ? user.email[0]?.toUpperCase() : "A"}
+                </div>
+                <div className="hidden xl:flex flex-col text-left">
+                  <span className="text-xs font-medium text-ivory truncate max-w-[140px] leading-tight">
+                    {user?.firstName || (user?.email ? user.email.split("@")[0] : "Administrator")}
+                  </span>
+                  <span className="text-[0.62rem] text-mist flex items-center gap-1 leading-tight">
+                    <UserCheck size={10} className="text-emerald-400" />
+                    Admin
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <main className="flex-1 px-4 md:px-8 py-8 max-w-7xl w-full mx-auto relative">
+        </header>
+
+        {/* Page Content */}
+        <main className="flex-1 px-4 sm:px-6 md:px-8 py-8 max-w-7xl w-full mx-auto relative">
           <Outlet />
         </main>
       </div>
+
+      {/* Mobile Slide-out Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -637,19 +945,95 @@ export function AdminShell() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-[60] lg:hidden"
+              className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[60] lg:hidden"
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
-              initial={{ x: -300 }}
+              initial={{ x: -320 }}
               animate={{ x: 0 }}
-              exit={{ x: -300 }}
+              exit={{ x: -320 }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] bg-onyx border-r hairline lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] border-r hairline lg:hidden shadow-2xl"
             >
-              {sidebar}
+              {mobileSidebar}
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Route Quick Search Modal (Command Palette) */}
+      <AnimatePresence>
+        {searchOpen && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setSearchOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -10 }}
+              transition={{ duration: 0.15 }}
+              className="relative w-full max-w-lg rounded-2xl glass-strong border hairline shadow-2xl overflow-hidden bg-[#120a20] z-50"
+            >
+              {/* Search input */}
+              <div className="flex items-center px-4 py-3.5 border-b hairline gap-3">
+                <Search size={18} className="text-rosegold shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Jump to admin section (e.g. Users, Verification, Payments)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-transparent text-sm text-ivory placeholder-mist focus:outline-none"
+                />
+                <button
+                  onClick={() => setSearchOpen(false)}
+                  className="p-1 rounded text-mist hover:text-ivory"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Results list */}
+              <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+                {filteredSearchLinks.length === 0 ? (
+                  <p className="p-4 text-center text-xs text-mist">No matching routes found.</p>
+                ) : (
+                  filteredSearchLinks.map((l) => {
+                    const Icon = l.icon;
+                    return (
+                      <button
+                        key={l.to}
+                        onClick={() => {
+                          nav(l.to);
+                          setSearchOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs hover:bg-white/10 text-ivory transition-colors group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon size={16} className="text-rosegold group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">{l.label}</span>
+                        </div>
+                        <span className="text-[0.65rem] uppercase tracking-wider text-mist">
+                          {l.group}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer hint */}
+              <div className="px-4 py-2 border-t hairline bg-black/30 flex items-center justify-between text-[0.68rem] text-mist">
+                <span>Navigate Datevra Admin</span>
+                <span>ESC to close</span>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

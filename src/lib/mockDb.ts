@@ -18,9 +18,13 @@ import type {
   Payment,
   PlanId,
   PlatformSettings,
+  CreateMembershipPassInput,
+  MembershipPass,
+  RedeemMembershipPassResult,
   Report,
   Subscription,
   UserProfile,
+  RevokeComplimentaryPassResult,
 } from "./types";
 import { DEMO_PROFILES, SEED_CAFES, SEED_EXPERIENCES } from "../data/seed";
 import { computeCompatibility } from "./compat";
@@ -67,6 +71,7 @@ interface DbShape {
   settings: PlatformSettings;
   dailyLimits: DailyLimitRow[];
   complimentaryPasses: ComplimentaryPass[];
+  membershipPasses: MembershipPass[];
   matchProposals: MatchProposal[];
 }
 
@@ -316,6 +321,7 @@ function seed(): DbShape {
     cafes: SEED_CAFES,
     savedCafes: [{ userId: "you-1", cafeId: "c-suzette-pune" }],
     complimentaryPasses: [],
+    membershipPasses: [],
     matchProposals: [],
     payments: [],
     subscriptions: [],
@@ -356,22 +362,32 @@ function seed(): DbShape {
   };
 }
 
+let currentDb: DbShape | null = null;
+
 function load(): DbShape {
+  if (currentDb) return currentDb;
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as DbShape;
-      if (parsed && Array.isArray(parsed.users)) return parsed;
+      if (parsed && Array.isArray(parsed.users)) {
+        if (!Array.isArray(parsed.membershipPasses)) parsed.membershipPasses = [];
+        if (!Array.isArray(parsed.matchProposals)) parsed.matchProposals = [];
+        currentDb = parsed;
+        return currentDb;
+      }
     }
   } catch {
     /* fall through to seed */
   }
   const s = seed();
+  currentDb = s;
   save(s);
   return s;
 }
 
 function save(db: DbShape) {
+  currentDb = db;
   try {
     localStorage.setItem(KEY, JSON.stringify(db));
   } catch {
@@ -503,6 +519,7 @@ export function logout() {
 }
 
 export function resetDemo() {
+  currentDb = null;
   localStorage.removeItem(KEY);
   localStorage.removeItem(SESSION_KEY);
 }
@@ -709,6 +726,18 @@ export function sendLike(fromUserId: string, toUserId: string): { match: Match |
         createdAt: new Date().toISOString(),
       });
     }
+    // Clean up any open curated proposals between this pair now that they have matched
+    const nowIso = new Date().toISOString();
+    for (const prop of db.matchProposals) {
+      if (
+        prop.status === "pending" &&
+        ((prop.userAId === fromUserId && prop.userBId === toUserId) ||
+          (prop.userAId === toUserId && prop.userBId === fromUserId))
+      ) {
+        prop.status = "declined";
+        prop.respondedAt = nowIso;
+      }
+    }
   }
   save(db);
   emit("likes", { fromUserId, toUserId, match });
@@ -733,6 +762,10 @@ export function likesSent(userId: string): Like[] {
 
 export function matchesFor(userId: string): Match[] {
   return load().matches.filter((m) => m.userA === userId || m.userB === userId);
+}
+
+export function allMatches(): Match[] {
+  return [...load().matches].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function unmatch(matchId: string, byUserId: string) {
@@ -832,12 +865,17 @@ export function fileReport(report: Omit<Report, "id" | "status" | "createdAt">) 
 export function listReports(): Report[] {
   return load().reports;
 }
-export function setReportStatus(id: string, status: Report["status"]) {
+export function setReportStatus(id: string, status: Report["status"], actorId?: string): void {
   const db = load();
   const r = db.reports.find((x) => x.id === id);
-  if (r) {
-    r.status = status;
-    save(db);
+  if (!r) {
+    throw new Error(`Report not found: ${id}`);
+  }
+  r.status = status;
+  save(db);
+  emit("reports");
+  if (actorId) {
+    logActivity(actorId, "report.status", `Report ${id} status → ${status}`);
   }
 }
 
@@ -1164,6 +1202,7 @@ export function createComplimentaryPass(
     createdAt: new Date().toISOString(),
   };
   db.complimentaryPasses.unshift(pass);
+  logActivity(adminId, "pass.create", `Complimentary pass ${pass.code} created for ${pass.issuedToName || "guest"}`);
   save(db);
   emit("passes");
   return pass;
@@ -1192,13 +1231,133 @@ export function redeemComplimentaryPass(code: string, userId: string): Complimen
   return pass;
 }
 
-export function revokeComplimentaryPass(id: string, _adminId: string) {
+export function revokeComplimentaryPass(
+  id: string,
+  adminId: string,
+  reason?: string | null,
+): RevokeComplimentaryPassResult {
   const db = load();
   const pass = db.complimentaryPasses.find((p) => p.id === id);
-  if (!pass) return;
+  if (!pass) {
+    throw new Error("Café pass not found.");
+  }
+  if (pass.status !== "active") {
+    throw new Error(`This pass is no longer active (current status: ${pass.status}).`);
+  }
+  const trimmed = reason?.trim();
+  if (trimmed) {
+    pass.note = pass.note ? `${pass.note} | Revoked: ${trimmed}` : `Revoked: ${trimmed}`;
+  }
   pass.status = "revoked";
+
+  const detail = trimmed
+    ? `Complimentary pass ${pass.code} (${pass.id}) revoked: ${trimmed}`
+    : `Complimentary pass ${pass.code} (${pass.id}) revoked`;
+
+  logActivity(adminId, "pass.revoke", detail);
   save(db);
   emit("passes");
+  return { success: true, code: pass.code };
+}
+
+/* ---------------- membership passes (mock adapter) ---------------- */
+
+function membershipPassCode(): string {
+  const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  const chunk = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `MEM-${chunk()}-${chunk()}-${chunk()}`;
+}
+
+export function listMembershipPasses(): MembershipPass[] {
+  const db = load();
+  const now = new Date();
+  let changed = false;
+  // Mark expired passes dynamically
+  for (const p of db.membershipPasses) {
+    if (p.status === "active" && p.expiresAt && new Date(p.expiresAt) <= now) {
+      p.status = "expired";
+      changed = true;
+    }
+  }
+  if (changed) save(db);
+  return [...db.membershipPasses].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function createMembershipPass(
+  input: CreateMembershipPassInput,
+  adminId: string,
+): MembershipPass {
+  const db = load();
+  if (input.durationDays <= 0) throw new Error("Duration must be a positive integer.");
+  if (!["connect", "plus", "elite"].includes(input.planId)) {
+    throw new Error("Invalid plan ID. Must be connect, plus, or elite.");
+  }
+  if (input.expiresAt && new Date(input.expiresAt) <= new Date()) {
+    throw new Error("Expiration must be in the future.");
+  }
+
+  const assignedUser = input.issuedToUserId ? db.users.find((u) => u.id === input.issuedToUserId) : null;
+  const now = new Date().toISOString();
+
+  const pass: MembershipPass = {
+    id: `mp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    code: membershipPassCode(),
+    planId: input.planId,
+    durationDays: input.durationDays,
+    status: "active",
+    issuedByAdminId: adminId,
+    issuedToUserId: input.issuedToUserId ?? null,
+    issuedToEmail: assignedUser?.email ?? null,
+    issuedToName: assignedUser?.firstName ?? null,
+    note: input.note ? input.note.trim() : null,
+    expiresAt: input.expiresAt ?? null,
+    redeemedAt: null,
+    revokedAt: null,
+    revocationReason: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  db.membershipPasses.unshift(pass);
+  logActivity(adminId, "membership_pass.create", `[Preview Mode] Created ${pass.planId} pass ${pass.code} (${pass.durationDays}d)`);
+  save(db);
+  emit("membership_passes");
+  return pass;
+}
+
+export function revokeMembershipPass(
+  passId: string,
+  reason: string | null,
+  adminId: string,
+): MembershipPass {
+  const db = load();
+  const pass = db.membershipPasses.find((p) => p.id === passId);
+  if (!pass) throw new Error("Membership pass not found.");
+  if (pass.status !== "active") {
+    throw new Error(`Only active passes can be revoked (current status: ${pass.status}).`);
+  }
+
+  const now = new Date().toISOString();
+  pass.status = "revoked";
+  pass.revokedAt = now;
+  pass.revocationReason = reason ? reason.trim() : null;
+  pass.updatedAt = now;
+
+  logActivity(adminId, "membership_pass.revoke", `[Preview Mode] Revoked pass ${pass.code}: ${pass.revocationReason || "No reason given"}`);
+  save(db);
+  emit("membership_passes");
+  return pass;
+}
+
+export function redeemMembershipPass(_code: string): RedeemMembershipPassResult {
+  // In demo/preview mode without a live Supabase backend, pass redemption cannot
+  // be validated or processed by the Migration 011 SECURITY DEFINER RPC.
+  // Never simulate successful redemption or generate fake subscriptions/payments.
+  return {
+    success: false,
+    error: "UNSUPPORTED_BACKEND",
+    message: "Membership pass redemption requires an active Supabase backend with Migration 011 applied.",
+  };
 }
 
 /* ---------------- curated match proposals ---------------- */
@@ -1216,9 +1375,34 @@ export function createMatchProposal(
 ): MatchProposal {
   const db = load();
   if (userAId === userBId) throw new Error("Cannot propose a match with the same person.");
+  if (isBlocked(userAId, userBId)) {
+    throw new Error("This introduction cannot be created because a blocking restriction exists.");
+  }
   const userA = db.users.find((p) => p.id === userAId);
   const userB = db.users.find((p) => p.id === userBId);
   if (!userA || !userB) throw new Error("One or both members not found.");
+
+  // Check if members already have a confirmed match (bidirectional)
+  const alreadyMatched = db.matches.some(
+    (m) =>
+      (m.userA === userAId && m.userB === userBId) ||
+      (m.userA === userBId && m.userB === userAId),
+  );
+  if (alreadyMatched) {
+    throw new Error("These members are already matched.");
+  }
+
+  // Check if a pending proposal already exists between them (bidirectional)
+  const proposalPending = db.matchProposals.some(
+    (p) =>
+      p.status === "pending" &&
+      ((p.userAId === userAId && p.userBId === userBId) ||
+        (p.userAId === userBId && p.userBId === userAId)),
+  );
+  if (proposalPending) {
+    throw new Error("A proposal is already pending between these members.");
+  }
+
   const proposal: MatchProposal = {
     id: `mp-${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`,
     userAId, userBId,
@@ -1243,6 +1427,7 @@ export function createMatchProposal(
       read: false,
     });
   }
+  logActivity(adminId, "proposal.create", `Match proposal ${userA.firstName} ↔ ${userB.firstName}`);
   save(db);
   emit("proposals");
   return proposal;
@@ -1253,6 +1438,16 @@ export function respondToMatchProposal(proposalId: string, userId: string, accep
   const proposal = db.matchProposals.find((p) => p.id === proposalId);
   if (!proposal) throw new Error("Proposal not found.");
   if (proposal.status !== "pending") throw new Error("This proposal is no longer pending.");
+
+  // If a block was added after proposal creation, abort and decline
+  if (isBlocked(proposal.userAId, proposal.userBId)) {
+    proposal.status = "declined";
+    proposal.respondedAt = new Date().toISOString();
+    save(db);
+    emit("proposals");
+    return proposal;
+  }
+
   if (userId === proposal.userAId) proposal.userAResponse = accept;
   else if (userId === proposal.userBId) proposal.userBResponse = accept;
   else throw new Error("You are not part of this proposal.");
@@ -1274,6 +1469,19 @@ export function respondToMatchProposal(proposalId: string, userId: string, accep
         userA: a, userB: b,
         createdAt: new Date().toISOString(),
       } as never);
+    }
+    // Clean up any other pending proposals between this exact pair
+    const nowIso = new Date().toISOString();
+    for (const otherProp of db.matchProposals) {
+      if (
+        otherProp.status === "pending" &&
+        otherProp.id !== proposal.id &&
+        ((otherProp.userAId === a && otherProp.userBId === b) ||
+          (otherProp.userAId === b && otherProp.userBId === a))
+      ) {
+        otherProp.status = "declined";
+        otherProp.respondedAt = nowIso;
+      }
     }
   }
   save(db);
@@ -1449,7 +1657,8 @@ export function logActivity(actorId: string, action: string, detail: string) {
     createdAt: new Date().toISOString(),
   });
   db.activity = db.activity.slice(0, 500);
-  // note: save() is called by the caller to avoid double writes
+  save(db);
+  emit("activity");
 }
 
 export function listActivity(): ActivityLog[] {
@@ -1484,14 +1693,47 @@ export function saveSettings(s: PlatformSettings, actorId: string) {
 export function allUsers(): UserProfile[] {
   return load().users;
 }
-export function setUserVerified(id: string, verified: boolean, actorId: string) {
+export function setUserVerified(id: string, verified: boolean, actorId: string, note?: string): void {
   const db = load();
   const u = db.users.find((x) => x.id === id);
-  if (u) {
-    u.verified = verified;
-    logActivity(actorId, "user.verify", `${u.firstName} verification → ${verified}`);
-    save(db);
+  if (!u) {
+    throw new Error(`User not found: ${id}`);
   }
+
+  // Backend Self-Verification Guard (Defense-in-Depth)
+  if (actorId && id === actorId) {
+    throw new Error("CANNOT_VERIFY_SELF: Administrators cannot verify or decline their own profile.");
+  }
+
+  u.verified = verified;
+  u.verificationStatus = verified ? "verified" : "declined";
+  u.verificationReviewedAt = new Date().toISOString();
+  u.verificationReviewedBy = actorId;
+  u.verificationNote = note ? note.trim() : null;
+
+  const statusLabel = verified ? "verified" : "declined";
+  const cleanNote = note ? note.trim() : "";
+  const detail = `${u.firstName} (${id}) verification → ${statusLabel}${cleanNote ? `: ${cleanNote}` : ""}`;
+  logActivity(actorId, "user.verify", detail);
+
+  // In-app notification to the affected member
+  const notif: AppNotification = {
+    id: uid("n"),
+    userId: id,
+    kind: "safety",
+    title: verified ? "Profile Verified" : "Verification Update",
+    body: verified
+      ? "Your Datevra profile has been officially verified. Your trust badge is now visible to other members."
+      : (cleanNote || "Your profile verification could not be approved at this time. Please update your profile photos with clear face portraits."),
+    link: "/profile",
+    read: false,
+    createdAt: new Date().toISOString(),
+  };
+  db.notifications.unshift(notif);
+
+  save(db);
+  emit("profiles");
+  emit("notifications");
 }
 
 /* ---------------- analytics helpers ---------------- */

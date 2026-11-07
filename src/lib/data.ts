@@ -21,6 +21,9 @@ import type {
   MatchPreferences,
   MatchProposal,
   MembershipPlan,
+  MembershipPass,
+  CreateMembershipPassInput,
+  RedeemMembershipPassResult,
   Message,
   Payment,
   PlanId,
@@ -28,6 +31,7 @@ import type {
   Report,
   Subscription,
   UserProfile,
+  RevokeComplimentaryPassResult,
 } from "./types";
 
 /* =====================================================================
@@ -51,7 +55,7 @@ export type BackendEvent =
   | "profiles" | "likes" | "matches" | "notifications" | "applications"
   | "bookings" | "cafes" | "payments" | "subscriptions" | "reports"
   | "blocks" | "conversations" | "settings" | "cms" | "investors" | "activity"
-  | "passes" | "proposals";
+  | "passes" | "membership_passes" | "proposals";
 
 export interface Backend {
   readonly mode: "demo" | "supabase";
@@ -88,6 +92,7 @@ export interface Backend {
   likesReceived(userId: string): Promise<Like[]>;
   likesSent(userId: string): Promise<Like[]>;
   matchesFor(userId: string): Promise<Match[]>;
+  allMatches(): Promise<Match[]>;
   unmatch(matchId: string, byUserId: string): Promise<void>;
   saveProfile(userId: string, profileId: string): Promise<void>;
   unsaveProfile(userId: string, profileId: string): Promise<void>;
@@ -98,7 +103,7 @@ export interface Backend {
   isBlocked(a: string, b: string): Promise<boolean>;
   fileReport(r: Omit<Report, "id" | "status" | "createdAt">): Promise<Report>;
   listReports(): Promise<Report[]>;
-  setReportStatus(id: string, status: Report["status"]): Promise<void>;
+  setReportStatus(id: string, status: Report["status"], actorId?: string): Promise<void>;
   conversationsFor(userId: string): Promise<Conversation[]>;
   messagesFor(conversationId: string): Promise<Message[]>;
   sendMessage(conversationId: string, senderId: string, text: string): Promise<Message | null>;
@@ -145,12 +150,13 @@ export interface Backend {
   upsertInvestor(rec: InvestorRecord, actorId: string): Promise<void>;
   recordInvestorPayout(id: string, amount: number, actorId: string): Promise<void>;
   listActivity(): Promise<ActivityLog[]>;
+  logActivity(actorId: string, action: string, detail: string): Promise<void>;
   getCmsPage(slug: string): Promise<CmsPage | undefined>;
   saveCmsPage(page: CmsPage, actorId: string): Promise<void>;
   getSettings(): Promise<PlatformSettings>;
   saveSettings(s: PlatformSettings, actorId: string): Promise<void>;
   allUsers(): Promise<UserProfile[]>;
-  setUserVerified(id: string, verified: boolean, actorId: string): Promise<void>;
+  setUserVerified(id: string, verified: boolean, actorId: string, note?: string): Promise<void>;
   revenueSummary(): Promise<{
     membership: number; experience: number; cash: number; refunded: number;
     cafeCommissions: number; total: number; payments: number;
@@ -164,8 +170,13 @@ export interface Backend {
     expiresAt?: string | null;
   }, adminId: string): Promise<ComplimentaryPass>;
   redeemComplimentaryPass(code: string, userId: string): Promise<ComplimentaryPass>;
-  revokeComplimentaryPass(id: string, adminId: string): Promise<void>;
+  revokeComplimentaryPass(id: string, adminId: string, reason?: string | null): Promise<RevokeComplimentaryPassResult>;
   myComplimentaryPasses(userId: string): Promise<ComplimentaryPass[]>;
+  /* ---------------- membership passes ---------------- */
+  listMembershipPasses(): Promise<MembershipPass[]>;
+  createMembershipPass(input: CreateMembershipPassInput, adminId: string): Promise<MembershipPass>;
+  revokeMembershipPass(passId: string, reason: string | null, adminId: string): Promise<MembershipPass>;
+  redeemMembershipPass(code: string): Promise<RedeemMembershipPassResult>;
   /* ---------------- curated match proposals ---------------- */
   listMatchProposals(): Promise<MatchProposal[]>;
   createMatchProposal(userAId: string, userBId: string, message: string | null, adminId: string): Promise<MatchProposal>;
@@ -197,6 +208,7 @@ const DEMO_EVENT_MAP: Record<BackendEvent, string | null> = {
   investors: null,
   activity: null,
   passes: "passes",
+  membership_passes: "membership_passes",
   proposals: "proposals",
 };
 
@@ -219,6 +231,7 @@ export const demoBackend: Backend = {
   likesReceived: (u) => Promise.resolve(mock.likesReceived(u)),
   likesSent: (u) => Promise.resolve(mock.likesSent(u)),
   matchesFor: (u) => Promise.resolve(mock.matchesFor(u)),
+  allMatches: () => Promise.resolve(mock.allMatches()),
   unmatch: (m, b) => Promise.resolve(mock.unmatch(m, b)),
   saveProfile: (u, p) => Promise.resolve(mock.saveProfile(u, p)),
   unsaveProfile: (u, p) => Promise.resolve(mock.unsaveProfile(u, p)),
@@ -229,7 +242,7 @@ export const demoBackend: Backend = {
   isBlocked: (a, b) => Promise.resolve(mock.isBlocked(a, b)),
   fileReport: (r) => Promise.resolve(mock.fileReport(r)),
   listReports: () => Promise.resolve(mock.listReports()),
-  setReportStatus: (id, s) => Promise.resolve(mock.setReportStatus(id, s)),
+  setReportStatus: (id, s, a) => Promise.resolve(mock.setReportStatus(id, s, a)),
   conversationsFor: (u) => Promise.resolve(mock.conversationsFor(u)),
   messagesFor: (c) => Promise.resolve(mock.messagesFor(c)),
   sendMessage: (c, s, t) => Promise.resolve(mock.sendMessage(c, s, t)),
@@ -274,18 +287,23 @@ export const demoBackend: Backend = {
   upsertInvestor: (r, a) => Promise.resolve(mock.upsertInvestor(r, a)),
   recordInvestorPayout: (id, a, ac) => Promise.resolve(mock.recordInvestorPayout(id, a, ac)),
   listActivity: () => Promise.resolve(mock.listActivity()),
+  logActivity: (actorId, action, detail) => Promise.resolve(mock.logActivity(actorId, action, detail)),
   getCmsPage: (s) => Promise.resolve(mock.getCmsPage(s)),
   saveCmsPage: (p, a) => Promise.resolve(mock.saveCmsPage(p, a)),
   getSettings: () => Promise.resolve(mock.getSettings()),
   saveSettings: (s, a) => Promise.resolve(mock.saveSettings(s, a)),
   allUsers: () => Promise.resolve(mock.allUsers()),
-  setUserVerified: (id, v, a) => Promise.resolve(mock.setUserVerified(id, v, a)),
+  setUserVerified: (id, v, a, n) => Promise.resolve(mock.setUserVerified(id, v, a, n)),
   revenueSummary: () => Promise.resolve(mock.revenueSummary()),
   listComplimentaryPasses: () => Promise.resolve(mock.listComplimentaryPasses()),
   createComplimentaryPass: (input, a) => Promise.resolve(mock.createComplimentaryPass(input, a)),
   redeemComplimentaryPass: (code, u) => Promise.resolve(mock.redeemComplimentaryPass(code, u)),
-  revokeComplimentaryPass: (id, a) => Promise.resolve(mock.revokeComplimentaryPass(id, a)),
+  revokeComplimentaryPass: (id, a, r) => Promise.resolve(mock.revokeComplimentaryPass(id, a, r)),
   myComplimentaryPasses: (u) => Promise.resolve(mock.myComplimentaryPasses(u)),
+  listMembershipPasses: () => Promise.resolve(mock.listMembershipPasses()),
+  createMembershipPass: (i, a) => Promise.resolve(mock.createMembershipPass(i, a)),
+  revokeMembershipPass: (id, r, a) => Promise.resolve(mock.revokeMembershipPass(id, r, a)),
+  redeemMembershipPass: (code) => Promise.resolve(mock.redeemMembershipPass(code)),
   listMatchProposals: () => Promise.resolve(mock.listMatchProposals()),
   createMatchProposal: (a, b, m, ad) => Promise.resolve(mock.createMatchProposal(a, b, m, ad)),
   respondToMatchProposal: (id, u, ac) => Promise.resolve(mock.respondToMatchProposal(id, u, ac)),

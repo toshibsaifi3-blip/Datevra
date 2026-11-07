@@ -8,8 +8,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * NEVER put service-role keys or payment secrets in frontend code.
  */
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const url = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+const anonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 export const isSupabaseConfigured = Boolean(url && anonKey);
 
@@ -30,6 +30,6 @@ export function getSupabase(): SupabaseClient | null {
 }
 
 export const RAZORPAY_TEST_MODE =
-  (import.meta.env.VITE_RAZORPAY_TEST_MODE as string | undefined) !== "false";
+  (import.meta.env?.VITE_RAZORPAY_TEST_MODE as string | undefined) !== "false";
 export const RAZORPAY_KEY_ID =
-  (import.meta.env.VITE_RAZORPAY_KEY_ID as string | undefined) ?? "";
+  (import.meta.env?.VITE_RAZORPAY_KEY_ID as string | undefined) ?? "";

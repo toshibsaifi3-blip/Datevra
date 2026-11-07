@@ -49,6 +49,7 @@ const AdminVerification = lazy(() => import("./pages/admin/Verification"));
 const AdminReports = lazy(() => import("./pages/admin/Reports"));
 const AdminMatchmaking = lazy(() => import("./pages/admin/Matchmaking"));
 const AdminMemberships = lazy(() => import("./pages/admin/Memberships"));
+const AdminMembershipPasses = lazy(() => import("./pages/admin/MembershipPasses"));
 const AdminPayments = lazy(() => import("./pages/admin/Payments"));
 const AdminAnalytics = lazy(() => import("./pages/admin/Analytics"));
 const AdminInvestors = lazy(() => import("./pages/admin/Investors"));
@@ -155,6 +156,7 @@ export default function App() {
                   <Route path="admin/reports" element={<AdminReports />} />
                   <Route path="admin/matchmaking" element={<AdminMatchmaking />} />
                   <Route path="admin/memberships" element={<AdminMemberships />} />
+                  <Route path="admin/membership-passes" element={<AdminMembershipPasses />} />
                   <Route path="admin/payments" element={<AdminPayments />} />
                   <Route path="admin/analytics" element={<AdminAnalytics />} />
                   <Route path="admin/investors" element={<AdminInvestors />} />

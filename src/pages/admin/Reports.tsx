@@ -47,7 +47,7 @@ export default function Reports() {
 
   const setStatus = async (id: string, status: Report["status"]) => {
     try {
-      await db.setReportStatus(id, status);
+      await db.setReportStatus(id, status, actor);
       refreshReports();
       toast(`Report marked as ${status}`, "gold");
     } catch (e) {
@@ -62,7 +62,7 @@ export default function Reports() {
       return;
     try {
       await db.blockUser(actor, reportedId);
-      await db.setReportStatus(reportId, "resolved");
+      await db.setReportStatus(reportId, "resolved", actor);
       refreshReports();
       toast(`${reported.firstName} blocked`, "rose");
     } catch (e) {

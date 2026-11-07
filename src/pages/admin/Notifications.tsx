@@ -49,6 +49,11 @@ export default function Notifications() {
           link: link.trim() || undefined,
         });
       }
+      await db.logActivity(
+        session?.userId ?? "admin-1",
+        "notification.broadcast",
+        `Broadcast announcement "${title.trim()}" sent to ${users.length} members`,
+      );
       setSent((s) => [
         { title: title.trim(), at: new Date().toISOString(), count: users.length },
         ...s,

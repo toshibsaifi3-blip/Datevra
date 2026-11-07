@@ -1,4 +1,6 @@
 import type {
+  Gender,
+  InterestedIn,
   MatchPreferences,
   UserProfile,
 } from "./types";
@@ -89,6 +91,123 @@ export function computeCompatibility(
   return { score: Math.min(100, Math.round(score)), factors };
 }
 
+export type CompatibilityTier = "compatible" | "potential_concern" | "incompatible" | "insufficient_info";
+
+export interface PairwiseCompatibilityAssessment {
+  score: number;
+  factors: string[];
+  tier: CompatibilityTier;
+  tierLabel: string;
+  summary: string;
+  concerns: string[];
+  insufficientInfo: boolean;
+}
+
+/** Check if a candidate's gender aligns with a user's interestedIn orientation. */
+export function isGenderOriented(interestedIn: InterestedIn | undefined, gender: Gender | undefined): boolean {
+  if (!interestedIn || interestedIn === "everyone") return true;
+  if (!gender) return true; // missing info is not proof of incompatibility
+  if (interestedIn === "women") return gender === "woman";
+  if (interestedIn === "men") return gender === "man";
+  return true;
+}
+
+/**
+ * Assesses compatibility between two members for admin curated matchmaking.
+ * Reuses Datevra's existing computeCompatibility engine while assessing
+ * preference alignment, intent alignment, and information sufficiency.
+ */
+export function evaluatePairwiseCompatibility(
+  userA: UserProfile,
+  userB: UserProfile,
+  prefsA?: MatchPreferences | null,
+  prefsB?: MatchPreferences | null,
+): PairwiseCompatibilityAssessment {
+  // Use existing computeCompatibility engine
+  const resultA = computeCompatibility(userA, userB, prefsA ?? null);
+  const resultB = computeCompatibility(userB, userA, prefsB ?? null);
+  const avgScore = Math.round((resultA.score + resultB.score) / 2);
+  const mergedFactors = Array.from(new Set([...resultA.factors, ...resultB.factors]));
+
+  const concerns: string[] = [];
+
+  // Check orientation / gender preferences
+  const aWantsB = isGenderOriented(userA.interestedIn, userB.gender);
+  const bWantsA = isGenderOriented(userB.interestedIn, userA.gender);
+
+  if (!aWantsB) {
+    concerns.push(`${userA.firstName} is seeking ${userA.interestedIn}, but ${userB.firstName} is a ${userB.gender}.`);
+  }
+  if (!bWantsA) {
+    concerns.push(`${userB.firstName} is seeking ${userB.interestedIn}, but ${userA.firstName} is a ${userA.gender}.`);
+  }
+
+  // Check relationship intent
+  if (userA.relationshipIntent && userB.relationshipIntent) {
+    if (userA.relationshipIntent.toLowerCase() !== userB.relationshipIntent.toLowerCase()) {
+      concerns.push(`Different intentions: ${userA.firstName} seeks “${userA.relationshipIntent}”, ${userB.firstName} seeks “${userB.relationshipIntent}”.`);
+    }
+  }
+
+  // Check age preferences if explicit prefs exist
+  if (prefsA && (userB.age < prefsA.ageMin || userB.age > prefsA.ageMax)) {
+    concerns.push(`${userB.firstName} (${userB.age}) is outside ${userA.firstName}'s preferred age (${prefsA.ageMin}–${prefsA.ageMax}).`);
+  }
+  if (prefsB && (userA.age < prefsB.ageMin || userA.age > prefsB.ageMax)) {
+    concerns.push(`${userA.firstName} (${userA.age}) is outside ${userB.firstName}'s preferred age (${prefsB.ageMin}–${prefsB.ageMax}).`);
+  }
+
+  // Check city mismatch (note: this is a consideration, not a hard barrier)
+  if (userA.city && userB.city && userA.city.toLowerCase() !== userB.city.toLowerCase()) {
+    const aCityMatch = prefsA?.cities?.some((c) => c.toLowerCase() === userB.city.toLowerCase());
+    const bCityMatch = prefsB?.cities?.some((c) => c.toLowerCase() === userA.city.toLowerCase());
+    if (!aCityMatch && !bCityMatch) {
+      concerns.push(`Different locations: ${userA.firstName} in ${userA.city}, ${userB.firstName} in ${userB.city}.`);
+    }
+  }
+
+  // Check insufficient profile info (never treat missing profile info as incompatibility)
+  const missingA = !userA.bio && (!userA.interests || userA.interests.length === 0);
+  const missingB = !userB.bio && (!userB.interests || userB.interests.length === 0);
+  const insufficientInfo = missingA || missingB || (userA.profileComplete < 30 && userB.profileComplete < 30);
+
+  let tier: CompatibilityTier = "compatible";
+  let tierLabel = "Compatible";
+  let summary = "Both members show healthy synergy across interests and profile parameters.";
+
+  const hasOrientationConflict = !aWantsB || !bWantsA;
+
+  if (hasOrientationConflict) {
+    tier = "incompatible";
+    tierLabel = "Orientation Mismatch";
+    summary = "Gender orientation preferences conflict. Introduction is not recommended.";
+  } else if (insufficientInfo) {
+    tier = "insufficient_info";
+    tierLabel = "Limited Profile Data";
+    summary = "One or both profiles have limited data. Compatibility score may not reflect full potential.";
+  } else if (concerns.length > 0 || avgScore < 40) {
+    tier = "potential_concern";
+    tierLabel = "Potential Concern";
+    summary = concerns.length > 0
+      ? "Review highlighted preferences before sending."
+      : "Lower overall overlap, though no direct preference barriers exist.";
+  } else {
+    tier = "compatible";
+    tierLabel = "Strong Match";
+    summary = "High compatibility with aligned preferences and shared interests.";
+  }
+
+  return {
+    score: avgScore,
+    factors: mergedFactors,
+    tier,
+    tierLabel,
+    summary,
+    concerns,
+    insufficientInfo,
+  };
+}
+
 /** Rank candidates by compatibility, filtering out blocked/self/liked. */
 export function rankCandidates(
   me: UserProfile,
@@ -104,3 +223,4 @@ export function rankCandidates(
     })
     .sort((a, b) => b.score - a.score);
 }
+

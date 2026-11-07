@@ -19,6 +19,8 @@ export interface MembershipPlan {
 export type Gender = "woman" | "man" | "nonbinary";
 export type InterestedIn = "women" | "men" | "everyone";
 
+export type VerificationStatus = "pending" | "verified" | "declined";
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -34,6 +36,10 @@ export interface UserProfile {
   lifestyle: string[];
   photos: string[];
   verified: boolean;
+  verificationStatus?: VerificationStatus;
+  verificationReviewedAt?: string | null;
+  verificationReviewedBy?: string | null;
+  verificationNote?: string | null;
   online: boolean;
   lastActive: string; // ISO
   profileComplete: number; // 0-100
@@ -290,6 +296,78 @@ export interface ComplimentaryPass {
   redeemedAt: string | null;
   createdAt: string;
 }
+
+export interface RevokeComplimentaryPassResult {
+  success: boolean;
+  code?: string;
+  warning?: string;
+}
+
+/* ---------------- Membership passes ---------------- */
+
+export type MembershipPassStatus = "active" | "redeemed" | "expired" | "revoked";
+
+export interface MembershipPass {
+  id: string;
+  code: string;
+  planId: PlanId;
+  durationDays: number;
+  issuedToUserId: string | null;
+  issuedToName?: string | null;
+  issuedToEmail?: string | null;
+  issuedByAdminId: string | null;
+  status: MembershipPassStatus;
+  note: string | null;
+  expiresAt: string | null;
+  redeemedAt: string | null;
+  revokedAt?: string | null;
+  revocationReason?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateMembershipPassInput {
+  planId: PlanId;
+  durationDays: number;
+  expiresAt?: string | null;
+  issuedToUserId?: string | null;
+  note?: string | null;
+}
+
+export type MembershipPassErrorCode =
+  | "UNAUTHORIZED"
+  | "MISSING_CODE"
+  | "RATE_LIMITED"
+  | "INVALID_CODE"
+  | "ALREADY_REDEEMED"
+  | "PASS_REVOKED"
+  | "PASS_EXPIRED"
+  | "NOT_ASSIGNED_TO_CALLER"
+  | "LIFETIME_ACTIVE"
+  | "DOWNGRADE_NOT_PERMITTED"
+  | "INVALID_RPC_RESPONSE"
+  | "UNEXPECTED_ERROR"
+  | "UNSUPPORTED_BACKEND";
+
+export interface RedeemMembershipPassSuccess {
+  success: true;
+  code: string;
+  planId: PlanId;
+  durationDays: number;
+  expiresAt: string;
+  paymentId: string;
+  subscriptionId: string;
+}
+
+export interface RedeemMembershipPassFailure {
+  success: false;
+  error: MembershipPassErrorCode | string;
+  message: string;
+}
+
+export type RedeemMembershipPassResult =
+  | RedeemMembershipPassSuccess
+  | RedeemMembershipPassFailure;
 
 /* ---------------- Curated match proposals ---------------- */
 

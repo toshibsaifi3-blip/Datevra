@@ -62,8 +62,8 @@ export default function Matches() {
       const updated = await db.respondToMatchProposal(p.id, user.id, accept);
       if (updated.status === "accepted") {
         toast("It's a match! You can now chat.", "gold");
-      } else if (!accept) {
-        toast("Proposal declined.");
+      } else if (updated.status === "declined") {
+        toast(accept ? "This proposal is no longer available." : "Proposal declined.");
       } else {
         toast("Accepted! Waiting for the other person.", "gold");
       }

@@ -14,6 +14,7 @@ import type {
   Match,
   MatchPreferences,
   MatchProposal,
+  MembershipPass,
   MembershipPlan,
   Message,
   Payment,
@@ -22,6 +23,7 @@ import type {
   Report,
   Subscription,
   UserProfile,
+  VerificationStatus,
 } from "../types";
 
 /* Row → domain mappers (snake_case Supabase rows → camelCase app types).
@@ -60,6 +62,10 @@ export function mapProfile(r: Row): UserProfile {
     lifestyle: arr(r.lifestyle),
     photos: arr(r.photos),
     verified: bool(r.verified),
+    verificationStatus: (r.verification_status as VerificationStatus | undefined) ?? (bool(r.verified) ? "verified" : "pending"),
+    verificationReviewedAt: isoNull(r.verification_reviewed_at),
+    verificationReviewedBy: (r.verification_reviewed_by as string | null) ?? null,
+    verificationNote: (r.verification_note as string | null) ?? null,
     online: bool(r.online),
     lastActive: str(r.last_active, iso(r.created_at)),
     profileComplete: num(r.profile_complete),
@@ -426,13 +432,19 @@ export function unmapSettings(s: PlatformSettings): Row {
 }
 
 export function mapComplimentaryPass(r: Row): ComplimentaryPass {
+  const cafeObj = r.cafes && typeof r.cafes === "object" ? (r.cafes as Row) : null;
+  const profileObj = r.profiles && typeof r.profiles === "object" ? (r.profiles as Row) : null;
+
+  const cafeName = str(cafeObj?.name ?? r.cafe_name ?? "");
+  const issuedToName = (profileObj?.first_name as string | null) ?? (r.issued_to_name as string | null) ?? null;
+
   return {
     id: str(r.id),
     code: str(r.code),
     cafeId: str(r.cafe_id),
-    cafeName: str(r.cafe_name ?? ""),
+    cafeName,
     issuedToUserId: (r.issued_to_user_id as string | null) ?? null,
-    issuedToName: (r.issued_to_name as string | null) ?? null,
+    issuedToName,
     issuedByAdminId: str(r.issued_by_admin_id),
     status: str(r.status, "active") as ComplimentaryPass["status"],
     note: (r.note as string | null) ?? null,
@@ -442,13 +454,42 @@ export function mapComplimentaryPass(r: Row): ComplimentaryPass {
   };
 }
 
+export function mapMembershipPass(r: Row): MembershipPass {
+  const profile = r.profiles && typeof r.profiles === "object" ? (r.profiles as Row) : null;
+  return {
+    id: str(r.id),
+    code: str(r.code),
+    planId: str(r.plan_id, "connect") as MembershipPass["planId"],
+    durationDays: num(r.duration_days, 30),
+    status: str(r.status, "active") as MembershipPass["status"],
+    issuedByAdminId: str(r.issued_by_admin_id),
+    issuedToUserId: (r.issued_to_user_id as string | null) ?? null,
+    issuedToEmail: (profile?.email as string | null) ?? null,
+    issuedToName: (profile?.first_name as string | null) ?? null,
+    note: (r.note as string | null) ?? null,
+    expiresAt: (r.expires_at as string | null) ?? null,
+    redeemedAt: (r.redeemed_at as string | null) ?? null,
+    revokedAt: (r.revoked_at as string | null) ?? null,
+    revocationReason: (r.revocation_reason as string | null) ?? null,
+    createdAt: str(r.created_at),
+    updatedAt: (r.updated_at as string | null) ?? undefined,
+  };
+}
+
 export function mapMatchProposal(r: Row): MatchProposal {
+  // Support joined profile data from user_a:user_a_id(first_name) and user_b:user_b_id(first_name)
+  const userAObj = r.user_a && typeof r.user_a === "object" ? (r.user_a as Row) : null;
+  const userBObj = r.user_b && typeof r.user_b === "object" ? (r.user_b as Row) : null;
+
+  const userAName = (userAObj?.first_name as string | null) ?? (r.user_a_name as string | null) ?? null;
+  const userBName = (userBObj?.first_name as string | null) ?? (r.user_b_name as string | null) ?? null;
+
   return {
     id: str(r.id),
     userAId: str(r.user_a_id),
     userBId: str(r.user_b_id),
-    userAName: (r.user_a_name as string | null) ?? null,
-    userBName: (r.user_b_name as string | null) ?? null,
+    userAName,
+    userBName,
     proposedByAdminId: str(r.proposed_by_admin_id),
     message: (r.message as string | null) ?? null,
     status: str(r.status, "pending") as MatchProposal["status"],
