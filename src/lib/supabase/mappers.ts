@@ -320,6 +320,7 @@ export function mapSubscription(r: Row): Subscription {
     id: str(r.id),
     userId: str(r.user_id),
     planId: str(r.plan_id, "connect") as PlanId,
+    paymentId: (r.payment_id as string | null) ?? null,
     status: (str(r.status, "active") as Subscription["status"]),
     startedAt: iso(r.started_at),
     expiresAt: isoNull(r.expires_at),

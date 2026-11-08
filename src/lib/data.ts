@@ -140,10 +140,13 @@ export interface Backend {
   listPlans(): Promise<MembershipPlan[]>;
   activeSubscription(userId: string): Promise<Subscription | undefined>;
   subscriptionsFor(userId: string): Promise<Subscription[]>;
+  allSubscriptions(): Promise<Subscription[]>;
+  cancelSubscription(subscriptionId: string, actorId: string, reason?: string): Promise<void>;
+  extendSubscription(subscriptionId: string, extensionDays: number, actorId: string, reason?: string): Promise<Subscription>;
   purchaseMembership(userId: string, planId: PlanId, amount: number): Promise<Payment>;
   verifyPayment(paymentId: string, actorId: string): Promise<Payment | undefined>;
   recordCashPayment(userId: string, amount: number, note: string, actorId: string): Promise<Payment>;
-  refundPayment(paymentId: string, actorId: string): Promise<void>;
+  refundPayment(paymentId: string, actorId: string, reason?: string): Promise<void>;
   paymentsFor(userId: string): Promise<Payment[]>;
   allPayments(): Promise<Payment[]>;
   listInvestors(): Promise<InvestorRecord[]>;
@@ -176,7 +179,7 @@ export interface Backend {
   listMembershipPasses(): Promise<MembershipPass[]>;
   createMembershipPass(input: CreateMembershipPassInput, adminId: string): Promise<MembershipPass>;
   revokeMembershipPass(passId: string, reason: string | null, adminId: string): Promise<MembershipPass>;
-  redeemMembershipPass(code: string): Promise<RedeemMembershipPassResult>;
+  redeemMembershipPass(code: string, userId?: string): Promise<RedeemMembershipPassResult>;
   /* ---------------- curated match proposals ---------------- */
   listMatchProposals(): Promise<MatchProposal[]>;
   createMatchProposal(userAId: string, userBId: string, message: string | null, adminId: string): Promise<MatchProposal>;
@@ -277,10 +280,13 @@ export const demoBackend: Backend = {
   listPlans: () => Promise.resolve(PLANS),
   activeSubscription: (u) => Promise.resolve(mock.activeSubscription(u)),
   subscriptionsFor: (u) => Promise.resolve(mock.subscriptionsFor(u)),
+  allSubscriptions: () => Promise.resolve(mock.allSubscriptions()),
+  cancelSubscription: (id, a, r) => Promise.resolve(mock.cancelSubscription(id, a, r)),
+  extendSubscription: (id, d, a, r) => Promise.resolve(mock.extendSubscription(id, d, a, r)),
   purchaseMembership: (u, p, a) => Promise.resolve(mock.purchaseMembership(u, p, a)),
   verifyPayment: (id, a) => Promise.resolve(mock.verifyPayment(id, a)),
   recordCashPayment: (u, a, n, ac) => Promise.resolve(mock.recordCashPayment(u, a, n, ac)),
-  refundPayment: (id, a) => Promise.resolve(mock.refundPayment(id, a)),
+  refundPayment: (id, a, r) => Promise.resolve(mock.refundPayment(id, a, r)),
   paymentsFor: (u) => Promise.resolve(mock.paymentsFor(u)),
   allPayments: () => Promise.resolve(mock.allPayments()),
   listInvestors: () => Promise.resolve(mock.listInvestors()),
@@ -303,7 +309,7 @@ export const demoBackend: Backend = {
   listMembershipPasses: () => Promise.resolve(mock.listMembershipPasses()),
   createMembershipPass: (i, a) => Promise.resolve(mock.createMembershipPass(i, a)),
   revokeMembershipPass: (id, r, a) => Promise.resolve(mock.revokeMembershipPass(id, r, a)),
-  redeemMembershipPass: (code) => Promise.resolve(mock.redeemMembershipPass(code)),
+  redeemMembershipPass: (code, userId) => Promise.resolve(mock.redeemMembershipPass(code, userId)),
   listMatchProposals: () => Promise.resolve(mock.listMatchProposals()),
   createMatchProposal: (a, b, m, ad) => Promise.resolve(mock.createMatchProposal(a, b, m, ad)),
   respondToMatchProposal: (id, u, ac) => Promise.resolve(mock.respondToMatchProposal(id, u, ac)),

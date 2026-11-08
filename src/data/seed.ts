@@ -42,7 +42,7 @@ export const PLANS: MembershipPlan[] = [
   {
     id: "elite",
     name: "Privé",
-    price: 1199,
+    price: 1499,
     tagline: "The Datevra signature",
     priority: 3,
     badge: "Privé Member",

@@ -19,11 +19,25 @@
 -- ----------------------------------------------------------------------------
 
 DO $$
+DECLARE
+  v_condef text;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'chk_profiles_verified_status_sync'
-  ) THEN
+  SELECT pg_get_constraintdef(oid) INTO v_condef
+  FROM pg_constraint
+  WHERE conname = 'chk_profiles_verified_status_sync'
+    AND conrelid = 'public.profiles'::regclass;
+
+  IF v_condef IS NOT NULL THEN
+    -- Validate that existing constraint on public.profiles matches the intended invariant
+    IF v_condef NOT LIKE '%verified = true%'
+       OR v_condef NOT LIKE '%verification_status = ''verified''%'
+       OR v_condef NOT LIKE '%verified = false%'
+       OR v_condef NOT LIKE '%pending%'
+       OR v_condef NOT LIKE '%declined%' THEN
+      RAISE EXCEPTION 'Constraint chk_profiles_verified_status_sync exists on public.profiles with unexpected definition: %', v_condef;
+    END IF;
+  ELSE
+    -- Constraint does not exist on public.profiles: add it
     ALTER TABLE public.profiles
       ADD CONSTRAINT chk_profiles_verified_status_sync
       CHECK (

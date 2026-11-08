@@ -799,6 +799,45 @@ async function subscriptionsFor(userId: string): Promise<Subscription[]> {
   return throwIf(res, "Could not load subscriptions").map((r) => mapSubscription(r as Record<string, unknown>));
 }
 
+async function allSubscriptions(): Promise<Subscription[]> {
+  const res = await sb()
+    .from("subscriptions")
+    .select("*")
+    .order("started_at", { ascending: false });
+  return throwIf(res, "Could not load subscriptions").map((r) => mapSubscription(r as Record<string, unknown>));
+}
+
+async function cancelSubscription(
+  subscriptionId: string,
+  _actorId: string,
+  reason?: string,
+): Promise<void> {
+  const res = await sb().rpc("admin_cancel_subscription", {
+    p_subscription_id: subscriptionId,
+    p_reason: reason?.trim() || null,
+  });
+  if (res.error) {
+    throw new Error(`Could not cancel subscription: ${res.error.message}`);
+  }
+}
+
+async function extendSubscription(
+  subscriptionId: string,
+  extensionDays: number,
+  _actorId: string,
+  reason?: string,
+): Promise<Subscription> {
+  const res = await sb().rpc("admin_extend_subscription", {
+    p_subscription_id: subscriptionId,
+    p_extension_days: extensionDays,
+    p_reason: reason?.trim() || null,
+  });
+  if (res.error) {
+    throw new Error(`Could not extend subscription: ${res.error.message}`);
+  }
+  return mapSubscription(res.data as Record<string, unknown>);
+}
+
 /**
  * Creates a PENDING payment intent. Real capture/verification happens
  * server-side (Razorpay order + webhook → Edge Function). The client must
@@ -830,13 +869,18 @@ async function purchaseMembership(userId: string, planId: PlanId, amount: number
  *  Function. The status guard on the update makes double-verification
  *  a no-op even if two admins click at once. */
 async function verifyPayment(paymentId: string, actorId: string): Promise<Payment | undefined> {
+  // Try atomic server-side RPC first
+  const rpcRes = await sb().rpc("admin_verify_payment", { p_payment_id: paymentId });
+  if (!rpcRes.error && rpcRes.data) {
+    return mapPayment(rpcRes.data as Record<string, unknown>);
+  }
+
+  // Fallback to client sequence if RPC is not yet provisioned in remote database
   const cur = await sb().from("payments").select("*").eq("id", paymentId).maybeSingle();
   const row = throwIf(cur, "Payment not found");
   const payment = mapPayment(row as Record<string, unknown>);
   if (payment.status !== "pending") return payment;
 
-  // Optimistic guard: only a still-pending row flips to verified, so a
-  // concurrent verification cannot double-activate the membership.
   const upd = await sb()
     .from("payments")
     .update({ status: "verified", razorpay_payment_id: `pay_${Date.now().toString(36)}` })
@@ -846,7 +890,6 @@ async function verifyPayment(paymentId: string, actorId: string): Promise<Paymen
     .maybeSingle();
   if (upd.error) throw new Error(`Could not verify payment: ${upd.error.message}`);
   if (!upd.data) {
-    // Lost the race — the other verification won; return current state.
     const again = await sb().from("payments").select("*").eq("id", paymentId).maybeSingle();
     return again.data ? mapPayment(again.data as Record<string, unknown>) : payment;
   }
@@ -860,6 +903,7 @@ async function verifyPayment(paymentId: string, actorId: string): Promise<Paymen
     await sb().from("subscriptions").insert({
       user_id: verified.userId,
       plan_id: verified.planId,
+      payment_id: verified.id,
       status: "active",
       started_at: start.toISOString(),
       expires_at: end.toISOString(),
@@ -897,13 +941,96 @@ async function recordCashPayment(
   return payment;
 }
 
-async function refundPayment(paymentId: string, actorId: string): Promise<void> {
-  const cur = await sb().from("payments").select("amount,status").eq("id", paymentId).maybeSingle();
+async function refundPayment(paymentId: string, actorId: string, reason?: string): Promise<void> {
+  // Try atomic server-side RPC first
+  const rpcRes = await sb().rpc("admin_refund_payment", {
+    p_payment_id: paymentId,
+    p_reason: reason || "",
+  });
+  if (!rpcRes.error) {
+    return;
+  }
+
+  // Fallback to client sequence if RPC is not yet provisioned in remote database
+  const cur = await sb().from("payments").select("*").eq("id", paymentId).maybeSingle();
   const row = throwIf(cur, "Payment not found") as Record<string, unknown>;
-  if (row.status !== "verified") throw new Error("Only verified payments can be refunded.");
+  const payment = mapPayment(row);
+  if (payment.status === "refunded") {
+    throw new Error(`ALREADY_REFUNDED: Payment ${paymentId} has already been refunded.`);
+  }
+  if (payment.status !== "verified") {
+    throw new Error(`INVALID_REFUND_STATUS: Only verified payments can be refunded (current: ${payment.status}).`);
+  }
+
   const res = await sb().from("payments").update({ status: "refunded" }).eq("id", paymentId);
   if (res.error) throw new Error(`Could not refund: ${res.error.message}`);
-  await logActivity(actorId, "payment.refund", `Refunded payment ${paymentId} (₹${row.amount})`);
+
+  let subRevoked = false;
+  if (payment.kind === "membership") {
+    // Check if there is a newer verified membership payment
+    const newerPayRes = await sb()
+      .from("payments")
+      .select("id")
+      .eq("user_id", payment.userId)
+      .eq("kind", "membership")
+      .eq("status", "verified")
+      .gt("created_at", payment.createdAt)
+      .limit(1);
+
+    const hasNewer = (newerPayRes.data?.length ?? 0) > 0;
+    if (!hasNewer) {
+      // Find linked active subscription
+      const subRes = await sb()
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", payment.userId)
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (subRes.data) {
+        await sb().from("subscriptions").update({ status: "cancelled" }).eq("id", subRes.data.id);
+        subRevoked = true;
+
+        // Check for any other active subscription
+        const nowIso = new Date().toISOString();
+        const otherRes = await sb()
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", payment.userId)
+          .eq("status", "active")
+          .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (otherRes.data) {
+          await sb()
+            .from("profiles")
+            .update({ plan_id: otherRes.data.plan_id, plan_expires_at: otherRes.data.expires_at })
+            .eq("id", payment.userId);
+        } else {
+          await sb().from("profiles").update({ plan_id: null, plan_expires_at: null }).eq("id", payment.userId);
+        }
+      }
+    }
+  }
+
+  // Push notification to member
+  await pushNotification({
+    userId: payment.userId,
+    kind: "payment",
+    title: "Payment Refunded",
+    body: `Your payment of ₹${payment.amount} has been recorded as refunded in the ledger.${
+      subRevoked ? " Associated membership privileges have been revoked." : ""
+    }`,
+    link: "/membership",
+  });
+
+  const detail = `Refunded payment ${paymentId} (₹${payment.amount})${
+    subRevoked ? " [membership subscription cancelled]" : ""
+  }${reason ? ` — ${reason}` : ""}`;
+  await logActivity(actorId, "payment.refund", detail);
 }
 
 async function paymentsFor(userId: string): Promise<Payment[]> {
@@ -1483,6 +1610,9 @@ export const supabaseBackend = {
   listPlans,
   activeSubscription,
   subscriptionsFor,
+  allSubscriptions,
+  cancelSubscription,
+  extendSubscription,
   purchaseMembership,
   verifyPayment,
   recordCashPayment,

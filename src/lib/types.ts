@@ -216,11 +216,14 @@ export interface Payment {
   createdAt: string;
 }
 
+export type SubscriptionStatus = "pending" | "active" | "expired" | "cancelled";
+
 export interface Subscription {
   id: string;
   userId: string;
   planId: PlanId;
-  status: "active" | "expired" | "cancelled";
+  paymentId?: string | null;
+  status: SubscriptionStatus;
   startedAt: string;
   /** Null = lifetime / no expiry — always treated as an active membership. */
   expiresAt: string | null;

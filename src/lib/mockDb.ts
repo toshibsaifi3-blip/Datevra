@@ -323,8 +323,120 @@ function seed(): DbShape {
     complimentaryPasses: [],
     membershipPasses: [],
     matchProposals: [],
-    payments: [],
-    subscriptions: [],
+    payments: [
+      {
+        id: "pay-seed-aarav",
+        userId: "u-aarav",
+        kind: "membership",
+        amount: 799,
+        planId: "plus",
+        status: "verified",
+        razorpayOrderId: "ord_seed_aarav",
+        razorpayPaymentId: "pay_seed_aarav",
+        method: "card",
+        createdAt: iso(now - 86400000 * 10),
+      },
+      {
+        id: "pay-seed-meera",
+        userId: "u-meera",
+        kind: "membership",
+        amount: 1499,
+        planId: "elite",
+        status: "verified",
+        razorpayOrderId: "ord_seed_meera",
+        razorpayPaymentId: "pay_seed_meera",
+        method: "upi",
+        createdAt: iso(now - 86400000 * 15),
+      },
+      {
+        id: "pay-seed-kabir",
+        userId: "u-kabir",
+        kind: "membership",
+        amount: 499,
+        planId: "connect",
+        status: "verified",
+        razorpayOrderId: "ord_seed_kabir",
+        razorpayPaymentId: "pay_seed_kabir",
+        method: "netbanking",
+        createdAt: iso(now - 86400000 * 40),
+      },
+      {
+        id: "pay-seed-anaya",
+        userId: "u-anaya",
+        kind: "membership",
+        amount: 799,
+        planId: "plus",
+        status: "verified",
+        razorpayOrderId: "ord_seed_anaya",
+        razorpayPaymentId: "pay_seed_anaya",
+        method: "card",
+        createdAt: iso(now - 86400000 * 25),
+      },
+      {
+        id: "pay-seed-isha",
+        userId: "u-isha",
+        kind: "membership",
+        amount: 499,
+        planId: "connect",
+        status: "pending",
+        razorpayOrderId: "ord_seed_isha",
+        razorpayPaymentId: null,
+        method: "card",
+        createdAt: iso(now - 86400000 * 1),
+      },
+    ],
+    subscriptions: [
+      {
+        id: "sub-seed-1",
+        userId: "u-aarav",
+        planId: "plus",
+        paymentId: "pay-seed-aarav",
+        status: "active",
+        startedAt: iso(now - 86400000 * 10),
+        expiresAt: iso(now + 86400000 * 20),
+        autoRenew: true,
+      },
+      {
+        id: "sub-seed-2",
+        userId: "u-meera",
+        planId: "elite",
+        paymentId: "pay-seed-meera",
+        status: "active",
+        startedAt: iso(now - 86400000 * 15),
+        expiresAt: iso(now + 86400000 * 15),
+        autoRenew: false,
+      },
+      {
+        id: "sub-seed-3",
+        userId: "u-kabir",
+        planId: "connect",
+        paymentId: "pay-seed-kabir",
+        status: "expired",
+        startedAt: iso(now - 86400000 * 40),
+        expiresAt: iso(now - 86400000 * 10),
+        autoRenew: false,
+      },
+      {
+        id: "sub-seed-4",
+        userId: "u-anaya",
+        planId: "plus",
+        paymentId: "pay-seed-anaya",
+        status: "cancelled",
+        startedAt: iso(now - 86400000 * 25),
+        expiresAt: iso(now + 86400000 * 5),
+        autoRenew: false,
+      },
+      {
+        id: "sub-seed-5",
+        userId: "u-isha",
+        planId: "connect",
+        paymentId: "pay-seed-isha",
+        status: "pending",
+        startedAt: iso(now - 86400000 * 1),
+        expiresAt: null,
+        autoRenew: false,
+      },
+    ],
     investors: [
       {
         id: "inv-1",
@@ -866,6 +978,13 @@ export function listReports(): Report[] {
   return load().reports;
 }
 export function setReportStatus(id: string, status: Report["status"], actorId?: string): void {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
+  if (!["open", "reviewing", "resolved", "dismissed"].includes(status)) {
+    throw new Error(`Invalid report status: ${status}. Must be open, reviewing, resolved, or dismissed.`);
+  }
   const db = load();
   const r = db.reports.find((x) => x.id === id);
   if (!r) {
@@ -874,9 +993,7 @@ export function setReportStatus(id: string, status: Report["status"], actorId?: 
   r.status = status;
   save(db);
   emit("reports");
-  if (actorId) {
-    logActivity(actorId, "report.status", `Report ${id} status → ${status}`);
-  }
+  logActivity(cleanActor, "report.status", `Report ${id} status → ${status}`);
 }
 
 /* ---------------- chat ---------------- */
@@ -1349,14 +1466,202 @@ export function revokeMembershipPass(
   return pass;
 }
 
-export function redeemMembershipPass(_code: string): RedeemMembershipPassResult {
-  // In demo/preview mode without a live Supabase backend, pass redemption cannot
-  // be validated or processed by the Migration 011 SECURITY DEFINER RPC.
-  // Never simulate successful redemption or generate fake subscriptions/payments.
+export function redeemMembershipPass(
+  code: string,
+  userId?: string,
+): RedeemMembershipPassResult {
+  const cleanCode = (code || "").trim().toUpperCase();
+  if (!cleanCode) {
+    return {
+      success: false,
+      error: "MISSING_CODE",
+      message: "Pass code is required.",
+    };
+  }
+
+  const targetUserId = userId || "you-1";
+  const db = load();
+  const now = new Date();
+
+  // 1. Pass existence and validity checks
+  const pass = db.membershipPasses.find((p) => p.code === cleanCode);
+  if (!pass) {
+    return {
+      success: false,
+      error: "INVALID_CODE",
+      message: "Invalid membership pass code.",
+    };
+  }
+
+  if (pass.status === "redeemed") {
+    return {
+      success: false,
+      error: "ALREADY_REDEEMED",
+      message: "This membership pass has already been redeemed.",
+    };
+  }
+
+  if (pass.status === "revoked") {
+    return {
+      success: false,
+      error: "PASS_REVOKED",
+      message: "This membership pass has been revoked.",
+    };
+  }
+
+  if (pass.status === "expired" || (pass.expiresAt && new Date(pass.expiresAt) <= now)) {
+    pass.status = "expired";
+    save(db);
+    return {
+      success: false,
+      error: "PASS_EXPIRED",
+      message: "This membership pass has expired.",
+    };
+  }
+
+  if (pass.issuedToUserId && pass.issuedToUserId !== targetUserId) {
+    return {
+      success: false,
+      error: "NOT_ASSIGNED_TO_CALLER",
+      message: "This membership pass was issued to a different account.",
+    };
+  }
+
+  // 2. Active Subscription & Downgrade / Lifetime Protection
+  const tierWeight: Record<PlanId, number> = { connect: 1, plus: 2, elite: 3 };
+  const userActiveSubs = db.subscriptions.filter(
+    (s) =>
+      s.userId === targetUserId &&
+      s.status === "active" &&
+      (s.expiresAt == null || new Date(s.expiresAt) > now),
+  );
+
+  userActiveSubs.sort((a, b) => {
+    const wA = tierWeight[a.planId] ?? 1;
+    const wB = tierWeight[b.planId] ?? 1;
+    if (wB !== wA) return wB - wA;
+    if (a.expiresAt == null) return -1;
+    if (b.expiresAt == null) return 1;
+    return b.expiresAt.localeCompare(a.expiresAt);
+  });
+
+  const currentSub = userActiveSubs[0];
+  const passWeight = tierWeight[pass.planId] ?? 1;
+
+  if (currentSub) {
+    const subWeight = tierWeight[currentSub.planId] ?? 1;
+
+    // LIFETIME PROTECTION: Never replace an active lifetime membership
+    if (currentSub.expiresAt == null) {
+      return {
+        success: false,
+        error: "LIFETIME_ACTIVE",
+        message: `You currently hold an active lifetime ${currentSub.planId} membership. Passes cannot be applied to lifetime memberships.`,
+      };
+    }
+
+    // DOWNGRADE PROTECTION: Prevent lower-tier pass from replacing higher-tier plan
+    if (passWeight < subWeight) {
+      return {
+        success: false,
+        error: "DOWNGRADE_NOT_PERMITTED",
+        message: `You currently have an active higher-tier membership (${currentSub.planId}). You cannot apply a lower-tier pass while it is active.`,
+      };
+    }
+  }
+
+  // 3. Expiration Calculation
+  let newExpiresAt: Date;
+  if (currentSub && currentSub.planId === pass.planId && currentSub.expiresAt) {
+    // Same-tier extension appends duration to current expiration
+    newExpiresAt = new Date(new Date(currentSub.expiresAt).getTime() + pass.durationDays * 86400000);
+  } else {
+    // Tier upgrade or fresh start begins from now
+    newExpiresAt = new Date(now.getTime() + pass.durationDays * 86400000);
+  }
+
+  // 4. Invariant: Expire pre-existing active subscriptions before inserting new one
+  db.subscriptions.forEach((s) => {
+    if (s.userId === targetUserId && s.status === "active") {
+      s.status = "expired";
+    }
+  });
+
+  // 5. Mark pass as redeemed
+  pass.status = "redeemed";
+  pass.redeemedAt = now.toISOString();
+  pass.issuedToUserId = pass.issuedToUserId || targetUserId;
+
+  // 6. Record ₹0 verified payment record for accounting & ledger parity
+  const paymentId = uid("pay");
+  const payment: Payment = {
+    id: paymentId,
+    userId: targetUserId,
+    kind: "membership",
+    amount: 0,
+    planId: pass.planId,
+    status: "verified",
+    razorpayOrderId: `pass_ord_${pass.code}`,
+    razorpayPaymentId: `pass_pay_${Date.now().toString(36)}`,
+    method: "membership_pass",
+    createdAt: now.toISOString(),
+  };
+  db.payments.push(payment);
+
+  // 7. Insert the single new active subscription
+  const subId = uid("sub");
+  const sub: Subscription = {
+    id: subId,
+    userId: targetUserId,
+    planId: pass.planId,
+    paymentId,
+    status: "active",
+    startedAt: now.toISOString(),
+    expiresAt: newExpiresAt.toISOString(),
+    autoRenew: false,
+  };
+  db.subscriptions.push(sub);
+
+  // 8. Reconcile user profile plan and planExpiresAt
+  const user = db.users.find((u) => u.id === targetUserId);
+  if (user) {
+    user.plan = pass.planId;
+    user.planExpiresAt = newExpiresAt.toISOString();
+  }
+
+  // 9. Send in-app notification
+  db.notifications.push({
+    id: uid("n"),
+    userId: targetUserId,
+    kind: "membership",
+    title: "Membership pass activated",
+    body: `Your ${pass.planId} membership has been activated for ${pass.durationDays} days.`,
+    link: "/membership",
+    read: false,
+    createdAt: now.toISOString(),
+  });
+
+  // 10. Audit logging
+  logActivity(
+    targetUserId,
+    "membership_pass.redeem",
+    `Redeemed pass ${pass.code} for plan ${pass.planId} (${pass.durationDays} days)`,
+  );
+
+  save(db);
+  emit("membership_passes");
+  emit("payments", payment);
+  emit("subscriptions");
+  emit("profiles");
+
   return {
-    success: false,
-    error: "UNSUPPORTED_BACKEND",
-    message: "Membership pass redemption requires an active Supabase backend with Migration 011 applied.",
+    success: true,
+    code: pass.code,
+    planId: pass.planId,
+    durationDays: pass.durationDays,
+    expiresAt: newExpiresAt.toISOString(),
+    paymentId,
+    subscriptionId: subId,
   };
 }
 
@@ -1506,6 +1811,161 @@ export function subscriptionsFor(userId: string): Subscription[] {
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 }
 
+export function allSubscriptions(): Subscription[] {
+  const db = load();
+  const now = new Date();
+  let changed = false;
+
+  for (const s of db.subscriptions) {
+    if (s.status === "active" && s.expiresAt != null && new Date(s.expiresAt) <= now) {
+      s.status = "expired";
+      changed = true;
+    }
+  }
+  if (changed) save(db);
+
+  return [...db.subscriptions].sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+}
+
+export function cancelSubscription(
+  subscriptionId: string,
+  actorId: string,
+  reason?: string,
+): void {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
+
+  const db = load();
+  const sub = db.subscriptions.find((s) => s.id === subscriptionId);
+  if (!sub) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  if (sub.status !== "active") {
+    throw new Error(`Only active subscriptions can be cancelled (current status: ${sub.status}).`);
+  }
+
+  sub.status = "cancelled";
+
+  // Reconcile user profile: if member has no other active subscriptions, reset profile plan
+  const now = new Date();
+  const otherActive = db.subscriptions.find(
+    (s) =>
+      s.userId === sub.userId &&
+      s.id !== sub.id &&
+      s.status === "active" &&
+      (s.expiresAt == null || new Date(s.expiresAt) > now),
+  );
+
+  if (!otherActive) {
+    const user = db.users.find((u) => u.id === sub.userId);
+    if (user) {
+      user.plan = null;
+      user.planExpiresAt = null;
+    }
+  }
+
+  // Member notification
+  db.notifications.push({
+    id: uid("n"),
+    userId: sub.userId,
+    kind: "membership",
+    title: "Subscription Cancelled",
+    body: reason
+      ? `Your subscription was cancelled: ${reason}`
+      : "Your membership subscription has been cancelled by administration.",
+    link: "/membership",
+    read: false,
+    createdAt: new Date().toISOString(),
+  });
+
+  // Audit logging
+  logActivity(
+    cleanActor,
+    "subscription.cancel",
+    `Cancelled subscription ${subscriptionId} for user ${sub.userId}${reason ? `: ${reason.trim()}` : ""}`,
+  );
+
+  save(db);
+  emit("subscriptions");
+  emit("profiles");
+}
+
+export function extendSubscription(
+  subscriptionId: string,
+  extensionDays: number,
+  actorId: string,
+  reason?: string,
+): Subscription {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
+
+  if (!Number.isInteger(extensionDays) || extensionDays <= 0) {
+    throw new Error("Extension duration must be a positive integer number of days.");
+  }
+
+  const db = load();
+  const sub = db.subscriptions.find((s) => s.id === subscriptionId);
+  if (!sub) {
+    throw new Error(`Subscription not found: ${subscriptionId}`);
+  }
+
+  if (sub.status === "cancelled") {
+    throw new Error("Cancelled subscriptions cannot be extended.");
+  }
+
+  if (sub.status === "pending") {
+    throw new Error("Pending subscriptions cannot be extended before activation.");
+  }
+
+  if (sub.expiresAt == null) {
+    throw new Error("Lifetime subscriptions do not have an expiration date to extend.");
+  }
+
+  const now = new Date();
+  const currentExpiry = new Date(sub.expiresAt);
+  const baseTime = currentExpiry > now ? currentExpiry : now;
+  const newExpiry = new Date(baseTime.getTime() + extensionDays * 86400000);
+
+  sub.expiresAt = newExpiry.toISOString();
+  sub.status = "active";
+
+  // Reconcile user profile plan and planExpiresAt
+  const user = db.users.find((u) => u.id === sub.userId);
+  if (user) {
+    user.plan = sub.planId;
+    user.planExpiresAt = sub.expiresAt;
+  }
+
+  // Member notification
+  db.notifications.push({
+    id: uid("n"),
+    userId: sub.userId,
+    kind: "membership",
+    title: "Membership Extended",
+    body: `Your ${sub.planId} membership has been extended by ${extensionDays} days.${reason ? ` (${reason})` : ""}`,
+    link: "/membership",
+    read: false,
+    createdAt: new Date().toISOString(),
+  });
+
+  // Audit logging
+  logActivity(
+    cleanActor,
+    "subscription.extend",
+    `Extended subscription ${subscriptionId} by ${extensionDays} days for user ${sub.userId}${reason ? `: ${reason.trim()}` : ""}`,
+  );
+
+  save(db);
+  emit("subscriptions");
+  emit("profiles");
+  return sub;
+}
+
 /**
  * Records a membership purchase. In demo/test mode the payment is created
  * as "pending" and must be verified — never reported as successful without
@@ -1536,11 +1996,18 @@ export function purchaseMembership(
 
 /** Simulates verified payment capture (stands in for Razorpay webhook verify). */
 export function verifyPayment(paymentId: string, actorId: string): Payment | undefined {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
   const db = load();
   const p = db.payments.find((x) => x.id === paymentId);
-  if (!p || p.status !== "pending") return p;
+  if (!p) {
+    throw new Error(`Payment not found: ${paymentId}`);
+  }
+  if (p.status !== "pending") return p;
   p.status = "verified";
-  p.razorpayPaymentId = `pay_demo_${Date.now().toString(36)}`;
+  p.razorpayPaymentId = p.razorpayPaymentId || `pay_demo_${Date.now().toString(36)}`;
   if (p.kind === "membership" && p.planId) {
     // expire old, activate new
     db.subscriptions.forEach((s) => {
@@ -1553,6 +2020,7 @@ export function verifyPayment(paymentId: string, actorId: string): Payment | und
       id: uid("sub"),
       userId: p.userId,
       planId: p.planId,
+      paymentId: p.id,
       status: "active",
       startedAt: start.toISOString(),
       expiresAt: end.toISOString(),
@@ -1574,9 +2042,11 @@ export function verifyPayment(paymentId: string, actorId: string): Payment | und
       createdAt: new Date().toISOString(),
     });
   }
-  logActivity(actorId, "payment.verify", `Verified payment ${paymentId} (₹${p.amount})`);
+  logActivity(cleanActor, "payment.verify", `Verified payment ${paymentId} (₹${p.amount})`);
   save(db);
   emit("payments", p);
+  emit("subscriptions");
+  emit("profiles");
   return p;
 }
 
@@ -1586,6 +2056,10 @@ export function recordCashPayment(
   note: string,
   actorId: string,
 ): Payment {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
   const db = load();
   const p: Payment = {
     id: uid("pay"),
@@ -1600,18 +2074,107 @@ export function recordCashPayment(
     createdAt: new Date().toISOString(),
   };
   db.payments.push(p);
-  logActivity(actorId, "payment.cash", `Recorded cash payment ₹${amount} for ${userId}: ${note}`);
+  logActivity(cleanActor, "payment.cash", `Recorded cash payment ₹${amount} for ${userId}: ${note}`);
   save(db);
+  emit("payments", p);
   return p;
 }
 
-export function refundPayment(paymentId: string, actorId: string) {
+export function refundPayment(paymentId: string, actorId: string, reason?: string) {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
   const db = load();
   const p = db.payments.find((x) => x.id === paymentId);
-  if (!p || p.status !== "verified") return;
+  if (!p) {
+    throw new Error(`Payment not found: ${paymentId}`);
+  }
+  if (p.status === "refunded") {
+    throw new Error(`ALREADY_REFUNDED: Payment ${paymentId} has already been refunded.`);
+  }
+  if (p.status !== "verified") {
+    throw new Error(`INVALID_REFUND_STATUS: Only verified payments can be refunded (current: ${p.status}).`);
+  }
+
   p.status = "refunded";
-  logActivity(actorId, "payment.refund", `Refunded payment ${paymentId} (₹${p.amount})`);
+  let subRevoked = false;
+
+  // Subscription entitlement reconciliation
+  if (p.kind === "membership") {
+    // Find the subscription linked to this payment
+    const linkedSub = db.subscriptions
+      .slice()
+      .reverse()
+      .find(
+        (s) =>
+          (s.paymentId === p.id || (s.userId === p.userId && s.planId === p.planId && s.status === "active")) &&
+          s.userId === p.userId,
+      );
+
+    if (linkedSub && linkedSub.status === "active") {
+      // Guard: Do not revoke if there is a newer verified membership payment
+      const hasNewerVerifiedPayment = db.payments.some(
+        (p2) =>
+          p2.userId === p.userId &&
+          p2.kind === "membership" &&
+          p2.status === "verified" &&
+          new Date(p2.createdAt).getTime() > new Date(p.createdAt).getTime(),
+      );
+
+      if (!hasNewerVerifiedPayment) {
+        linkedSub.status = "cancelled";
+        subRevoked = true;
+
+        // Check if member has any other active subscription
+        const now = new Date();
+        const otherActiveSub = db.subscriptions.find(
+          (s) =>
+            s.userId === p.userId &&
+            s.id !== linkedSub.id &&
+            s.status === "active" &&
+            (!s.expiresAt || new Date(s.expiresAt) > now),
+        );
+
+        const u = db.users.find((x) => x.id === p.userId);
+        if (u) {
+          if (otherActiveSub) {
+            u.plan = otherActiveSub.planId;
+            u.planExpiresAt = otherActiveSub.expiresAt;
+          } else {
+            u.plan = null;
+            u.planExpiresAt = null;
+          }
+        }
+      }
+    }
+  }
+
+  // Member notification
+  db.notifications.push({
+    id: uid("n"),
+    userId: p.userId,
+    kind: "payment",
+    title: "Payment Refunded",
+    body: `Your payment of ₹${p.amount} has been recorded as refunded in the ledger.${
+      subRevoked ? " Associated membership privileges have been revoked." : ""
+    }`,
+    link: "/membership",
+    read: false,
+    createdAt: new Date().toISOString(),
+  });
+
+  const detail = `Refunded payment ${paymentId} (₹${p.amount})${
+    subRevoked ? " [membership subscription cancelled]" : ""
+  }${reason ? ` — ${reason}` : ""}`;
+
+  logActivity(cleanActor, "payment.refund", detail);
   save(db);
+  emit("payments", p);
+  if (subRevoked) {
+    emit("subscriptions");
+    emit("profiles");
+  }
 }
 
 export function paymentsFor(userId: string): Payment[] {
@@ -1694,6 +2257,11 @@ export function allUsers(): UserProfile[] {
   return load().users;
 }
 export function setUserVerified(id: string, verified: boolean, actorId: string, note?: string): void {
+  const cleanActor = actorId ? actorId.trim() : "";
+  if (!cleanActor) {
+    throw new Error("NOT_AUTHENTICATED: Authentication required.");
+  }
+
   const db = load();
   const u = db.users.find((x) => x.id === id);
   if (!u) {
@@ -1701,20 +2269,20 @@ export function setUserVerified(id: string, verified: boolean, actorId: string, 
   }
 
   // Backend Self-Verification Guard (Defense-in-Depth)
-  if (actorId && id === actorId) {
+  if (id === cleanActor) {
     throw new Error("CANNOT_VERIFY_SELF: Administrators cannot verify or decline their own profile.");
   }
 
   u.verified = verified;
   u.verificationStatus = verified ? "verified" : "declined";
   u.verificationReviewedAt = new Date().toISOString();
-  u.verificationReviewedBy = actorId;
+  u.verificationReviewedBy = cleanActor;
   u.verificationNote = note ? note.trim() : null;
 
   const statusLabel = verified ? "verified" : "declined";
   const cleanNote = note ? note.trim() : "";
   const detail = `${u.firstName} (${id}) verification → ${statusLabel}${cleanNote ? `: ${cleanNote}` : ""}`;
-  logActivity(actorId, "user.verify", detail);
+  logActivity(cleanActor, "user.verify", detail);
 
   // In-app notification to the affected member
   const notif: AppNotification = {
