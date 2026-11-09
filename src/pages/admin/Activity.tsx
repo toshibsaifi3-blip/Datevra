@@ -28,7 +28,7 @@ export type ActivityCategory =
   | "safety"
   | "system";
 
-export function classifyAction(action: string): {
+function classifyAction(action: string): {
   category: ActivityCategory;
   categoryLabel: string;
   tone: "gold" | "rose" | "green" | "muted";
@@ -54,7 +54,7 @@ export function classifyAction(action: string): {
   return { category: "system", categoryLabel: "System & Content", tone: "muted" };
 }
 
-export function formatActionName(action: string): string {
+function formatActionName(action: string): string {
   const map: Record<string, string> = {
     "user.verify": "Member Verification",
     "membership_pass.create": "Membership Pass Created",

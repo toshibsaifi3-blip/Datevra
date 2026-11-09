@@ -26,9 +26,10 @@ export default function Notifications() {
   const [link, setLink] = useState("");
   const [sent, setSent] = useState<{ title: string; at: string; count: number }[]>([]);
 
+  const currentAdminId = session?.userId ?? "admin-1";
   const { data: adminNotes, loading, error, refresh } = useAsync(
-    (b) => b.notificationsFor("admin-1"),
-    [db],
+    (b) => b.notificationsFor(currentAdminId),
+    [db, currentAdminId],
     [] as AppNotification[],
   );
   const { data: all } = useAsync((b) => b.allUsers(), [db], [] as UserProfile[]);

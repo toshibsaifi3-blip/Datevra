@@ -61,6 +61,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 async function supaRole(userId: string): Promise<"user" | "admin"> {
   const c = getSupabase();
   if (!c) return "user";
+  try {
+    const { data: rpcIsAdmin, error: rpcErr } = await c.rpc("is_admin");
+    if (!rpcErr && typeof rpcIsAdmin === "boolean") {
+      return rpcIsAdmin ? "admin" : "user";
+    }
+  } catch {
+    /* fallback to profile query */
+  }
   const { data } = await c
     .from("profiles")
     .select("is_admin")

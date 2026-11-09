@@ -19,7 +19,7 @@
 
 import * as mockDb from "./src/lib/mockDb";
 import { PLANS } from "./src/data/seed";
-import type { Subscription, PlanId, SubscriptionStatus } from "./src/lib/types";
+import type { Subscription, PlanId } from "./src/lib/types";
 import * as fs from "fs";
 
 let passed = 0;

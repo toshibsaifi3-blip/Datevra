@@ -3,6 +3,23 @@ import type { PlatformSettings } from "../../lib/types";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { Field, SectionHead, Skeleton, inputCls, useToast } from "../../components/ui";
+function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+        on ? "bg-rosegold/60" : "bg-white/10"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 rounded-full bg-ivory transition-transform ${
+          on ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  );
+}
 
 export default function Settings() {
   const { session } = useAuth();
@@ -48,23 +65,6 @@ export default function Settings() {
       toast(e instanceof Error ? e.message : "Could not save settings", "rose");
     }
   };
-
-function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-        on ? "bg-rosegold/60" : "bg-white/10"
-      }`}
-    >
-      <span
-        className={`inline-block h-5 w-5 rounded-full bg-ivory transition-transform ${
-          on ? "translate-x-6" : "translate-x-1"
-        }`}
-      />
-    </button>
-  );
-}
 
   return (
     <div className="px-5 pb-24 pt-10 md:pt-14">

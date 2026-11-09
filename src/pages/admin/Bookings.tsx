@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { BookingStatus, Cafe, DateBooking, DateExperience, UserProfile } from "../../lib/types";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
-import { Badge, EmptyState, SectionHead, Skeleton, inputCls, useToast } from "../../components/ui";
+import { Badge, EmptyState, Modal, SectionHead, Skeleton, inputCls, useToast } from "../../components/ui";
 import { fmtDate, inr, rowCls, tdCls, thCls } from "./_util";
 
 const STATUS_TONES: Record<BookingStatus, "gold" | "green" | "muted"> = {
@@ -22,6 +22,8 @@ export default function Bookings() {
   const { toast } = useToast();
   const db = useBackend();
   const [statusFilter, setStatusFilter] = useState("all");
+  const [cancelTarget, setCancelTarget] = useState<DateBooking | null>(null);
+  const [inFlight, setInFlight] = useState(false);
   const actor = session?.userId ?? "admin-1";
 
   const { data: bookingsRaw, loading, error, refresh } = useAsync(
@@ -42,17 +44,34 @@ export default function Bookings() {
   const bookings = bookingsRaw.filter((b) => statusFilter === "all" || b.status === statusFilter);
 
   const setStatus = async (b: DateBooking, status: BookingStatus) => {
-    if (
-      status === "cancelled" &&
-      !window.confirm(`Cancel booking at ${b.venue} on ${b.date}? Members will be notified.`)
-    )
+    if (status === "cancelled") {
+      setCancelTarget(b);
       return;
+    }
+    setInFlight(true);
     try {
       await db.setBookingStatus(b.id, status, actor);
       refresh();
       toast(`Booking → ${status}`, "gold");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not update booking", "rose");
+    } finally {
+      setInFlight(false);
+    }
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelTarget) return;
+    setInFlight(true);
+    try {
+      await db.setBookingStatus(cancelTarget.id, "cancelled", actor);
+      refresh();
+      toast(`Booking at ${cancelTarget.venue} cancelled`, "gold");
+      setCancelTarget(null);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not cancel booking", "rose");
+    } finally {
+      setInFlight(false);
     }
   };
 
@@ -164,6 +183,40 @@ export default function Bookings() {
             </div>
           )}
         </div>
+
+        {cancelTarget && (
+          <Modal open={!!cancelTarget} title="Cancel Booking" onClose={() => setCancelTarget(null)}>
+            <div className="space-y-4">
+              <p className="text-sm text-ivory-dim">
+                Are you sure you want to cancel the booking at{" "}
+                <span className="text-ivory font-medium">{cancelTarget.venue}</span> on{" "}
+                <span className="text-champagne font-medium">{cancelTarget.date}</span> at{" "}
+                <span className="text-champagne font-medium">{cancelTarget.time}</span>?
+              </p>
+              <p className="text-xs text-mist">
+                Both participants will be notified in-app immediately.
+              </p>
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setCancelTarget(null)}
+                  disabled={inFlight}
+                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmCancel}
+                  disabled={inFlight}
+                  className="rounded-xl px-5 py-2.5 text-sm font-medium bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/30 transition-colors disabled:opacity-50"
+                >
+                  {inFlight ? "Cancelling..." : "Confirm Cancellation"}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
       </div>
     </div>
   );

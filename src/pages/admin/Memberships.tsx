@@ -811,7 +811,7 @@ export default function Memberships() {
         </div>
       </div>
 
-      {/* In-App Administrative Cancellation Modal (Zero window.confirm) */}
+      {/* In-App Administrative Cancellation Modal */}
       <AnimatePresence>
         {cancelTarget && (
           <Modal
@@ -907,7 +907,7 @@ export default function Memberships() {
         )}
       </AnimatePresence>
 
-      {/* In-App Administrative Extension Modal (Zero window.confirm) */}
+      {/* In-App Administrative Extension Modal */}
       <AnimatePresence>
         {extendTarget && (
           <Modal
