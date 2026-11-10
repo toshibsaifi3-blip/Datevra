@@ -112,6 +112,7 @@
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -123,6 +124,18 @@ body {
     radial-gradient(760px 520px at 50% 112%, rgba(67, 141, 255, 0.1), transparent 62%),
     radial-gradient(560px 380px at 108% 62%, rgba(197, 164, 255, 0.1), transparent 60%);
   background-attachment: fixed;
+}
+
+/* Ensure mobile inputs do not trigger unwanted iOS browser auto-zoom while preserving font sizing */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch responsiveness utilities */
+button, a, input, select, textarea, [role="button"], [role="tab"] {
+  touch-action: manipulation;
 }
 
 ::selection {

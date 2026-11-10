@@ -254,13 +254,22 @@ export function mapBooking(r: Row): DateBooking {
 }
 
 export function mapCafe(r: Row): Cafe {
+  const rawImages = Array.isArray(r.images)
+    ? (r.images as string[])
+    : typeof r.images === "string" && r.images.trim()
+      ? r.images.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+  const primaryImage = str(r.image);
+  const images = rawImages.length > 0 ? rawImages : primaryImage ? [primaryImage] : [];
+
   return {
     id: str(r.id),
     name: str(r.name),
     city: str(r.city),
     address: str(r.address),
     description: str(r.description),
-    image: str(r.image),
+    image: primaryImage,
+    images: images.length > 0 ? images : undefined,
     priceRange: (str(r.price_range, "₹₹") as Cafe["priceRange"]),
     openingHours: str(r.opening_hours),
     experiences: arr(r.experiences),

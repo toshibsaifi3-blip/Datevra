@@ -44,6 +44,7 @@ export default function Cafes() {
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<Cafe>(blankCafe());
   const [expInput, setExpInput] = useState("");
+  const [imagesInput, setImagesInput] = useState("");
   const actor = session?.userId ?? "admin-1";
 
   const { data: cafesRaw, loading, error, refresh } = useAsync(
@@ -62,21 +63,30 @@ export default function Cafes() {
   const openNew = () => {
     setForm(blankCafe());
     setExpInput("");
+    setImagesInput("");
     setFormOpen(true);
   };
   const openEdit = (c: Cafe) => {
-    setForm({ ...c, experiences: [...c.experiences] });
+    setForm({ ...c, experiences: [...c.experiences], images: c.images ? [...c.images] : (c.image ? [c.image] : []) });
     setExpInput(c.experiences.join(", "));
+    setImagesInput(c.images && c.images.length > 0 ? c.images.join("\n") : (c.image || ""));
     setFormOpen(true);
   };
 
   const save = async () => {
     if (!form.name.trim()) return toast("Enter the café name", "rose");
     if (!form.address.trim()) return toast("Enter the address", "rose");
+    const parsedImages = imagesInput
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const primaryImage = parsedImages[0] || form.image.trim();
     try {
       await db.upsertCafe(
         {
           ...form,
+          image: primaryImage,
+          images: parsedImages.length > 0 ? parsedImages : (primaryImage ? [primaryImage] : []),
           experiences: expInput
             .split(",")
             .map((s) => s.trim())
@@ -203,8 +213,32 @@ export default function Cafes() {
                 <Field label="Menu (one item per line, with prices)">
                   <textarea value={form.menu} onChange={(e) => setForm({ ...form, menu: e.target.value })} className={inputCls} rows={5} placeholder={"Cappuccino — ₹280\nTruffle fries — ₹420"} />
                 </Field>
-                <Field label="Photo URL">
-                  <input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputCls} placeholder="https://…" />
+                <Field label="Photo URLs (one per line or comma-separated)">
+                  <textarea
+                    value={imagesInput}
+                    onChange={(e) => {
+                      setImagesInput(e.target.value);
+                      const first = e.target.value.split(/[\n,]/).map((s) => s.trim()).filter(Boolean)[0];
+                      if (first) setForm({ ...form, image: first });
+                    }}
+                    className={inputCls}
+                    rows={3}
+                    placeholder="/assets/cafes/example.jpg\nhttps://…"
+                  />
+                  {imagesInput.trim() && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {imagesInput
+                        .split(/[\n,]/)
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                        .slice(0, 4)
+                        .map((img, idx) => (
+                          <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gold/20">
+                            <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </Field>
               </div>
               <Field label="Description">

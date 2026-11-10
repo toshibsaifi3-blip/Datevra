@@ -4,6 +4,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import { Badge, EmptyState, Reveal, Skeleton, useToast } from "../../components/ui";
 import { useDbRefresh } from "./shared";
 import type { Cafe } from "../../lib/types";
+import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
 export default function SavedCafes() {
   const { user } = useAuth();
@@ -73,20 +74,28 @@ export default function SavedCafes() {
           {cafes.map((c) => (
             <Reveal key={c.id}>
               <div className="glass rounded-3xl overflow-hidden card-hover h-full flex flex-col">
-                {c.image ? (
-                  <img src={c.image} alt={c.name} className="h-40 w-full object-cover" />
-                ) : (
-                  <div className="h-40 w-full bg-gradient-to-br from-burgundy-deep via-burgundy to-[#3d1a12] flex items-center justify-center">
-                    <span className="font-display text-3xl text-champagne/80">☕</span>
-                  </div>
-                )}
+                <CafePhotoSlider
+                  images={c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : []}
+                  cafeName={c.name}
+                  aspectRatioClassName="h-44 sm:h-48"
+                  fallbackLetter="☕"
+                />
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-display text-xl text-ivory">{c.name}</p>
                     <Badge tone="muted">{c.priceRange}</Badge>
                   </div>
-                  <p className="text-sm text-mist mt-1">{c.city} · ★ {c.rating.toFixed(1)}</p>
-                  <p className="text-xs text-mist/80 mt-2 line-clamp-2">{c.description}</p>
+                  <p className="text-xs text-champagne/90 mt-1.5 leading-relaxed break-words font-medium">
+                    {c.address}
+                  </p>
+                  <p className="text-[11px] text-mist/80 mt-1 flex items-center gap-1.5 flex-wrap">
+                    <span aria-hidden>✦</span> {c.city}{c.rating > 0 ? ` · ★ ${c.rating.toFixed(1)}` : ""}
+                  </p>
+                  {c.description ? (
+                    <p className="text-xs text-mist/80 mt-2 line-clamp-2 flex-1">{c.description}</p>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
                   <div className="flex gap-2 mt-4 pt-2">
                     <Link
                       to={`/cafes/${c.id}`}

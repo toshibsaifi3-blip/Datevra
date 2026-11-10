@@ -7,13 +7,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useDbRefresh } from "../user/shared";
 import type { Cafe } from "../../lib/types";
 
-const GRADIENTS = [
-  "from-[#5c2540] to-[#2c1020]",
-  "from-[#6e4a1b] to-[#3a2410]",
-  "from-burgundy to-burgundy-deep",
-  "from-[#3d2b52] to-[#1c1028]",
-  "from-[#7a3b2e] to-[#3d1a12]",
-];
+import { CafePhotoSlider } from "../../components/CafePhotoSlider";
+
 
 export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }) {
   const db = useBackend();
@@ -107,19 +102,18 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                   transition={{ type: "spring", stiffness: 240, damping: 22 }}
                   className="glass rounded-[2rem] overflow-hidden h-full flex flex-col card-hover relative"
                 >
-                  <div className={`relative h-48 bg-gradient-to-br ${GRADIENTS[i % GRADIENTS.length]}`}>
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(197,164,255,0.25),transparent_55%)]" />
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_85%,rgba(255,61,154,0.18),transparent_50%)]" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-display text-8xl text-champagne/80 select-none drop-shadow-[0_0_25px_rgba(197,164,255,0.35)]">
-                        {c.name.charAt(0)}
-                      </span>
-                    </div>
-                    <div className="absolute top-4 left-4">
+                  <div className="relative">
+                    <CafePhotoSlider
+                      images={c.images && c.images.length > 0 ? c.images : c.image ? [c.image] : []}
+                      cafeName={c.name}
+                      aspectRatioClassName="h-52 sm:h-56"
+                      fallbackLetter={c.name.charAt(0)}
+                    />
+                    <div className="absolute top-4 left-4 z-20 pointer-events-none">
                       {c.partner && <Badge tone="gold">✦ Partner</Badge>}
                     </div>
-                    <div className="absolute top-4 right-4 flex gap-2 items-center">
-                      <Badge tone="muted">★ {c.rating.toFixed(1)}</Badge>
+                    <div className="absolute top-4 right-4 z-20 flex gap-2 items-center pointer-events-none">
+                      {c.rating > 0 && <Badge tone="muted">★ {c.rating.toFixed(1)}</Badge>}
                     </div>
                     {user && (
                       <button
@@ -127,11 +121,15 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                         aria-label={saved ? `Unsave ${c.name}` : `Save ${c.name}`}
                         aria-pressed={saved}
                         disabled={savingId === c.id}
-                        onClick={() => void toggleSave(c)}
-                        className={`absolute bottom-4 right-4 rounded-full w-10 h-10 flex items-center justify-center text-lg transition-all disabled:opacity-50 ${
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void toggleSave(c);
+                        }}
+                        className={`absolute bottom-4 right-4 z-20 rounded-full min-h-[44px] min-w-[44px] w-11 h-11 flex items-center justify-center text-lg transition-all disabled:opacity-50 touch-manipulation shadow-lg ${
                           saved
                             ? "bg-gradient-to-br from-rosegold to-champagne text-midnight shadow-[0_0_20px_rgba(255,61,154,0.5)]"
-                            : "glass-strong text-ivory hover:text-rosegold"
+                            : "glass-strong text-ivory hover:text-rosegold active:scale-95"
                         }`}
                       >
                         {saved ? "♥" : "♡"}
@@ -145,12 +143,19 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                         {c.priceRange}
                       </span>
                     </div>
-                    <p className="text-xs text-mist mt-1 tracking-wide flex items-center gap-1.5">
-                      <span aria-hidden>✦</span> {c.city} · {c.openingHours}
+                    <p className="text-xs text-champagne/90 mt-1.5 leading-relaxed break-words font-medium">
+                      {c.address}
                     </p>
-                    <p className="mt-3 text-sm text-ivory-dim/85 leading-relaxed line-clamp-2 flex-1">
-                      {c.description}
+                    <p className="text-[11px] text-mist/80 mt-1 tracking-wide flex items-center gap-1.5 flex-wrap">
+                      <span aria-hidden>✦</span> {c.city}{c.openingHours ? ` · ${c.openingHours}` : ""}
                     </p>
+                    {c.description ? (
+                      <p className="mt-3 text-sm text-ivory-dim/85 leading-relaxed line-clamp-2 flex-1">
+                        {c.description}
+                      </p>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
                     <div className="mt-4 flex flex-wrap gap-1.5">
                       {c.experiences.slice(0, 2).map((x) => (
                         <Badge key={x} tone="muted">

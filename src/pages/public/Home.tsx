@@ -234,7 +234,7 @@ function SuggestedCard({ profile }: { profile: UserProfile }) {
         <button
           onClick={like}
           aria-label={liked ? "Liked" : `Like ${profile.firstName}`}
-          className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center text-lg backdrop-blur-md transition-all active:scale-90 ${
+          className={`absolute top-2.5 right-2.5 w-11 h-11 rounded-full flex items-center justify-center text-xl backdrop-blur-md transition-all active:scale-90 touch-manipulation ${
             liked
               ? "bg-rosegold text-white shadow-[0_0_16px_rgba(255,61,154,0.9)]"
               : "bg-black/35 text-blush border border-white/20 hover:border-rosegold/60"

@@ -187,6 +187,7 @@ export interface Cafe {
   address: string;
   description: string;
   image: string;
+  images?: string[];
   priceRange: "₹" | "₹₹" | "₹₹₹";
   openingHours: string;
   experiences: string[];

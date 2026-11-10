@@ -485,6 +485,23 @@ function load(): DbShape {
       if (parsed && Array.isArray(parsed.users)) {
         if (!Array.isArray(parsed.membershipPasses)) parsed.membershipPasses = [];
         if (!Array.isArray(parsed.matchProposals)) parsed.matchProposals = [];
+        if (!Array.isArray(parsed.cafes)) {
+          parsed.cafes = SEED_CAFES;
+        } else {
+          // Merge/sync seed cafes so updated seed addresses, images, and details are always reflected
+          for (const sc of SEED_CAFES) {
+            const existingIndex = parsed.cafes.findIndex((c) => c.id === sc.id);
+            if (existingIndex === -1) {
+              parsed.cafes.push(sc);
+            } else {
+              parsed.cafes[existingIndex].name = sc.name;
+              parsed.cafes[existingIndex].city = sc.city;
+              parsed.cafes[existingIndex].address = sc.address;
+              if (sc.images) parsed.cafes[existingIndex].images = sc.images;
+              if (sc.image) parsed.cafes[existingIndex].image = sc.image;
+            }
+          }
+        }
         currentDb = parsed;
         return currentDb;
       }
@@ -579,7 +596,12 @@ export function register(input: {
 }): { ok: true; session: Session } | { ok: false; error: string } {
   const db = load();
   const email = input.email.trim().toLowerCase();
-  if (db.credentials[email]) return { ok: false, error: "An account with this email already exists." };
+  if (db.credentials[email] || db.users.some((u) => u.email.toLowerCase() === email)) {
+    return {
+      ok: false,
+      error: "An account with this email address already exists. Please log in instead or reset your password if you've forgotten it.",
+    };
+  }
   if (input.age < db.settings.minAge)
     return { ok: false, error: `You must be at least ${db.settings.minAge} to join Datevra.` };
 

@@ -50,10 +50,11 @@ export default function Register() {
 
     setBusy(true);
     setError("");
+    const normalizedEmail = email.trim().toLowerCase();
     try {
       const r = await register({
         firstName: firstName.trim(),
-        email: email.trim(),
+        email: normalizedEmail,
         password,
         age: ageNum,
         gender,
@@ -302,9 +303,25 @@ export default function Register() {
           </label>
 
           {error && (
-            <p className="text-sm text-rosegold bg-burgundy/25 border border-burgundy-soft/40 rounded-xl px-4 py-3">
-              {error}
-            </p>
+            <div className="text-sm text-rosegold bg-burgundy/25 border border-burgundy-soft/40 rounded-xl p-4 space-y-3">
+              <p className="leading-relaxed">{error}</p>
+              {error.includes("already exists") && (
+                <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-burgundy-soft/20 text-xs">
+                  <Link
+                    to="/login"
+                    className="btn-gold rounded-full px-4 py-2 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm"
+                  >
+                    Go to Log In →
+                  </Link>
+                  <Link
+                    to="/forgot"
+                    className="btn-ghost rounded-full px-4 py-2 text-xs hover:text-champagne transition-colors"
+                  >
+                    Reset Password
+                  </Link>
+                </div>
+              )}
+            </div>
           )}
 
           <button

@@ -85,29 +85,33 @@ export function PublicNav() {
       }`}
     >
       <div className="max-w-7xl mx-auto px-5 h-[72px] flex items-center justify-between">
-        {/* Mobile: hamburger left */}
+        {/* Mobile: hamburger left (min 44x44 touch target) */}
         <button
-          className="lg:hidden text-ivory text-2xl px-1 -ml-1"
+          className="lg:hidden text-ivory text-2xl min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close menu" : "Open menu"}
         >
           {open ? "×" : "☰"}
         </button>
         {/* Mobile: centered script logo */}
-        <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2">
+        <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2 min-h-[44px] flex items-center">
           <span className="font-display text-[1.65rem] tracking-[0.14em] text-gradient-dream">
             Datevra
           </span>
         </Link>
-        {/* Mobile: search + notifications right */}
-        <div className="lg:hidden flex items-center gap-4">
-          <Link to="/discover" aria-label="Search" className="text-ivory-dim/90 hover:text-ivory text-xl transition-colors">
+        {/* Mobile: search + notifications right (min 44x44 touch target) */}
+        <div className="lg:hidden flex items-center gap-1 -mr-2">
+          <Link
+            to="/discover"
+            aria-label="Search"
+            className="text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
+          >
             ⌕
           </Link>
           <Link
             to={user ? "/notifications" : "/login"}
             aria-label="Notifications"
-            className="relative text-ivory-dim/90 hover:text-ivory text-xl transition-colors"
+            className="relative text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
           >
             ◉
             {user && <NotifDot />}
@@ -166,9 +170,13 @@ export function PublicNav() {
             className="lg:hidden glass-strong border-t hairline overflow-hidden"
             aria-label="Mobile"
           >
-            <div className="px-6 py-5 flex flex-col gap-4">
+            <div className="px-6 py-5 flex flex-col gap-2">
               {PUBLIC_LINKS.map((l) => (
-                <NavLink key={l.to} to={l.to} className="text-ivory/90 text-lg font-display">
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  className="text-ivory/90 hover:text-champagne text-lg font-display min-h-[44px] flex items-center px-2 rounded-xl active:bg-white/10 transition-colors touch-manipulation"
+                >
                   {l.label}
                 </NavLink>
               ))}
@@ -397,7 +405,7 @@ function Bell() {
   return (
     <button
       onClick={() => nav("/notifications")}
-      className="relative rounded-full p-2.5 glass hover:border-rosegold/40 transition-colors"
+      className="relative rounded-full min-h-[44px] min-w-[44px] p-2 flex items-center justify-center glass hover:border-rosegold/40 active:bg-white/10 transition-colors touch-manipulation"
       aria-label={`Notifications, ${count} unread`}
     >
       <span className="text-lg">◉</span>
@@ -466,7 +474,7 @@ export function UserShell() {
           <div className="flex items-center justify-between px-4 md:px-8 h-[68px]">
             <div className="flex items-center gap-3">
               <button
-                className="lg:hidden text-2xl text-ivory px-1"
+                className="lg:hidden text-2xl text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open menu"
               >
@@ -476,9 +484,9 @@ export function UserShell() {
                 Welcome back, <span className="text-gradient-gold">{user?.firstName}</span>
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Bell />
-              <Link to="/profile" aria-label="Your profile">
+              <Link to="/profile" aria-label="Your profile" className="min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
                 <span className="inline-flex h-10 w-10 rounded-full bg-gradient-to-br from-burgundy to-burgundy-deep border border-rosegold/40 items-center justify-center font-display text-champagne">
                   {user?.firstName?.[0] ?? "?"}
                 </span>
@@ -579,7 +587,7 @@ function AdminBell() {
   return (
     <button
       onClick={() => nav("/admin/notifications")}
-      className="relative rounded-xl p-2.5 glass hover:border-rosegold/40 transition-all text-ivory-dim hover:text-ivory group"
+      className="relative rounded-xl min-h-[44px] min-w-[44px] p-2.5 flex items-center justify-center glass hover:border-rosegold/40 active:bg-white/10 transition-all text-ivory-dim hover:text-ivory group touch-manipulation"
       aria-label={`Admin notifications, ${count} unread`}
       title="Notifications"
     >
@@ -685,14 +693,14 @@ export function AdminShell() {
                   to={l.to}
                   end={l.to === "/admin"}
                   className={({ isActive }) =>
-                    `flex items-center gap-3 rounded-xl transition-all font-medium ${
+                    `flex items-center gap-3 rounded-xl transition-all font-medium touch-manipulation ${
                       isSidebarCollapsed
-                        ? "justify-center h-10 w-10 mx-auto"
-                        : "px-3 py-2 text-[0.87rem]"
+                        ? "justify-center min-h-[44px] min-w-[44px] mx-auto"
+                        : "px-3 py-2.5 min-h-[42px] text-[0.87rem]"
                     } ${
                       isActive
                         ? "bg-gradient-to-r from-burgundy/80 via-burgundy-deep/60 to-transparent text-ivory border-l-2 border-rosegold shadow-sm shadow-burgundy/20"
-                        : "text-ivory-dim/75 hover:text-ivory hover:bg-white/[0.04] border-l-2 border-transparent"
+                        : "text-ivory-dim/75 hover:text-ivory hover:bg-white/[0.04] active:bg-white/[0.08] border-l-2 border-transparent"
                     }`
                   }
                   title={isSidebarCollapsed ? l.label : undefined}
@@ -819,7 +827,7 @@ export function AdminShell() {
         </Link>
         <button
           onClick={() => setMobileOpen(false)}
-          className="p-2 rounded-lg text-mist hover:text-ivory hover:bg-white/5"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-mist hover:text-ivory active:bg-white/10 touch-manipulation"
           aria-label="Close menu"
         >
           <X size={20} />
@@ -873,7 +881,7 @@ export function AdminShell() {
             {/* Left: Mobile trigger & Breadcrumbs */}
             <div className="flex items-center gap-3 min-w-0">
               <button
-                className="lg:hidden p-2 rounded-xl text-ivory glass hover:border-rosegold/40 transition-colors"
+                className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-ivory glass hover:border-rosegold/40 active:bg-white/10 transition-colors touch-manipulation"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open navigation menu"
               >
@@ -895,11 +903,11 @@ export function AdminShell() {
             </div>
 
             {/* Right: Quick Search + Notifications + Admin Identity */}
-            <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Quick Route Search Button */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-all group"
+                className="flex items-center gap-2 px-3 min-h-[44px] rounded-xl glass hover:border-rosegold/40 active:bg-white/10 text-xs text-mist hover:text-ivory transition-all group touch-manipulation"
                 aria-label="Search admin navigation"
               >
                 <Search size={14} className="text-mist group-hover:text-rosegold transition-colors" />

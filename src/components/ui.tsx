@@ -373,7 +373,7 @@ export function Modal({
                 <h3 className="font-display text-2xl text-ivory">{title}</h3>
                 <button
                   onClick={onClose}
-                  className="text-mist hover:text-ivory transition-colors text-xl leading-none"
+                  className="min-h-[44px] min-w-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-mist hover:text-ivory active:bg-white/10 transition-colors text-2xl leading-none touch-manipulation"
                   aria-label="Close"
                 >
                   ×
@@ -461,7 +461,7 @@ export function Field({
 }
 
 export const inputCls =
-  "input-lux w-full rounded-xl px-4 py-3 text-[0.95rem]";
+  "input-lux w-full rounded-xl px-4 py-3 min-h-[44px] text-[0.95rem] touch-manipulation";
 
 export function Reveal({
   children,

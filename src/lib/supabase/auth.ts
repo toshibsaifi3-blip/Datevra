@@ -85,6 +85,15 @@ export async function supaSignUp(input: SupaSignUpInput): Promise<AuthResult> {
   const uid = data.user?.id;
   if (!uid) return { ok: false, error: "Sign-up failed. Please try again." };
 
+  // Supabase Auth with email confirmation enabled returns a user with empty identities
+  // when an email is already registered (protecting account enumeration while preventing duplicate accounts).
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return {
+      ok: false,
+      error: "An account with this email address already exists. Please log in instead or reset your password if you've forgotten it.",
+    };
+  }
+
   // No session yet → email confirmation is on. Profile row is created
   // on first sign-in (see supaSignIn) once the user verifies.
   if (!data.session) {
@@ -220,12 +229,20 @@ function friendlyOtpError(message: string): string {
   return message;
 }
 
-function friendlyAuthError(message: string): string {
+export function friendlyAuthError(message: string): string {
   const m = message.toLowerCase();
   if (m.includes("invalid login credentials")) return "Invalid email or password.";
   if (m.includes("email not confirmed")) return "Please verify your email first — check your inbox for the 6-digit code.";
-  if (m.includes("already registered") || m.includes("already exists"))
-    return "An account with this email already exists. Try signing in.";
+  if (
+    m.includes("already registered") ||
+    m.includes("already exists") ||
+    m.includes("user_already_exists") ||
+    m.includes("user already registered") ||
+    m.includes("email address already exists") ||
+    m.includes("duplicate")
+  ) {
+    return "An account with this email address already exists. Please log in instead or reset your password if you've forgotten it.";
+  }
   if (m.includes("password")) return "Password does not meet the requirements.";
   if (m.includes("rate limit")) return "Too many attempts. Please wait a moment and try again.";
   return message;

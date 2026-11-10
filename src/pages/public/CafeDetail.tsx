@@ -4,6 +4,7 @@ import { Badge, EmptyState, Skeleton, useToast } from "../../components/ui";
 import { useBackend, useAsync } from "../../lib/data";
 import type { Cafe } from "../../lib/types";
 import { useAuth } from "../../context/AuthContext";
+import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
 export default function CafeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -111,6 +112,20 @@ export default function CafeDetail() {
           </motion.div>
         </div>
       </div>
+
+      {/* Photo Gallery Slider */}
+      {(cafe.images?.length || cafe.image) ? (
+        <section className="max-w-6xl mx-auto px-5 pt-8">
+          <div className="rounded-3xl overflow-hidden glass glow-border">
+            <CafePhotoSlider
+              images={cafe.images && cafe.images.length > 0 ? cafe.images : [cafe.image]}
+              cafeName={cafe.name}
+              aspectRatioClassName="h-72 sm:h-96 md:h-[460px]"
+              fallbackLetter={cafe.name.charAt(0)}
+            />
+          </div>
+        </section>
+      ) : null}
 
       {/* Details */}
       <section className="max-w-6xl mx-auto px-5 py-14 grid md:grid-cols-3 gap-6">
