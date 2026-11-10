@@ -319,7 +319,7 @@ function seed(): DbShape {
     ],
     bookings: [],
     cafes: SEED_CAFES,
-    savedCafes: [{ userId: "you-1", cafeId: "c-suzette-pune" }],
+    savedCafes: [{ userId: "you-1", cafeId: "c-hot-stag-del" }],
     complimentaryPasses: [],
     membershipPasses: [],
     matchProposals: [],
@@ -488,7 +488,19 @@ function load(): DbShape {
         if (!Array.isArray(parsed.cafes)) {
           parsed.cafes = SEED_CAFES;
         } else {
-          // Merge/sync seed cafes so updated seed addresses, images, and details are always reflected
+          // Keep the 3 new seed cafes and any custom cafes added by admin (id starting with "cf-")
+          // and prune the removed 6 original seed cafes ('c-roastery-mum', 'c-lodhi-del', etc.)
+          const removedOriginalIds = new Set([
+            "c-roastery-mum",
+            "c-lodhi-del",
+            "c-thirdwave-blr",
+            "c-suzette-pune",
+            "c-tapri-jpr",
+            "c-aerocity-hyd",
+          ]);
+          parsed.cafes = parsed.cafes.filter((c) => !removedOriginalIds.has(c.id));
+
+          // Merge/sync current seed cafes
           for (const sc of SEED_CAFES) {
             const existingIndex = parsed.cafes.findIndex((c) => c.id === sc.id);
             if (existingIndex === -1) {
