@@ -5,6 +5,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { EmptyState, Field, Modal, SectionHead, Skeleton, Stat, inputCls, useToast } from "../../components/ui";
 import { inr, rowCls, tdCls, thCls } from "./_util";
+import { isDemoCafe } from "../../lib/cafeFilter";
 
 export default function Commissions() {
   const { session } = useAuth();
@@ -23,7 +24,7 @@ export default function Commissions() {
 
   useEffect(() => db.subscribe("cafes", refresh), [db, refresh]);
 
-  const partners = cafes.filter((c) => c.partner);
+  const partners = cafes.filter((c) => c.partner && !isDemoCafe(c));
 
   const totalDue = partners.reduce((s, c) => s + Math.round((c.revenue * c.commissionPct) / 100), 0);
   const totalRevenue = partners.reduce((s, c) => s + c.revenue, 0);

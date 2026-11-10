@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { PageHero, Reveal, Badge, Skeleton, useToast } from "../../components/ui";
@@ -6,6 +6,7 @@ import { useBackend, useAsync } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { useDbRefresh } from "../user/shared";
 import type { Cafe } from "../../lib/types";
+import { isDemoCafe, sanitizeCafeList } from "../../lib/cafeFilter";
 
 import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
@@ -17,12 +18,15 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
   const { toast } = useToast();
   const tick = useDbRefresh("profiles");
 
-  const { data: cafes, loading, error } = useAsync(
+  const { data: cafesRaw, loading, error } = useAsync(
     (b) => b.listCafes(),
     [db],
     [] as Cafe[],
-    { cacheKey: "cafes" },
   );
+
+  const cafes = useMemo(() => {
+    return sanitizeCafeList(cafesRaw);
+  }, [cafesRaw]);
   const { data: savedIds, refresh: refreshSaved } = useAsync(
     (b) => (user ? b.savedCafeIds(user.id) : Promise.resolve([] as string[])),
     [db, user?.id, tick],
@@ -93,7 +97,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
           </div>
         ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cafes.map((c, i) => {
+          {cafes.filter((c) => !isDemoCafe(c)).map((c, i) => {
             const saved = savedIds.includes(c.id);
             return (
               <Reveal key={c.id} delay={(i % 3) * 0.08} className="h-full">

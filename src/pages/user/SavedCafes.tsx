@@ -4,6 +4,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import { Badge, EmptyState, Reveal, Skeleton, useToast } from "../../components/ui";
 import { useDbRefresh } from "./shared";
 import type { Cafe } from "../../lib/types";
+import { isDemoCafe } from "../../lib/cafeFilter";
 import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
 export default function SavedCafes() {
@@ -71,7 +72,7 @@ export default function SavedCafes() {
         />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {cafes.map((c) => (
+          {cafes.filter((c) => !isDemoCafe(c)).map((c) => (
             <Reveal key={c.id}>
               <div className="glass rounded-3xl overflow-hidden card-hover h-full flex flex-col">
                 <CafePhotoSlider

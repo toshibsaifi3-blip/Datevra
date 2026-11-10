@@ -15,6 +15,7 @@ import {
   useToast,
 } from "../../components/ui";
 import { inr, newId, rowCls, tdCls, thCls } from "./_util";
+import { isDemoCafe } from "../../lib/cafeFilter";
 
 const blankCafe = (): Cafe => ({
   id: newId("cf"),
@@ -55,10 +56,12 @@ export default function Cafes() {
 
   useEffect(() => db.subscribe("cafes", refresh), [db, refresh]);
 
-  const cafes = cafesRaw.filter((c) => {
-    const q = query.trim().toLowerCase();
-    return !q || `${c.name} ${c.city} ${c.address}`.toLowerCase().includes(q);
-  });
+  const cafes = cafesRaw
+    .filter((c) => !isDemoCafe(c))
+    .filter((c) => {
+      const q = query.trim().toLowerCase();
+      return !q || `${c.name} ${c.city} ${c.address}`.toLowerCase().includes(q);
+    });
 
   const openNew = () => {
     setForm(blankCafe());

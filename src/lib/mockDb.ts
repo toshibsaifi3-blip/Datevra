@@ -28,6 +28,7 @@ import type {
 } from "./types";
 import { DEMO_PROFILES, SEED_CAFES, SEED_EXPERIENCES } from "../data/seed";
 import { computeCompatibility } from "./compat";
+import { isDemoCafe, DEMO_CAFE_IDS, sanitizeCafeList } from "./cafeFilter";
 
 /* =====================================================================
  * Demo data adapter.
@@ -455,7 +456,7 @@ function seed(): DbShape {
         actorId: "admin-1",
         actorRole: "admin",
         action: "cafe.partner.approved",
-        detail: "Approved partnership for Kala Ghoda Roastery (12% commission)",
+        detail: "Approved partnership for Café Hot Stag (10% commission)",
         createdAt: iso(now - 86400000 * 4),
       },
     ],
@@ -488,32 +489,8 @@ function load(): DbShape {
         if (!Array.isArray(parsed.cafes)) {
           parsed.cafes = SEED_CAFES;
         } else {
-          // Keep the 3 new seed cafes and any custom cafes added by admin (id starting with "cf-")
-          // and prune the removed 6 original seed cafes ('c-roastery-mum', 'c-lodhi-del', etc.)
-          const removedOriginalIds = new Set([
-            "c-roastery-mum",
-            "c-lodhi-del",
-            "c-thirdwave-blr",
-            "c-suzette-pune",
-            "c-tapri-jpr",
-            "c-aerocity-hyd",
-          ]);
-          parsed.cafes = parsed.cafes.filter((c) => !removedOriginalIds.has(c.id));
-
-          // Merge/sync current seed cafes
-          for (const sc of SEED_CAFES) {
-            const existingIndex = parsed.cafes.findIndex((c) => c.id === sc.id);
-            if (existingIndex === -1) {
-              parsed.cafes.push(sc);
-            } else {
-              parsed.cafes[existingIndex].name = sc.name;
-              parsed.cafes[existingIndex].city = sc.city;
-              parsed.cafes[existingIndex].address = sc.address;
-              if (sc.experiences) parsed.cafes[existingIndex].experiences = sc.experiences;
-              if (sc.images) parsed.cafes[existingIndex].images = sc.images;
-              if (sc.image) parsed.cafes[existingIndex].image = sc.image;
-            }
-          }
+          // Ensure all demo cafes are completely pruned and genuine Delhi cafes are preserved
+          parsed.cafes = sanitizeCafeList(parsed.cafes);
         }
         currentDb = parsed;
         return currentDb;
@@ -1279,10 +1256,13 @@ export function setBookingStatus(id: string, status: DateBooking["status"], acto
 /* ---------------- cafes ---------------- */
 
 export function listCafes(): Cafe[] {
-  return load().cafes;
+  return sanitizeCafeList(load().cafes);
 }
 export function getCafe(id: string): Cafe | undefined {
-  return load().cafes.find((c) => c.id === id);
+  if (DEMO_CAFE_IDS.has(id)) return undefined;
+  const cafe = load().cafes.find((c) => c.id === id);
+  if (!cafe || isDemoCafe(cafe)) return undefined;
+  return cafe;
 }
 export function upsertCafe(cafe: Cafe, actorId: string) {
   const db = load();

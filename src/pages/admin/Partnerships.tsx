@@ -4,6 +4,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { EmptyState, SectionHead, Skeleton, Stat, inputCls, useToast } from "../../components/ui";
 import { inr, rowCls, tdCls, thCls } from "./_util";
+import { isDemoCafe } from "../../lib/cafeFilter";
 
 export default function Partnerships() {
   const { session } = useAuth();
@@ -19,7 +20,7 @@ export default function Partnerships() {
 
   useEffect(() => db.subscribe("cafes", refresh), [db, refresh]);
 
-  const partners = cafes.filter((c) => c.partner);
+  const partners = cafes.filter((c) => c.partner && !isDemoCafe(c));
   const totalDue = partners.reduce((s, c) => s + Math.round((c.revenue * c.commissionPct) / 100), 0);
 
   const saveField = async (cafe: Cafe, patch: Partial<Cafe>) => {

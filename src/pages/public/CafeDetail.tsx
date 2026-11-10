@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Badge, EmptyState, Skeleton, useToast } from "../../components/ui";
 import { useBackend, useAsync } from "../../lib/data";
 import type { Cafe } from "../../lib/types";
+import { isDemoCafe } from "../../lib/cafeFilter";
 import { useAuth } from "../../context/AuthContext";
 import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
@@ -37,7 +38,7 @@ export default function CafeDetail() {
     );
   }
 
-  if (!cafe) {
+  if (!cafe || isDemoCafe(cafe)) {
     return (
       <div className="max-w-2xl mx-auto px-5 py-32">
         <EmptyState

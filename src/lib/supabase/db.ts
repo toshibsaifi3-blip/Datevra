@@ -65,6 +65,8 @@ import {
   unmapSettings,
 } from "./mappers";
 import type { Backend, BackendEvent } from "../data";
+import { isDemoCafe, sanitizeCafeList } from "../cafeFilter";
+import { SEED_CAFES } from "../../data/seed";
 
 /* =====================================================================
  * SupabaseBackend — the real backend. Async, RLS-enforced, realtime.
@@ -730,14 +732,47 @@ async function setBookingStatus(id: string, status: DateBooking["status"], actor
 /* ---------------- cafes ---------------- */
 
 async function listCafes(): Promise<Cafe[]> {
-  const res = await sb().from("cafes").select("*").order("name");
-  return throwIf(res, "Could not load cafés").map((r) => mapCafe(r as Record<string, unknown>));
+  try {
+    const res = await sb().from("cafes").select("*").order("name");
+    if (res.error) {
+      console.warn("Could not load cafés from Supabase:", res.error.message);
+      return sanitizeCafeList([]);
+    }
+    const rows = (res.data || []).map((r) => mapCafe(r as Record<string, unknown>));
+    return sanitizeCafeList(rows);
+  } catch (e) {
+    console.warn("Could not query cafés:", e);
+    return sanitizeCafeList([]);
+  }
 }
 
 async function getCafe(id: string): Promise<Cafe | undefined> {
-  const res = await sb().from("cafes").select("*").eq("id", id).maybeSingle();
-  if (res.error || !res.data) return undefined;
-  return mapCafe(res.data as Record<string, unknown>);
+  if (isDemoCafe({ id })) return undefined;
+  const seedCafe = SEED_CAFES.find((c) => c.id === id);
+
+  try {
+    const res = await sb().from("cafes").select("*").eq("id", id).maybeSingle();
+    if (res.error || !res.data) {
+      return seedCafe && !isDemoCafe(seedCafe) ? seedCafe : undefined;
+    }
+    const cafe = mapCafe(res.data as Record<string, unknown>);
+    if (isDemoCafe(cafe)) return undefined;
+
+    if (seedCafe) {
+      return {
+        ...seedCafe,
+        ...cafe,
+        image: cafe.image || seedCafe.image,
+        images: cafe.images && cafe.images.length > 0 ? cafe.images : seedCafe.images,
+        address: cafe.address || seedCafe.address,
+        experiences: cafe.experiences && cafe.experiences.length > 0 ? cafe.experiences : seedCafe.experiences,
+      };
+    }
+
+    return cafe;
+  } catch {
+    return seedCafe && !isDemoCafe(seedCafe) ? seedCafe : undefined;
+  }
 }
 
 async function upsertCafe(cafe: Cafe, actorId: string): Promise<void> {
