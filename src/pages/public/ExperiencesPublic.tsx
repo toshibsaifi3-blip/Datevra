@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -7,25 +7,59 @@ import {
   Modal,
   PageHero,
   Reveal,
-  SectionHead,
   Skeleton,
   inputCls,
   useToast,
 } from "../../components/ui";
 import { useBackend, useAsync } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
-import type { DateExperience } from "../../lib/types";
+import type { Cafe } from "../../lib/types";
+import { CafePhotoSlider } from "../../components/CafePhotoSlider";
 
-const KIND_GRADIENTS: Record<string, string> = {
-  "Premium Dining": "from-[#6e4a1b] via-[#3a2410] to-[#1c0f08]",
-  "Romantic Café": "from-[#5c2540] via-[#33122a] to-[#1c0a16]",
-  "Coffee Date": "from-burgundy via-burgundy-deep to-[#20090f]",
-  "Casual First Date": "from-[#3d2b52] via-[#241638] to-[#120a1c]",
-};
-
-function kindGradient(kind: string): string {
-  return KIND_GRADIENTS[kind] ?? "from-burgundy via-burgundy-deep to-[#20090f]";
+interface CafeExperienceConfig {
+  cafeId: string;
+  displayName: string;
+  minBudget: number;
+  maxBudget: number;
+  experiences: {
+    id: string;
+    title: string;
+  }[];
 }
+
+const EXPERIENCES_CONFIG: CafeExperienceConfig[] = [
+  {
+    cafeId: "c-hot-stag-del",
+    displayName: "Café Hot Stag",
+    minBudget: 3200,
+    maxBudget: 13000,
+    experiences: [
+      { id: "e-hotstag-premium-date", title: "Premium Date" },
+      { id: "e-hotstag-coffee-date", title: "Premium Coffee Date" },
+      { id: "e-hotstag-italian", title: "Italian Cuisine Date with Premium Experience" },
+    ],
+  },
+  {
+    cafeId: "c-karmala-del",
+    displayName: "Karma La Cafe",
+    minBudget: 4500,
+    maxBudget: 25000,
+    experiences: [
+      { id: "e-karmala-karaoke", title: "Premium Date with Live Karaoke" },
+    ],
+  },
+];
+
+const PREFERRED_TIME_SLOTS = [
+  "12:00 PM",
+  "1:30 PM",
+  "3:00 PM",
+  "4:30 PM",
+  "6:00 PM",
+  "7:30 PM",
+  "8:30 PM",
+  "9:30 PM",
+];
 
 export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boolean }) {
   const { session, user } = useAuth();
@@ -33,47 +67,167 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
   const { toast } = useToast();
   const db = useBackend();
 
-  const { data: experiences, loading, error } = useAsync(
-    (b) => b.listExperiences(),
+  // Load cafes
+  const { data: allCafes, loading: loadingCafes, error: cafesError } = useAsync(
+    (b) => b.listCafes(),
     [db],
-    [] as DateExperience[],
-    { cacheKey: "experiences" },
+    [] as Cafe[],
+    { cacheKey: "cafes" },
   );
 
-  const [target, setTarget] = useState<DateExperience | null>(null);
-  const [slotIdx, setSlotIdx] = useState(0);
-  const [note, setNote] = useState("");
-  const [busy, setBusy] = useState(false);
+  // One shared dual-handle budget slider state
+  const SLIDER_MIN = 3000;
+  const SLIDER_MAX = 25000;
+  const [budgetRange, setBudgetRange] = useState<[number, number]>([3000, 25000]);
 
-  const openApply = (exp: DateExperience) => {
+  // Application booking form state
+  const [activeCafeConfig, setActiveCafeConfig] = useState<CafeExperienceConfig | null>(null);
+  const [selectedCafe, setSelectedCafe] = useState<Cafe | null>(null);
+  const [selectedExperience, setSelectedExperience] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [preferredTime, setPreferredTime] = useState<string>("7:30 PM");
+  const [guestCount, setGuestCount] = useState<number>(2);
+  const [note, setNote] = useState<string>("");
+  const [isReviewStep, setIsReviewStep] = useState<boolean>(false);
+  const [busy, setBusy] = useState<boolean>(false);
+  const [submittedApp, setSubmittedApp] = useState<{
+    cafeName: string;
+    expTitle: string;
+    date: string;
+    time: string;
+    guests: number;
+  } | null>(null);
+
+  // Today's date string YYYY-MM-DD for date-picker min
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  // Filter the 2 cafes by user's shared budget slider range
+  const filteredCafes = useMemo(() => {
+    const [userMin, userMax] = budgetRange;
+    return EXPERIENCES_CONFIG.filter((cfg) => {
+      // Overlap condition: max(userMin, cfg.minBudget) <= min(userMax, cfg.maxBudget)
+      return Math.max(userMin, cfg.minBudget) <= Math.min(userMax, cfg.maxBudget);
+    }).map((cfg) => {
+      const cafeRecord = allCafes.find((c) => c.id === cfg.cafeId);
+      return {
+        cfg,
+        cafe: cafeRecord || {
+          id: cfg.cafeId,
+          name: cfg.displayName,
+          city: "Delhi",
+          address:
+            cfg.cafeId === "c-hot-stag-del"
+              ? "1st Floor, Opp. Deer Park, Ayyappa Temple Road, Dilshad Garden, Delhi-110095"
+              : "Tsampa House, 5th Floor, Plot Nos. 18 & 19, Gate No. 3, Majnu Ka Tilla, New Aruna Nagar Colony, Delhi-110054",
+          description: "",
+          image: cfg.cafeId === "c-hot-stag-del" ? "/assets/cafes/hot-stag-1.jpg" : "/assets/cafes/karmala-1.jpg",
+          images:
+            cfg.cafeId === "c-hot-stag-del"
+              ? [
+                  "/assets/cafes/hot-stag-1.jpg",
+                  "/assets/cafes/hot-stag-2.jpg",
+                  "/assets/cafes/hot-stag-3.jpg",
+                  "/assets/cafes/hot-stag-4.jpg",
+                ]
+              : [
+                  "/assets/cafes/karmala-1.jpg",
+                  "/assets/cafes/karmala-2.jpg",
+                  "/assets/cafes/karmala-3.jpg",
+                  "/assets/cafes/karmala-4.jpg",
+                ],
+          priceRange: "₹₹" as const,
+          openingHours: "",
+          experiences: cfg.experiences.map((e) => e.title),
+          bookingInfo: "",
+          rating: 0,
+          partner: false,
+          commissionPct: 0,
+          agreementRef: null,
+          totalBookings: 0,
+          revenue: 0,
+          menu: "",
+        },
+      };
+    });
+  }, [allCafes, budgetRange]);
+
+  // Open Application Form
+  const openApplication = (cfg: CafeExperienceConfig, cafe: Cafe) => {
     if (!session || !user) {
       navigate("/login");
       return;
     }
-    if (exp.eliteOnly && user.plan !== "elite") {
-      navigate("/membership");
-      return;
-    }
-    setSlotIdx(0);
+    setActiveCafeConfig(cfg);
+    setSelectedCafe(cafe);
+    setSelectedExperience(cfg.experiences[0]?.id ?? "");
+    setSelectedDate("");
+    setPreferredTime("7:30 PM");
+    setGuestCount(2);
     setNote("");
-    setTarget(exp);
+    setIsReviewStep(false);
+    setSubmittedApp(null);
   };
 
-  const confirmApply = async () => {
-    if (!target || !user) return;
-    const slot = target.slots[slotIdx];
-    if (!slot) return;
+  const closeApplication = () => {
+    setActiveCafeConfig(null);
+    setSelectedCafe(null);
+    setIsReviewStep(false);
+  };
+
+  const resetBudgetSlider = () => {
+    setBudgetRange([SLIDER_MIN, SLIDER_MAX]);
+  };
+
+  // Submit Application
+  const submitApplication = async () => {
+    if (!user || !activeCafeConfig || !selectedCafe) return;
+    if (!selectedDate) {
+      toast("Please choose a reservation date", "rose");
+      return;
+    }
+    if (selectedDate < todayStr) {
+      toast("Past dates cannot be selected", "rose");
+      return;
+    }
+
+    const expObj = activeCafeConfig.experiences.find((e) => e.id === selectedExperience);
+    const expTitle = expObj?.title || "Curated Date Experience";
+
     setBusy(true);
     try {
+      // Build structured note combining guest count, venue details, and user note
+      const structuredNoteParts = [
+        `[Venue: ${activeCafeConfig.displayName}]`,
+        `[Experience: ${expTitle}]`,
+        `[Guests: ${guestCount}]`,
+        note.trim() ? `Note: ${note.trim()}` : "",
+      ].filter(Boolean);
+
+      const finalNote = structuredNoteParts.join(" · ").slice(0, 500);
+
       await db.applyForExperience({
         userId: user.id,
-        experienceId: target.id,
-        slotDate: slot.date,
-        slotTime: slot.time,
-        note,
+        experienceId: selectedExperience,
+        slotDate: selectedDate,
+        slotTime: preferredTime,
+        note: finalNote,
       });
-      setTarget(null);
-      toast("Application submitted — our team reviews every application by hand.");
+
+      setSubmittedApp({
+        cafeName: activeCafeConfig.displayName,
+        expTitle,
+        date: selectedDate,
+        time: preferredTime,
+        guests: guestCount,
+      });
+      setIsReviewStep(false);
+      toast("Application submitted successfully — pending review by our team.", "gold");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not submit your application.", "rose");
     } finally {
@@ -81,18 +235,21 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     }
   };
 
-  const isLocked = (exp: DateExperience) => exp.eliteOnly && (!user || user.plan !== "elite");
-
   return (
     <div className="relative">
-      {/* dreamy ambience */}
+      {/* Dreamy ambience background sparkles */}
       <div className="pointer-events-none absolute top-0 right-1/4 h-96 w-96 rounded-full bg-rosegold/10 blur-[130px] animate-aura-shift" />
       {[8, 30, 52, 76, 92].map((left, i) => (
         <span
           key={i}
           aria-hidden
           className="pointer-events-none absolute text-champagne/25 animate-twinkle"
-          style={{ left: `${left}%`, top: `${70 + i * 170}px`, animationDelay: `${i * 0.7}s`, fontSize: `${9 + (i % 3) * 4}px` }}
+          style={{
+            left: `${left}%`,
+            top: `${70 + i * 170}px`,
+            animationDelay: `${i * 0.7}s`,
+            fontSize: `${9 + (i % 3) * 4}px`,
+          }}
         >
           ✦
         </span>
@@ -102,208 +259,500 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         <PageHero
           kicker="Curated experiences"
           title="Dates, arranged like art"
-          sub="Golden-hour tastings, candlelit courtyards, chef's tables for two. Apply — our team personally reviews every application and hand-selects each evening's guests."
+          sub="Explore partner cafés, filter by your indicative budget range, and apply for exclusive dates arranged with care."
         />
       )}
 
-      <section className="relative max-w-6xl mx-auto px-5 py-14">
-        {loading ? (
-          <div className="grid md:grid-cols-2 gap-6">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-[30rem]" />
+      <section className="relative max-w-6xl mx-auto px-5 py-10 md:py-14">
+        {/* ============================================================== */}
+        {/* ONE SHARED DUAL-HANDLE BUDGET SLIDER (₹3,000 – ₹25,000)          */}
+        {/* ============================================================== */}
+        <Reveal>
+          <div className="glass-strong rounded-3xl p-6 sm:p-8 mb-12 max-w-3xl mx-auto border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div>
+                <p className="text-[0.68rem] uppercase tracking-[0.25em] text-rosegold font-semibold">
+                  Shared Filter
+                </p>
+                <h3 className="font-display text-2xl text-ivory mt-0.5">Indicative Budget Range</h3>
+                <p className="text-xs text-mist mt-1">
+                  Filter curated experiences by your preferred budget range
+                </p>
+              </div>
+
+              {/* Reset button */}
+              {(budgetRange[0] !== SLIDER_MIN || budgetRange[1] !== SLIDER_MAX) && (
+                <button
+                  type="button"
+                  onClick={resetBudgetSlider}
+                  className="btn-ghost rounded-full px-4 py-2 text-xs self-start sm:self-auto touch-manipulation text-champagne hover:text-rosegold transition-colors border border-champagne/30"
+                >
+                  ↺ Reset (₹3,000 – ₹25,000)
+                </button>
+              )}
+            </div>
+
+            {/* Current Range Display in INR */}
+            <div className="flex items-center justify-between py-2 px-4 rounded-2xl bg-white/[0.04] border border-white/5 mb-6">
+              <div>
+                <span className="text-[0.65rem] uppercase tracking-wider text-mist block">Min budget</span>
+                <span className="font-display text-2xl text-champagne font-semibold">
+                  ₹{budgetRange[0].toLocaleString("en-IN")}
+                </span>
+              </div>
+              <div className="text-mist text-lg font-light px-2">to</div>
+              <div className="text-right">
+                <span className="text-[0.65rem] uppercase tracking-wider text-mist block">Max budget</span>
+                <span className="font-display text-2xl text-rosegold font-semibold">
+                  ₹{budgetRange[1].toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            {/* Dual Slider Controls */}
+            <div className="relative pt-6 pb-3 px-2">
+              {/* Visual Track */}
+              <div className="relative h-2 rounded-full bg-white/10">
+                {/* Active range fill */}
+                <div
+                  className="absolute h-full rounded-full bg-gradient-to-r from-champagne via-rosegold to-burgundy-soft"
+                  style={{
+                    left: `${((budgetRange[0] - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100}%`,
+                    right: `${100 - ((budgetRange[1] - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100}%`,
+                  }}
+                />
+              </div>
+
+              {/* Range Input: Lower Handle */}
+              <input
+                type="range"
+                min={SLIDER_MIN}
+                max={SLIDER_MAX}
+                step={500}
+                value={budgetRange[0]}
+                aria-label="Minimum budget in INR"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setBudgetRange(([_, upper]) => [Math.min(val, upper - 500), upper]);
+                }}
+                className="absolute inset-x-2 top-4 w-[calc(100%-1rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-champagne [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(240,220,174,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-champagne [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+              />
+
+              {/* Range Input: Upper Handle */}
+              <input
+                type="range"
+                min={SLIDER_MIN}
+                max={SLIDER_MAX}
+                step={500}
+                value={budgetRange[1]}
+                aria-label="Maximum budget in INR"
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setBudgetRange(([lower, _]) => [lower, Math.max(val, lower + 500)]);
+                }}
+                className="absolute inset-x-2 top-4 w-[calc(100%-1rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rosegold [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(255,61,154,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-rosegold [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+              />
+            </div>
+
+            <div className="flex justify-between text-[0.7rem] text-mist/60 px-2 mt-2">
+              <span>₹3,000</span>
+              <span>₹14,000</span>
+              <span>₹25,000</span>
+            </div>
+          </div>
+        </Reveal>
+
+        {/* ============================================================== */}
+        {/* CAFÉ EXPERIENCE CARDS (Café Hot Stag & Karma La Cafe only)      */}
+        {/* ============================================================== */}
+        {loadingCafes ? (
+          <div className="grid md:grid-cols-2 gap-8">
+            {[0, 1].map((i) => (
+              <Skeleton key={i} className="h-[34rem] rounded-[2rem]" />
             ))}
           </div>
-        ) : error ? (
-          <p className="text-center text-rosegold">{error}</p>
-        ) : experiences.length === 0 ? (
-          <div className="glass rounded-[2rem] p-12 text-center max-w-xl mx-auto">
-            <p className="font-display text-2xl text-ivory">No evenings on the calendar</p>
-            <p className="text-sm text-mist mt-2">
-              Our curators are still composing the next season. Check back soon.
+        ) : cafesError ? (
+          <p className="text-center text-rosegold">{cafesError}</p>
+        ) : filteredCafes.length === 0 ? (
+          <div className="glass rounded-[2rem] p-12 text-center max-w-xl mx-auto my-6">
+            <p className="font-display text-2xl text-ivory">No cafés match this budget</p>
+            <p className="text-sm text-mist mt-2 leading-relaxed">
+              Neither Café Hot Stag (₹3,200–₹13,000) nor Karma La Cafe (₹4,500–₹25,000)
+              overlap your selected budget of ₹{budgetRange[0].toLocaleString("en-IN")} – ₹{budgetRange[1].toLocaleString("en-IN")}.
             </p>
+            <button
+              onClick={resetBudgetSlider}
+              className="btn-gold rounded-full px-6 py-2.5 text-sm mt-5"
+            >
+              Reset budget filter
+            </button>
           </div>
         ) : (
-        <div className="grid md:grid-cols-2 gap-6">
-          {experiences.map((e, i) => (
-            <Reveal key={e.id} delay={(i % 2) * 0.1} className="h-full">
-              <motion.article
-                whileHover={{ y: -8 }}
-                transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                className={`glass rounded-[2rem] overflow-hidden h-full flex flex-col card-hover relative ${
-                  e.eliteOnly ? "glow-border" : ""
-                }`}
-              >
-                <div className={`relative h-56 bg-gradient-to-br ${kindGradient(e.kind)}`}>
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_25%,rgba(197,164,255,0.3),transparent_55%)]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,61,154,0.28),transparent_50%)]" />
-                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-display text-8xl text-champagne/15 select-none">
-                    {e.kind.charAt(0)}
-                  </span>
-                  <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
-                    <Badge tone="gold">✦ {e.kind}</Badge>
-                    {e.eliteOnly && <Badge tone="rose">🔒 Elite only</Badge>}
-                  </div>
-                  <div className="absolute bottom-4 right-5 text-right">
-                    <p className="text-[0.65rem] uppercase tracking-[0.25em] text-mist">from</p>
-                    <p className="font-display text-3xl text-gradient-gold font-semibold">
-                      ₹{e.priceFrom.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-                  <div className="absolute bottom-4 left-5 text-xs text-ivory/80">
-                    {e.slots[0] ? (
-                      <span>
-                        Next <span className="text-champagne">{e.slots[0].date}</span> · {e.slots[0].time}
-                      </span>
-                    ) : (
-                      <span className="text-mist">Dates announced soon</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="p-7 flex-1 flex flex-col">
-                  <h3 className="font-display text-2xl text-gradient-dream">{e.title}</h3>
-                  <p className="text-xs text-mist mt-1.5 tracking-wide flex items-center gap-1.5">
-                    <span aria-hidden>✦</span> {e.city} · {e.durationMins} minutes · {e.slots.length} upcoming slots
-                  </p>
-                  <p className="mt-4 text-[0.95rem] text-ivory-dim/85 leading-relaxed flex-1">
-                    {e.description}
-                  </p>
-
-                  <div className="mt-5">
-                    <p className="text-[0.68rem] uppercase tracking-[0.25em] text-mist mb-2">
-                      Who it's for
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {e.eligibility.map((el) => (
-                        <Badge key={el} tone="muted">
-                          {el}
-                        </Badge>
-                      ))}
+          <div className="grid md:grid-cols-2 gap-8">
+            {filteredCafes.map(({ cfg, cafe }, i) => (
+              <Reveal key={cfg.cafeId} delay={i * 0.1} className="h-full">
+                <motion.article
+                  whileHover={{ y: -8 }}
+                  transition={{ type: "spring", stiffness: 240, damping: 22 }}
+                  className="glass rounded-[2rem] overflow-hidden h-full flex flex-col card-hover relative border border-white/10"
+                >
+                  {/* Photo Slider */}
+                  <div className="relative">
+                    <CafePhotoSlider
+                      images={cafe.images && cafe.images.length > 0 ? cafe.images : [cafe.image]}
+                      cafeName={cfg.displayName}
+                      aspectRatioClassName="h-64 sm:h-72"
+                      fallbackLetter={cfg.displayName.charAt(0)}
+                    />
+                    <div className="absolute top-4 left-4 z-20 pointer-events-none">
+                      <Badge tone="gold">✦ Curated Venue</Badge>
+                    </div>
+                    <div className="absolute top-4 right-4 z-20 pointer-events-none">
+                      <Badge tone="muted">Delhi</Badge>
                     </div>
                   </div>
 
-                  {/* slots preview */}
-                  {e.slots.length > 0 && (
-                    <div className="mt-5">
-                      <p className="text-[0.68rem] uppercase tracking-[0.25em] text-mist mb-2">
-                        Upcoming slots
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {e.slots.slice(0, 3).map((s) => (
-                          <span
-                            key={`${s.date}-${s.time}`}
-                            className="text-xs text-ivory-dim border border-white/10 rounded-full px-3 py-1.5 bg-white/[0.03]"
-                          >
-                            {s.date} · {s.time} · {s.seats} seats
-                          </span>
-                        ))}
-                        {e.slots.length > 3 && (
-                          <span className="text-xs text-mist px-2 py-1.5">
-                            +{e.slots.length - 3} more
-                          </span>
-                        )}
+                  {/* Card Content */}
+                  <div className="p-7 flex-1 flex flex-col">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="font-display text-2xl md:text-3xl text-ivory">
+                        {cfg.displayName}
+                      </h3>
+                      <div className="text-right shrink-0">
+                        <span className="text-[0.65rem] uppercase tracking-widest text-mist block">
+                          Indicative budget
+                        </span>
+                        <span className="text-sm font-semibold text-champagne whitespace-nowrap">
+                          ₹{cfg.minBudget.toLocaleString("en-IN")} – ₹{cfg.maxBudget.toLocaleString("en-IN")}
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  <div className="mt-6 pt-5 border-t border-white/10">
-                    <button
-                      onClick={() => openApply(e)}
-                      className={`w-full rounded-full px-7 py-3 text-sm font-semibold ${
-                        isLocked(e) ? "btn-ghost" : "btn-gold"
-                      }`}
-                    >
-                      {isLocked(e) ? (session ? "Elite members only" : "Login to apply") : "Apply for this evening"}
-                    </button>
-                    {!isLocked(e) && (
-                      <p className="text-[0.7rem] text-mist/70 text-center mt-2">
-                        Applying is free · selection is manual and never guaranteed
+                    {/* Full Address */}
+                    <p className="text-xs text-champagne/90 mt-2 leading-relaxed break-words font-medium">
+                      {cafe.address}
+                    </p>
+
+                    {/* Available Experiences for this Cafe */}
+                    <div className="mt-6 flex-1">
+                      <p className="text-[0.68rem] uppercase tracking-[0.25em] text-rosegold mb-2.5 font-semibold">
+                        Available Experiences ({cfg.experiences.length})
                       </p>
-                    )}
+                      <div className="space-y-2">
+                        {cfg.experiences.map((exp) => (
+                          <div
+                            key={exp.id}
+                            className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-colors"
+                          >
+                            <span className="text-rosegold text-sm">✦</span>
+                            <span className="text-sm text-ivory font-medium">{exp.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Card Actions */}
+                    <div className="mt-7 pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center gap-3">
+                      <button
+                        onClick={() => openApplication(cfg, cafe)}
+                        className="btn-gold rounded-full px-7 py-3 text-sm font-semibold w-full sm:flex-1 touch-manipulation"
+                      >
+                        Apply for Experience
+                      </button>
+                      <Link
+                        to={`/cafes/${cfg.cafeId}`}
+                        className="btn-ghost rounded-full px-5 py-3 text-xs text-mist hover:text-ivory w-full sm:w-auto text-center touch-manipulation"
+                      >
+                        View café details
+                      </Link>
+                    </div>
+                    <p className="text-[0.7rem] text-mist/70 text-center mt-2.5">
+                      Applying is free · selection is manual and subject to admin review
+                    </p>
                   </div>
-                </div>
-              </motion.article>
-            </Reveal>
-          ))}
-        </div>
+                </motion.article>
+              </Reveal>
+            ))}
+          </div>
         )}
 
-        <Reveal className="mt-12">
+        {/* Informational reassurance section */}
+        <Reveal className="mt-16">
           <div className="glass-strong glow-border rounded-[2rem] p-8 text-center max-w-3xl mx-auto relative overflow-hidden">
             <div className="absolute -top-16 left-1/2 -translate-x-1/2 h-40 w-72 rounded-full bg-rosegold/15 blur-[80px]" />
             <p className="text-[0.7rem] uppercase tracking-[0.3em] text-rosegold relative">Honest by design</p>
-            <h3 className="font-display text-2xl text-ivory mt-2 relative">How selection works</h3>
+            <h3 className="font-display text-2xl text-ivory mt-2 relative">How experience applications work</h3>
             <p className="mt-3 text-sm text-ivory-dim/85 leading-relaxed relative">
-              You apply → our team reviews your profile and eligibility → we
-              hand-select guests for each evening → you receive a confirmation
-              with venue and time. Selection is never guaranteed and never
-              automated — every evening is curated by a human.
+              Submit your preferred date and timing for either venue. Our team reviews every application manually to ensure seamless coordination with the partner café. Applications remain pending until confirmed by an authorized administrator.
             </p>
           </div>
         </Reveal>
       </section>
 
-      {/* Apply modal */}
-      <Modal open={!!target} onClose={() => setTarget(null)} title={target ? `Apply · ${target.title}` : ""}>
-        {target && (
-          <div className="space-y-5">
-            <p className="text-sm text-ivory-dim/85 leading-relaxed">
-              Choose your preferred slot and add a short note for our curation
-              team. Applying is free — selection is manual and never guaranteed.
+      {/* ============================================================== */}
+      {/* APPLICATION BOOKING FORM MODAL                                 */}
+      {/* ============================================================== */}
+      <Modal
+        open={Boolean(activeCafeConfig && selectedCafe)}
+        onClose={closeApplication}
+        title={
+          submittedApp
+            ? "Application Submitted"
+            : isReviewStep
+            ? "Review Your Application"
+            : `Apply for Experience · ${activeCafeConfig?.displayName || ""}`
+        }
+        wide
+      >
+        {submittedApp ? (
+          <div className="space-y-6 text-center py-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500/20 to-champagne/20 border border-emerald-400/40 flex items-center justify-center text-3xl mx-auto">
+              ✓
+            </div>
+            <div>
+              <h4 className="font-display text-2xl text-ivory">Application Received</h4>
+              <p className="text-sm text-mist mt-2 max-w-md mx-auto leading-relaxed">
+                Your application for <strong className="text-champagne">{submittedApp.expTitle}</strong> at{" "}
+                <strong className="text-ivory">{submittedApp.cafeName}</strong> has been saved.
+              </p>
+            </div>
+
+            <div className="glass rounded-2xl p-4 text-left max-w-md mx-auto space-y-2 text-sm border border-white/10">
+              <div className="flex justify-between">
+                <span className="text-mist">Reservation Date:</span>
+                <span className="text-ivory font-medium">{submittedApp.date}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mist">Preferred Timing:</span>
+                <span className="text-ivory font-medium">{submittedApp.time} (Subject to confirmation)</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mist">Party Size:</span>
+                <span className="text-ivory font-medium">{submittedApp.guests} guests</span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-white/5">
+                <span className="text-mist">Status:</span>
+                <Badge tone="gold">Pending Admin Review</Badge>
+              </div>
+            </div>
+
+            <p className="text-xs text-mist/80 max-w-md mx-auto">
+              Please note: Selecting a preferred time is subject to café confirmation. A reservation is never confirmed merely by submitting an application. You can track this in{" "}
+              <Link to="/experiences" onClick={closeApplication} className="text-rosegold underline">
+                My applications
+              </Link>
+              .
             </p>
-            <Field label="Preferred slot">
-              <select
-                className={inputCls}
-                value={slotIdx}
-                onChange={(e) => setSlotIdx(Number(e.target.value))}
-              >
-                {target.slots.map((s, i) => (
-                  <option key={`${s.date}-${s.time}`} value={i}>
-                    {s.date} · {s.time} ({s.seats} seats)
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Note for the curation team" hint="Optional — a line about you helps us seat evenings well.">
-              <textarea
-                className={`${inputCls} min-h-[96px] resize-y`}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. I love slow conversations over single-origin coffee…"
-                maxLength={500}
-              />
-            </Field>
+
+            <button
+              onClick={closeApplication}
+              className="btn-gold rounded-full px-8 py-3 text-sm font-semibold w-full max-w-xs mx-auto"
+            >
+              Done
+            </button>
+          </div>
+        ) : isReviewStep ? (
+          /* Step 2: Application Summary Review */
+          <div className="space-y-6">
+            <p className="text-sm text-ivory-dim/90">
+              Please review your application details before submitting to our curation team.
+            </p>
+
+            <div className="glass rounded-2xl p-5 space-y-3.5 border border-white/10">
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Selected Café</span>
+                <span className="text-sm text-ivory font-semibold text-right">
+                  {activeCafeConfig?.displayName}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Experience</span>
+                <span className="text-sm text-champagne font-semibold text-right">
+                  {activeCafeConfig?.experiences.find((e) => e.id === selectedExperience)?.title}
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Reservation Date</span>
+                <span className="text-sm text-ivory font-medium text-right">{selectedDate}</span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Preferred Timing</span>
+                <span className="text-sm text-ivory font-medium text-right">
+                  {preferredTime}{" "}
+                  <span className="text-xs text-mist block font-normal">(Subject to confirmation)</span>
+                </span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Guest Count</span>
+                <span className="text-sm text-ivory font-medium text-right">{guestCount} Guests</span>
+              </div>
+              {note.trim() && (
+                <div className="pt-2 border-t border-white/10">
+                  <span className="text-xs uppercase tracking-wider text-mist block mb-1">
+                    Special Note
+                  </span>
+                  <p className="text-xs text-ivory-dim italic bg-black/20 p-2.5 rounded-lg">
+                    “{note.trim()}”
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-3 pt-2">
               <button
-                onClick={() => setTarget(null)}
-                className="btn-ghost rounded-full px-6 py-3 text-sm flex-1"
+                type="button"
+                onClick={() => setIsReviewStep(false)}
+                className="btn-ghost rounded-full px-6 py-3 text-sm flex-1 touch-manipulation"
+              >
+                ← Edit details
+              </button>
+              <button
+                type="button"
+                onClick={submitApplication}
+                disabled={busy}
+                className="btn-gold rounded-full px-6 py-3 text-sm font-semibold flex-1 disabled:opacity-60 touch-manipulation"
+              >
+                {busy ? "Submitting…" : "Confirm & Submit Application"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Step 1: Application Form Input */
+          <div className="space-y-5">
+            {/* Field A: Selected Café (Read-only banner) */}
+            <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-[0.68rem] uppercase tracking-wider text-mist block">
+                  Selected Venue
+                </span>
+                <span className="font-display text-xl text-ivory font-semibold">
+                  {activeCafeConfig?.displayName}
+                </span>
+                <span className="text-xs text-mist block line-clamp-1 mt-0.5">
+                  {selectedCafe?.address}
+                </span>
+              </div>
+              <Badge tone="gold">Verified Partner</Badge>
+            </div>
+
+            {/* Field B: Selected Experience (Radio options strictly for this cafe) */}
+            <Field label="Choose Experience Package">
+              <div className="space-y-2 mt-1">
+                {activeCafeConfig?.experiences.map((exp) => (
+                  <label
+                    key={exp.id}
+                    className={`flex items-center gap-3 p-3.5 rounded-xl border transition-all cursor-pointer touch-manipulation ${
+                      selectedExperience === exp.id
+                        ? "border-rosegold bg-rosegold/10 text-ivory shadow-[0_0_15px_rgba(255,61,154,0.15)]"
+                        : "border-white/10 bg-white/[0.02] text-ivory-dim hover:border-white/20"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="selectedExperience"
+                      value={exp.id}
+                      checked={selectedExperience === exp.id}
+                      onChange={() => setSelectedExperience(exp.id)}
+                      className="accent-rosegold h-4 w-4"
+                    />
+                    <span className="text-sm font-medium">{exp.title}</span>
+                  </label>
+                ))}
+              </div>
+            </Field>
+
+            {/* Field C: Date Selection (Interactive calendar picker, past disabled) */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field
+                label="Preferred Reservation Date"
+                hint="Past dates disabled. Subject to venue review."
+              >
+                <input
+                  type="date"
+                  min={todayStr}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className={`${inputCls} accent-rosegold cursor-pointer`}
+                  required
+                />
+              </Field>
+
+              {/* Field D: Preferred Timing */}
+              <Field
+                label="Preferred Reservation Time"
+                hint="Preferred time (subject to café confirmation)."
+              >
+                <select
+                  value={preferredTime}
+                  onChange={(e) => setPreferredTime(e.target.value)}
+                  className={inputCls}
+                >
+                  {PREFERRED_TIME_SLOTS.map((t) => (
+                    <option key={t} value={t} className="bg-onyx text-ivory">
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            {/* Field E: Guest Count */}
+            <Field label="Guest Count" hint="Table seating party size">
+              <select
+                value={guestCount}
+                onChange={(e) => setGuestCount(Number(e.target.value))}
+                className={inputCls}
+              >
+                <option value={2} className="bg-onyx text-ivory">2 Guests (Couple / Date)</option>
+                <option value={3} className="bg-onyx text-ivory">3 Guests</option>
+                <option value={4} className="bg-onyx text-ivory">4 Guests (Double Date)</option>
+              </select>
+            </Field>
+
+            {/* Field F: Additional Note */}
+            <Field
+              label="Additional Note / Special Requests"
+              hint="Optional — dietary preferences, seating requests, or special occasions."
+            >
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. Celebrating an anniversary; prefer a quiet corner table if available…"
+                className={`${inputCls} min-h-[80px] resize-y`}
+                maxLength={400}
+              />
+            </Field>
+
+            {/* Form Actions */}
+            <div className="flex gap-3 pt-3">
+              <button
+                type="button"
+                onClick={closeApplication}
+                className="btn-ghost rounded-full px-6 py-3 text-sm flex-1 touch-manipulation"
               >
                 Cancel
               </button>
               <button
-                onClick={confirmApply}
-                disabled={busy}
-                className="btn-gold rounded-full px-6 py-3 text-sm font-semibold flex-1 disabled:opacity-60"
+                type="button"
+                onClick={() => {
+                  if (!selectedDate) {
+                    toast("Please select a date for your experience", "rose");
+                    return;
+                  }
+                  if (selectedDate < todayStr) {
+                    toast("Past dates cannot be selected", "rose");
+                    return;
+                  }
+                  setIsReviewStep(true);
+                }}
+                className="btn-gold rounded-full px-6 py-3 text-sm font-semibold flex-1 touch-manipulation"
               >
-                {busy ? "Submitting…" : "Submit application"}
+                Review Application →
               </button>
             </div>
           </div>
         )}
       </Modal>
-
-      <section className="relative max-w-6xl mx-auto px-5 pb-20 text-center">
-        <SectionHead
-          kicker="Privé"
-          title="Some evenings are members-only"
-          sub="Privé membership unlocks our most exclusive experiences — intimate chef's tables and private venues."
-        />
-        <Reveal className="mt-8">
-          <Link to="/membership" className="btn-ghost rounded-full px-8 py-3 text-sm">
-            View Elite membership
-          </Link>
-        </Reveal>
-      </section>
     </div>
   );
 }

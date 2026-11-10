@@ -509,6 +509,7 @@ function load(): DbShape {
               parsed.cafes[existingIndex].name = sc.name;
               parsed.cafes[existingIndex].city = sc.city;
               parsed.cafes[existingIndex].address = sc.address;
+              if (sc.experiences) parsed.cafes[existingIndex].experiences = sc.experiences;
               if (sc.images) parsed.cafes[existingIndex].images = sc.images;
               if (sc.image) parsed.cafes[existingIndex].image = sc.image;
             }
