@@ -313,11 +313,11 @@ export default function Memberships() {
   return (
     <div className="px-5 pb-24 pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Section Header with AUTHORITATIVE PRICING COPY (Privé ₹1,499) */}
+        {/* Section Header with AUTHORITATIVE PRICING COPY (Privé ₹1,199) */}
         <SectionHead
           kicker="Plans & subscriptions"
           title="Memberships"
-          sub="Select ₹499 · Signature ₹799 · Privé ₹1,499. Membership never guarantees a match, date or romantic outcome."
+          sub="Select ₹499 · Signature ₹799 · Privé ₹1,199. Membership never guarantees a match, date or romantic outcome."
           align="left"
         />
 
@@ -513,7 +513,7 @@ export default function Memberships() {
               <option value="all">All Tiers</option>
               <option value="connect">Select (₹499)</option>
               <option value="plus">Signature (₹799)</option>
-              <option value="elite">Privé (₹1,499)</option>
+              <option value="elite">Privé (₹1,199)</option>
             </select>
 
             {/* Sort Toggle Controls */}

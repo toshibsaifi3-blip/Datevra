@@ -1,0 +1,1233 @@
+# DATEVRA — COMPLETE WEBSITE-WIDE AUDIT, BUG FIXING, DATABASE INTEGRITY, SECURITY HARDENING & PRODUCTION READINESS MASTER PROJECT
+
+**Project:** Datevra  
+**Live website:** https://www.datevra.com  
+**Backend:** Supabase  
+**Frontend:** Inspect the actual current repository; do not assume the framework from old documentation.  
+**Repository:** https://github.com/toshibsaifi3-blip/Datevra  
+**Development environment:** Existing Google AI Studio workspace.
+
+## PRIMARY OBJECTIVE
+
+Perform a complete, evidence-based audit of the entire existing Datevra website, identify and fix all confirmed code-level defects, resolve the known outstanding issues in the supplied Datevra Website Completion & Pending Work Master Report dated 03 November 2026, and investigate the new production application submission error.
+
+This is NOT a request to redesign or rebuild Datevra.
+
+The objective is to make the existing website reliable, secure, correctly connected to Supabase, and ready for controlled production verification.
+
+You must inspect the actual current codebase, database schema files, migration history, existing implementation reports and available tests before making changes.
+
+Do not assume that an item previously marked completed is still working. Reverify it.
+
+Do not assume that a successful build proves that a real user workflow works.
+
+Do not assume that an HTTP 200 response proves that a feature works.
+
+Do not mark a task complete without actual supporting evidence.
+
+---
+
+# PART 1 — NON-NEGOTIABLE PROJECT RULES
+
+### 1. Preserve the existing Datevra website
+
+The existing Datevra design and branding must remain unchanged.
+
+Do not modify without an explicit requirement:
+
+- Colours.
+- Typography.
+- Gradients.
+- Spacing.
+- Layout.
+- Cards.
+- Buttons.
+- Components.
+- Animations.
+- Navigation design.
+- Logo.
+- Branding.
+- Responsive design system.
+
+Do not apply a new design system or redesign the Admin Panel.
+
+Only change visual elements when fixing a demonstrated functional or accessibility defect, and preserve the existing appearance as much as possible.
+
+### 2. Protect existing functionality
+
+Do not unnecessarily modify or break:
+
+- Authentication.
+- User accounts.
+- Profiles.
+- Profile photos.
+- Likes.
+- Matchmaking.
+- Matches.
+- Chat.
+- Memberships.
+- Payments.
+- Complimentary passes.
+- Notifications.
+- Café listings.
+- Saved cafés.
+- Experience applications.
+- Bookings.
+- Partnerships.
+- Commission history.
+- Admin Panel.
+- CMS.
+- Legal pages.
+- Activity logs.
+
+### 3. Production safety
+
+Work inside the existing local Google AI Studio project only.
+
+Do not:
+
+- Execute SQL against production.
+- Apply production migrations.
+- Delete production records.
+- Modify production database settings.
+- Change production RLS policies directly.
+- Change Supabase Auth settings.
+- Modify Hostinger DNS.
+- Modify Resend settings.
+- Change Vercel production settings.
+- Change production environment variables.
+- Commit.
+- Push.
+- Deploy.
+- Publish unapproved content.
+- Send real customer emails.
+- Make real payments.
+- Create fake production users, bookings or transactions.
+
+If database or account changes are required, prepare the exact instructions and migration files separately.
+
+Wait for explicit owner approval before production actions.
+
+### 4. No fake fixes
+
+Never:
+
+- Hide an error without fixing its root cause.
+- Disable a foreign key to make an insert work.
+- Weaken RLS to bypass permission errors.
+- Use fake IDs.
+- Generate fake booking confirmations.
+- Return artificial success responses.
+- Replace failed database operations with mock success.
+- Hardcode temporary production credentials.
+- Silently ignore exceptions.
+- Mark an untested feature as working.
+
+### 5. Evidence-based changes
+
+For every confirmed issue:
+
+1. Identify the exact source file or database object.
+2. Explain the root cause.
+3. Identify the correct solution.
+4. Make the smallest safe correction.
+5. Run relevant tests.
+6. Record the result.
+7. Identify anything that requires production access or owner approval.
+
+Do not modify unrelated files just to make the implementation appear comprehensive.
+
+---
+
+# PART 2 — FIRST CREATE A COMPLETE PROJECT INVENTORY
+
+Before editing, inspect the entire repository.
+
+Identify:
+
+- Actual frontend framework and version.
+- Application entry points.
+- Routing system.
+- Authentication architecture.
+- Backend abstraction.
+- Supabase client initialization.
+- Supabase database adapter.
+- Mock database adapter.
+- TypeScript database types.
+- Database schema files.
+- All SQL migrations.
+- Edge Functions.
+- RPC functions.
+- RLS policies.
+- Database triggers.
+- Existing tests.
+- Environment variable names, without exposing their values.
+- Build and lint configuration.
+- Current application routes.
+- Existing Git modifications.
+
+Do not trust older documentation if it conflicts with the actual repository.
+
+### Important architecture discrepancies to investigate
+
+The 03 November master report describes Next.js, while the current Google AI Studio migration report describes React 19 and Vite.
+
+Determine the actual current production architecture and whether the deployed application is built from the same codebase.
+
+The master report also mentions datevra.in in some historical admin/canonical references, whereas the current confirmed public domain is datevra.com.
+
+Do not blindly change domains. Establish the correct production canonical domain from the existing configuration and documented owner-approved domain, and report discrepancies.
+
+Produce a complete feature inventory before making changes.
+
+---
+
+# PART 3 — CRITICAL P0: FIX EXPERIENCE APPLICATION SUBMISSION
+
+## 3.1 Confirmed production error
+
+The reported live error is:
+
+`insert or update on table "date_applications" violates foreign key constraint "date_applications_experience_id_fkey"`
+
+The missing key is:
+
+`experience_id = e-hotstag-premium-date`
+
+The supplied audit reports that:
+
+`public.date_applications.experience_id` references `public.experiences.id`.
+
+The four curated experiences were introduced into frontend configuration and mock data, but the production `public.experiences` table does not contain the corresponding records.
+
+Verify this directly against the repository schema and migration history before accepting the finding.
+
+## 3.2 Four required experiences
+
+Café Hot Stag:
+
+1. `e-hotstag-premium-date` — Premium Date
+2. `e-hotstag-coffee-date` — Premium Coffee Date
+3. `e-hotstag-italian` — Italian Cuisine Date with Premium Experience
+
+Karma La Cafe:
+
+4. `e-karmala-karaoke` — Premium Date with Live Karaoke
+
+Preserve the existing approved café names, experience names, prices, budget ranges, images and customer-facing presentation.
+
+The Yumm Club must remain available in Public Cafés but excluded from the Experiences section as previously requested.
+
+## 3.3 Trace the complete application path
+
+Inspect:
+
+- `src/pages/public/ExperiencesPublic.tsx`
+- `src/lib/supabase/db.ts`
+- `src/lib/mockDb.ts`
+- `src/pages/admin/Applications.tsx`
+- All relevant types and migrations.
+
+Trace:
+
+Experience selection → Application form → Review → Submit → `db.applyForExperience()` → Supabase insert.
+
+Establish the actual ID being sent and the exact database relationship.
+
+Identify whether the application ID, café ID, experience ID or frontend configuration ID is being confused.
+
+## 3.4 Prepare a safe Migration 027
+
+Prepare:
+
+`db/migrations/027_seed_curated_experiences.sql`
+
+Before creating the final migration, inspect the actual `public.experiences` and `public.cafes` schemas.
+
+Verify:
+
+- Every column exists.
+- Every value has the correct data type.
+- Required fields and defaults are respected.
+- The primary key is correct.
+- Existing experience records are preserved.
+- Any café-to-experience relationship is correctly represented by the actual schema.
+
+The proposed historical migration must not be blindly copied.
+
+### Migration safety requirements
+
+- Do not drop constraints.
+- Do not weaken foreign keys.
+- Do not delete records.
+- Avoid overwriting existing records with `ON CONFLICT DO UPDATE` unless each updated field is proven safe and intentionally approved.
+- Prefer an idempotent insertion strategy that does not overwrite existing records.
+- Do not replace an existing café's entire experience array without preserving legitimate existing entries.
+- Avoid duplicate experience names or IDs.
+- Include preflight checks and post-migration verification queries.
+- Include a rollback or recovery explanation where technically appropriate.
+
+If the schema lacks a necessary café relationship, do not invent one. Explain the correct relationship design and obtain approval before proposing a schema change.
+
+Do not execute the migration.
+
+## 3.5 Fix application error handling
+
+Do not display raw Postgres error messages to ordinary users.
+
+Map known error codes into clear messages.
+
+Preserve the user's completed form data when submission fails.
+
+Prevent duplicate submissions during an active request.
+
+Never show success unless Supabase confirms the insert succeeded.
+
+---
+
+# PART 4 — COMPLETE DATABASE INTEGRITY AUDIT
+
+Inspect every existing Supabase-backed feature.
+
+Search for:
+
+- Foreign key violations.
+- Unique constraint violations.
+- Not-null violations.
+- Check constraint violations.
+- Invalid UUIDs.
+- Invalid enums.
+- Missing tables.
+- Missing columns.
+- Missing RPCs.
+- RLS permission failures.
+- Incorrect user IDs.
+- Invalid relationship mappings.
+- Incorrect insert/update payloads.
+- Stale schema assumptions.
+- Missing database defaults.
+- Incorrect date/time handling.
+- Duplicate submissions.
+- Race conditions.
+- Unhandled network errors.
+- Mock/production behaviour differences.
+
+Check the following modules:
+
+1. Authentication and profiles.
+2. Memberships and payments.
+3. Likes and discovery.
+4. Matchmaking and match proposals.
+5. Conversations and messages.
+6. Verification and reports.
+7. Cafés and partnerships.
+8. Experiences and applications.
+9. Bookings and settlements.
+10. Complimentary passes.
+11. Notifications.
+12. Activity logs.
+13. CMS and legal content.
+14. Admin dashboard and analytics.
+
+For every database operation, verify that the frontend payload matches the real schema.
+
+Check that all referenced database records actually exist.
+
+Do not make speculative fixes.
+
+Classify each finding as:
+
+- CONFIRMED BUG.
+- POTENTIAL BUG.
+- HISTORICALLY COMPLETED — REQUIRES REVERIFICATION.
+- REQUIRES DATABASE MIGRATION.
+- REQUIRES OWNER ACTION.
+- NOT A BUG.
+
+---
+
+# PART 5 — MIGRATION 010 AND DATABASE CONSISTENCY
+
+The 03 November master report identifies Migration 010 as pending in production.
+
+Inspect:
+
+- `010_passes_proposals.sql`.
+- All migrations that depend on it.
+- Migration 012 and later matchmaking safeguards.
+- The actual schema for complimentary passes.
+- `complimentary_passes.cafe_id` and `cafes.id` types.
+- Required tables, indexes, functions, triggers and policies.
+- Migration history and dependency ordering.
+
+Check the previous reported missing dependencies:
+
+- `public.complimentary_passes`.
+- `public.create_membership_pass(...)`.
+
+Verify the actual function signatures, arguments, return types and authorization.
+
+Do not create a duplicate table or function if the correct object already exists.
+
+Prepare a complete, ordered migration plan.
+
+Do not apply any migration to production.
+
+Provide exact preflight and post-migration verification SQL separately.
+
+---
+
+# PART 6 — AUTHENTICATION, OTP AND PASSWORD RECOVERY
+
+Audit the complete authentication lifecycle.
+
+Inspect:
+
+- Signup.
+- Email confirmation.
+- OTP entry.
+- OTP resend.
+- OTP expiry.
+- Invalid OTP.
+- Login.
+- Logout.
+- Session refresh.
+- Password recovery.
+- Reset password.
+- Profile creation.
+- Session expiration.
+- Redirects.
+- Existing user access.
+
+Verify the actual implementation of:
+
+- `auth.signUp()`.
+- `auth.verifyOtp()`.
+- `auth.signInWithPassword()`.
+- `auth.resetPasswordForEmail()`.
+- Password update and recovery handling.
+
+Check that the frontend's confirmation method agrees with the Supabase email template configuration.
+
+The intended code-based email verification flow must use the correct OTP template variable, such as `{{ .Token }}`, where applicable.
+
+Do not assume that Resend domain verification proves real delivery.
+
+Prepare a separate owner checklist for:
+
+- Supabase Custom SMTP.
+- Resend sending domain.
+- DNS SPF, DKIM and DMARC.
+- Sender identity.
+- Email templates.
+- External Gmail and Outlook delivery testing.
+
+Do not change DNS or Auth settings.
+
+Verify that the existing `support@datevra.com` sender configuration is not accidentally replaced.
+
+Test expired tokens, invalid codes, resend cooldowns and successful verification in an approved test environment.
+
+---
+
+# PART 7 — ADMIN AUTHENTICATION AND SECURITY
+
+Audit:
+
+- `src/context/AuthContext.tsx`.
+- `src/components/layout.tsx`.
+- `AdminLayout`.
+- Admin route guards.
+- `public.is_admin()`.
+- Admin role registry.
+- Admin RLS policies.
+- Admin RPCs.
+- Admin-only database mutations.
+
+Verify:
+
+1. Logged-out users cannot access admin pages.
+2. Normal members cannot access admin data.
+3. Authorized administrators can access the correct pages.
+4. Authorization is enforced by the backend, not merely by hidden navigation.
+5. A profile query failure cannot incorrectly promote a member or block a verified admin.
+6. Admin bootstrap cannot be abused.
+7. A user cannot self-promote.
+8. Admin operations use the authenticated actor ID.
+9. Sensitive admin actions are audit logged.
+
+Investigate the historical `/admin` redirect to `/app` issue.
+
+Verify whether the current admin account and profile actually exist using the approved authentication and database setup.
+
+The historical report refers to `admin@datevra.in`, while current project context uses `founder@datevra.com`.
+
+Do not create a new administrator or change roles automatically. Report the discrepancy and require owner confirmation.
+
+---
+
+# PART 8 — MEMBERSHIP PLANS AND PRICING
+
+Approved customer-facing plans:
+
+- Select — ₹499.
+- Signature — ₹799.
+- Privé — ₹1,199.
+
+The audit reports a discrepancy:
+
+`src/data/seed.ts` lists Privé at ₹1,499.
+
+Inspect every source of plan pricing:
+
+- Frontend configuration.
+- Seed data.
+- Supabase plan records.
+- Payment order creation.
+- Checkout.
+- Webhook verification.
+- Membership entitlements.
+- Admin membership management.
+- Membership renewal and expiry.
+
+Correct confirmed code-level pricing inconsistencies to the approved specification.
+
+Do not change production database prices without approval.
+
+Do not reintroduce legacy names:
+
+- Marigold.
+- Sunflower.
+- Rose.
+- Connect.
+- Plus.
+- Elite.
+
+Check that plan IDs and customer-facing labels are correctly mapped.
+
+Verify that advertised membership benefits are actually enforced.
+
+Do not promise priority benefits or premium functionality that the backend does not provide.
+
+---
+
+# PART 9 — RAZORPAY AND PAYMENT LIFECYCLE
+
+Audit:
+
+- `supabase/functions/verify-payment`.
+- Payment order creation.
+- Razorpay signature verification.
+- Webhook processing.
+- HMAC-SHA256 verification.
+- Idempotency.
+- Duplicate events.
+- Payment status updates.
+- Membership activation.
+- Refund handling.
+- Cancellation.
+- Upgrade/downgrade.
+- Renewal.
+- Expiry.
+- Invoice and receipts.
+- Admin reconciliation.
+
+Verify that:
+
+1. The frontend never grants membership merely because it receives a success callback.
+2. Only trusted server-side verification grants entitlements.
+3. Duplicate webhooks cannot create duplicate payments or membership extensions.
+4. Invalid signatures are rejected.
+5. Secrets are never exposed in the frontend bundle.
+6. Test mode and live mode are not confused.
+7. Payment failures never grant membership.
+
+Prepare the exact list of missing Edge Functions, secrets and webhook settings.
+
+Do not deploy functions or change live payment credentials.
+
+Prepare a test matrix for successful, failed, cancelled, duplicated and refunded payments.
+
+---
+
+# PART 10 — MATCHMAKING, DISCOVERY AND MEMBER SAFETY
+
+Audit the complete matchmaking system.
+
+Inspect:
+
+- Discovery queries.
+- Like creation.
+- Unlike.
+- Mutual match creation.
+- Match visibility.
+- Existing-match protection.
+- Duplicate proposal protection.
+- Blocked-pair protection.
+- Admin-curated proposals.
+- Dual consent.
+- Proposal status transitions.
+- Compatibility calculations.
+- Notifications.
+- Match history.
+
+Verify existing migrations and safeguards, especially migrations 010–016 where present.
+
+Check:
+
+1. A user cannot match with themselves.
+2. A blocked pair cannot be proposed or matched.
+3. Existing confirmed matches cannot be duplicated.
+4. Pending proposals cannot be duplicated.
+5. Both members' required consent is enforced.
+6. Member names are correctly loaded in Supabase mode.
+7. Curated proposals create the required notifications.
+8. Database authorization protects every administrative matchmaking operation.
+9. Query patterns are scalable and avoid unnecessary N+1 requests.
+
+Do not weaken the existing consent or safety architecture.
+
+Do not change matching rules without documented product approval.
+
+---
+
+# PART 11 — FREE-USER LIMITS AND MEMBERSHIP ENTITLEMENTS
+
+The master report records:
+
+- A free-user limit of 20 likes.
+- A display limit of 20 interests.
+
+Audit both.
+
+Verify whether the 20-like limit is enforced in the backend, not merely the UI.
+
+The reset period for the 20-like limit was not clearly established in the master report.
+
+Do not invent whether the rule is daily, lifetime or another period.
+
+Identify the exact current implementation and report what requires owner confirmation.
+
+Verify the 20-interest display cap separately from the storage limit.
+
+Check that paid entitlements are enforced securely.
+
+Make sure users receive accurate upgrade prompts when limits are reached.
+
+Never allow the frontend to grant paid entitlements by changing local state.
+
+---
+
+# PART 12 — CHAT, CONVERSATIONS AND NOTIFICATIONS
+
+Audit:
+
+- Conversation creation.
+- Mutual-match eligibility.
+- Message send.
+- Message retrieval.
+- Message persistence.
+- Realtime subscriptions.
+- Unread indicators.
+- Conversation history.
+- Blocked users.
+- Unmatch.
+- Report.
+- Notifications.
+- Mobile keyboard and scrolling.
+
+Verify:
+
+1. Only eligible matched users can message each other.
+2. Unauthorized users cannot read another conversation.
+3. Messages persist after refresh.
+4. Realtime events do not create duplicate messages.
+5. Blocked users cannot continue unwanted messaging.
+6. Unread counts are accurate.
+7. Notifications reflect real events.
+8. Supabase RLS protects messages and conversations independently of the UI.
+
+---
+
+# PART 13 — CAFÉS, EXPERIENCES, APPLICATIONS AND BOOKINGS
+
+Reverify the four recent implementation tasks.
+
+### A. Public cafés
+
+Exclude the six confirmed demo cafés:
+
+- Kala Ghoda Roastery — `c-roastery-mum`.
+- Lodhi Art House — `c-lodhi-del`.
+- Indiranagar Brew Room — `c-thirdwave-blr`.
+- Maison Suzette — `c-suzette-pune`.
+- Johari Courtyard — `c-tapri-jpr`.
+- Deccan Table — `c-aerocity-hyd`.
+
+Preserve:
+
+- Café Hot Stag — `c-hot-stag-del`.
+- KARMALA CAFE & RESTAURANT — `c-karmala-del`.
+- The Yumm Club — `c-yumm-club-del`.
+
+Do not hide genuine cafés in other cities merely because of their location.
+
+Do not delete records from the database to solve a frontend visibility problem.
+
+Verify public listings, direct detail URLs and saved café views.
+
+### B. Experiences
+
+Preserve the four approved experiences and their correct café associations.
+
+Verify the global budget slider remains removed.
+
+Verify each café's own budget slider works independently.
+
+### C. Application persistence
+
+Verify date, time, guests, budget, experience ID, venue and optional note.
+
+Preserve historical applications.
+
+Keep user notes and admin notes separate.
+
+### D. Admin application management
+
+Verify search, filters, details, statuses, authorization and audit logging.
+
+### E. Booking creation
+
+Verify that confirmed bookings use valid database relationships.
+
+Check:
+
+- Partner selection.
+- User selection.
+- Date.
+- Time.
+- Amount.
+- Booking status.
+- Duplicate protection.
+- Application-to-booking consistency.
+- Venue confirmation requirements.
+
+Do not represent an application as a confirmed café reservation before the café has actually confirmed availability.
+
+### F. Commission functionality
+
+Preserve the removal of editable percentage commission fields.
+
+Keep historical commission rates read-only.
+
+Preserve fixed-amount settlement recording.
+
+Verify that commercial terms remain consistent with signed partner agreements.
+
+Do not automatically change the historical 10% café-paid Free Date commercial term.
+
+---
+
+# PART 14 — COMPLIMENTARY MEMBERSHIP AND CAFÉ PASSES
+
+Audit:
+
+- Complimentary pass creation.
+- Pass code generation.
+- Assignment.
+- Redemption.
+- Expiry.
+- Revocation.
+- Duplicate prevention.
+- Café relationship.
+- Admin permissions.
+- Audit logging.
+
+Investigate the reported missing `public.complimentary_passes` table and `public.create_membership_pass(...)` function.
+
+Verify the actual schema and migrations.
+
+Do not invent a replacement system or duplicate existing tables.
+
+Prepare necessary database changes separately for owner approval.
+
+---
+
+# PART 15 — ADMIN PANEL COMPLETENESS
+
+Audit the existing Admin Panel without redesigning it.
+
+Verify the available workflows:
+
+- Overview.
+- Activity logs.
+- Users.
+- Verification.
+- Reports and safety.
+- Matchmaking.
+- Memberships.
+- Membership passes.
+- Payments.
+- Revenue analytics.
+- Investor ledger.
+- Commissions.
+- Date applications.
+- Bookings.
+- Cafés.
+- Complimentary passes.
+- Partnerships.
+- Notifications.
+- CMS.
+- Legal pages.
+- Settings.
+
+Check:
+
+- Correct data retrieval.
+- Search and filters.
+- Pagination.
+- Empty states.
+- Loading states.
+- Error states.
+- Authorization.
+- Audit logging.
+- Correct totals and metrics.
+- No mock data in production.
+- No misleading financial calculations.
+
+Do not create duplicate pages or duplicate administrative controls.
+
+---
+
+# PART 16 — MOBILE RESPONSIVENESS AND ACCESSIBILITY
+
+Do not accept a previous statement of zero horizontal overflow as proof that every workflow works.
+
+Inspect responsive layouts across:
+
+- 360px.
+- 375px.
+- 390px.
+- 412px.
+- 768px.
+- Desktop widths.
+
+Check:
+
+- Navigation.
+- Forms.
+- OTP entry.
+- Profile creation.
+- Discovery cards.
+- Matchmaking.
+- Chat.
+- Membership checkout.
+- Café pages.
+- Budget sliders.
+- Application review modals.
+- Admin tables.
+- Admin modals.
+- Date pickers.
+- Buttons and touch targets.
+- Keyboard overlays.
+- Safe areas.
+- Image cropping.
+- Scroll behaviour.
+
+Respect reduced-motion preferences.
+
+Fix confirmed functional mobile defects while preserving Datevra's existing visual identity.
+
+---
+
+# PART 17 — SECURITY AND PRIVACY AUDIT
+
+Perform a comprehensive review of:
+
+- Supabase RLS.
+- RPC authorization.
+- Edge Function authorization.
+- Object-level access.
+- User profile visibility.
+- Email and private profile data.
+- Messages.
+- Photos and uploads.
+- Payment information.
+- Admin privileges.
+- Secrets.
+- Environment variables.
+- Repository history.
+- Error logs.
+- Rate limits.
+- Abuse prevention.
+- Backup and recovery.
+
+Check whether:
+
+- A user can access another user's private profile data.
+- A user can read another user's messages.
+- A member can modify another member's membership.
+- A normal user can create admin records.
+- A user can bypass likes or membership limits.
+- A client can manipulate payment status.
+- A public endpoint exposes sensitive data.
+- Secrets have been committed or bundled into frontend code.
+
+Prepare findings from the actual available evidence.
+
+Do not claim to have run Supabase Security Advisor if you have not accessed it.
+
+Do not modify production security policies without approval.
+
+---
+
+# PART 18 — LEGAL, SAFETY AND PRODUCT CLAIMS
+
+Inspect:
+
+- Terms of Service.
+- Privacy Policy.
+- Refund and cancellation policy.
+- Membership benefits and conditions.
+- Community Guidelines.
+- Safety Centre.
+- Reporting and blocking process.
+- 18+ eligibility.
+- Consent.
+- Free Date conditions.
+- Café booking conditions.
+
+Do not generate invented legal assurances or claim that legal documents have been reviewed by a lawyer.
+
+Identify placeholder content and missing pages.
+
+Datevra must not promise:
+
+- Guaranteed matches.
+- Guaranteed relationships.
+- Guaranteed dates.
+- Universal Free Dates.
+- Guaranteed café availability.
+
+Free Dates remain selective and subject to approval, availability and stated conditions.
+
+Prepare missing content or implementation requirements for owner and legal review.
+
+Do not publish unapproved legal content.
+
+---
+
+# PART 19 — SEO, PERFORMANCE AND PRODUCTION OPERATIONS
+
+### SEO
+
+Inspect:
+
+- Canonical URLs.
+- Redirects.
+- robots.txt.
+- sitemap.xml.
+- Page titles.
+- Meta descriptions.
+- Open Graph metadata.
+- Structured data.
+- Indexability.
+- Duplicate domains.
+- Google Search Console requirements.
+
+Use the owner-confirmed production domain.
+
+Investigate the historical `.in` versus `.com` discrepancy before changing canonical tags.
+
+### Performance
+
+Inspect:
+
+- Lighthouse.
+- Core Web Vitals.
+- Bundle sizes.
+- Image optimization.
+- Fonts.
+- Third-party scripts.
+- Database indexes.
+- Slow queries.
+- N+1 queries.
+- Unbounded queries.
+- Caching.
+- Mobile loading.
+
+Fix verified code-level performance issues without breaking features.
+
+### Operations
+
+Identify requirements for:
+
+- Error monitoring.
+- Uptime monitoring.
+- Backups.
+- Restore testing.
+- Release rollback.
+- Deployment verification.
+- Incident response.
+
+Do not configure paid services or production infrastructure without approval.
+
+---
+
+# PART 20 — COMPLETE END-TO-END ACCEPTANCE TESTS
+
+Create an explicit test matrix.
+
+The following journeys must be tested in an approved test environment:
+
+### Journey 1 — New member
+
+Register → receive OTP → verify → create profile → login.
+
+Pass only if the correct account and profile are stored and the user can access the expected member pages.
+
+### Journey 2 — Password recovery
+
+Request reset → receive email → reset password → login.
+
+Verify expired and invalid tokens are rejected.
+
+### Journey 3 — Discovery
+
+Open discovery → view eligible profiles → like → unlike.
+
+Verify the actual free-user limits.
+
+### Journey 4 — Mutual match
+
+Use two authorized test accounts.
+
+Verify a mutual match is created once and visible to both users.
+
+### Journey 5 — Chat
+
+Open eligible match → send and receive messages.
+
+Verify persistence, realtime updates and authorization.
+
+### Journey 6 — Membership
+
+Select each approved plan → payment test → trusted verification → entitlement.
+
+Verify the correct amount and membership expiry.
+
+### Journey 7 — Café application
+
+Select an approved café experience → complete application → submit → verify database record.
+
+All four advertised experiences must use valid IDs and relationships.
+
+### Journey 8 — Admin booking
+
+Admin reviews application → selects eligible booking details → creates booking → verifies booking record.
+
+Do not mark a café reservation as confirmed without actual venue confirmation.
+
+### Journey 9 — Free Date
+
+Select eligible test user → approve fixed budget → verify customer charge and settlement records.
+
+### Journey 10 — Admin security
+
+Test logged-out, normal member and authorized administrator access.
+
+### Journey 11 — Mobile
+
+Repeat critical member journeys on mobile-sized screens and, where available, real devices.
+
+### Journey 12 — Recovery and regression
+
+Verify that existing users, applications, bookings, memberships and café records remain intact.
+
+### Testing categories must be reported separately
+
+- Static code checks.
+- Unit tests.
+- Mock database tests.
+- Local Supabase integration tests.
+- Staging database tests.
+- Production verification.
+
+Never report a mock test as a real database test.
+
+Never create fake production records to make a test pass.
+
+If a test requires production access, credentials, owner approval or a test account, report the dependency.
+
+---
+
+# PART 21 — IMPLEMENTATION RULES AND EXECUTION ORDER
+
+This is a large project. Work in controlled phases rather than making a large collection of unrelated changes.
+
+Use the following order:
+
+**Phase 0 — Repository and evidence audit**
+
+- Inspect all code, migrations and tests.
+- Reconcile current repository architecture.
+- Create the master issue register.
+- Identify confirmed blockers.
+
+**Phase 1 — Critical database and application integrity**
+
+- Fix the four experience ID/database relationship problem.
+- Prepare Migration 027.
+- Review Migration 010.
+- Fix confirmed data persistence defects.
+- Repair database error handling.
+
+**Phase 2 — Authentication and administrator access**
+
+- Verify OTP and recovery flows.
+- Audit admin roles and route protection.
+- Fix confirmed code defects.
+- Prepare owner-side configuration steps.
+
+**Phase 3 — Membership and payments**
+
+- Reconcile pricing.
+- Audit Razorpay.
+- Fix verified payment and entitlement bugs.
+- Prepare owner-side secrets and webhook checklist.
+
+**Phase 4 — Matchmaking, chat and member safety**
+
+- Fix confirmed relationship, authorization, notification and persistence bugs.
+- Preserve existing consent and blocking safeguards.
+
+**Phase 5 — Cafés, applications, bookings and Admin Panel**
+
+- Reverify all recent café and application changes.
+- Fix actual database and workflow defects.
+- Preserve historical records and settlements.
+
+**Phase 6 — Mobile, security, legal and SEO**
+
+- Fix confirmed technical defects.
+- Prepare missing owner and legal review items.
+
+**Phase 7 — End-to-end production readiness**
+
+- Run the complete acceptance matrix.
+- Verify the build.
+- Produce final evidence and outstanding owner actions.
+
+Do not silently skip a phase.
+
+If the AI Studio environment or available credits cannot complete a phase, stop at a clean checkpoint and report exactly what remains.
+
+---
+
+# PART 22 — REQUIRED FINAL DELIVERABLES
+
+Produce the following:
+
+## Deliverable A — Master issue register
+
+For every issue include:
+
+- Issue ID.
+- Feature.
+- Exact file or database object.
+- Evidence.
+- Root cause.
+- Severity: P0, P1, P2 or P3.
+- Whether it is a code defect or external dependency.
+- Required fix.
+- Implementation status.
+- Test evidence.
+- Remaining risk.
+
+## Deliverable B — Modified files
+
+Provide the exact Git diff file list.
+
+Distinguish:
+
+- Files modified.
+- Files added.
+- Files deleted.
+- Files inspected but unchanged.
+
+Do not double-count files.
+
+## Deliverable C — Database migration package
+
+Provide each required SQL migration separately.
+
+Include:
+
+- Purpose.
+- Preconditions.
+- Schema assumptions.
+- Idempotency.
+- Safety analysis.
+- Verification queries.
+- Rollback/recovery guidance.
+
+Do not execute the SQL.
+
+## Deliverable D — Owner action checklist
+
+List every task that cannot be completed safely in Google AI Studio, such as:
+
+- Supabase migration application.
+- Supabase Auth and SMTP configuration.
+- Resend delivery verification.
+- Razorpay live credentials and webhooks.
+- Production Edge Function deployment.
+- Admin account confirmation.
+- Backup and restore.
+- Legal review.
+- Production release approval.
+
+Do not ask the user to share passwords, API keys or secrets in chat.
+
+## Deliverable E — Technical verification
+
+Report exact results for:
+
+- TypeScript.
+- Production build.
+- Lint.
+- Automated tests.
+- Database integration tests.
+- Mobile tests.
+- Security tests.
+- End-to-end acceptance tests.
+
+State clearly which tests were not possible.
+
+## Deliverable F — Production readiness verdict
+
+Use exactly one:
+
+1. **NOT SAFE TO PUSH** — Critical code defects or unresolved implementation risks remain.
+2. **SAFE TO PUSH AFTER DATABASE MIGRATION** — Code is verified, but reviewed migrations must first be applied.
+3. **SAFE TO PUSH TO STAGING** — Code is suitable for staging validation but not production.
+4. **SAFE TO PUSH** — Code-level acceptance criteria pass and no unapproved changes are required.
+5. **PRODUCTION READY — OWNER APPROVAL REQUIRED** — All technical and operational acceptance tests have passed, and only final owner authorization remains.
+
+Never use a higher readiness verdict than the evidence supports.
+
+---
+
+# FINAL INSTRUCTION
+
+Do not merely generate a report and leave obvious code defects unfixed.
+
+Investigate the entire application, implement all confirmed and safely fixable code-level defects, prepare database migrations for approval, and document external owner actions.
+
+Prioritize real functionality, data integrity, user safety and security over cosmetic changes.
+
+Preserve the existing Datevra website and its working features.
+
+No SQL execution, production data modification, settings changes, commit, push or deployment without explicit owner approval.
+
+Start with Phase 0 and proceed in the prescribed order.

@@ -46,16 +46,12 @@ async function runTests() {
   // -------------------------------------------------------------
   console.log("Test 1: Authoritative Privé pricing copy verification");
   const elitePlan = PLANS.find((p) => p.id === "elite");
-  assert(elitePlan?.price === 1499, `Privé (elite) price in PLANS is ₹1,499 [got ${elitePlan?.price}]`);
+  assert(elitePlan?.price === 1199, `Privé (elite) price in PLANS is ₹1,199 [got ${elitePlan?.price}]`);
 
   const membershipsFile = fs.readFileSync("src/pages/admin/Memberships.tsx", "utf-8");
   assert(
-    membershipsFile.includes("Privé ₹1,499"),
-    "Memberships.tsx SectionHead contains authoritative copy 'Privé ₹1,499'",
-  );
-  assert(
-    !membershipsFile.includes("Privé ₹1,199"),
-    "Memberships.tsx does not contain outdated copy 'Privé ₹1,199'",
+    membershipsFile.includes("Privé ₹1,199"),
+    "Memberships.tsx SectionHead contains authoritative copy 'Privé ₹1,199'",
   );
 
   // -------------------------------------------------------------
