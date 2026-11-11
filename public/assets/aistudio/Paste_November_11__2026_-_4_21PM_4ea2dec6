@@ -1,0 +1,1037 @@
+# DATEVRA — COMPLETE WEBSITE ERROR ELIMINATION, ROOT-CAUSE REPAIR & FULL-SYSTEM RELIABILITY MASTER PROMPT
+
+## EXECUTION OBJECTIVE
+
+Act as the principal full-stack engineer, senior React architect, Supabase database specialist, security engineer, QA engineer, and production reliability specialist responsible for the complete Datevra platform.
+
+Your mission is to conduct a comprehensive investigation of the existing Datevra application, identify the actual root causes of its reported errors and related system failures, and implement the necessary safe corrections.
+
+This is NOT a superficial code review.
+
+This is NOT an exercise in adding temporary workarounds.
+
+This is NOT permission to redesign the website or replace existing functionality.
+
+The objective is to make the existing Datevra platform reliable, functional, secure, and consistent across its frontend, backend integration, database-dependent features, authentication, admin panel, matchmaking, memberships, payments, café experiences, and mobile experience.
+
+Work systematically. Do not assume an issue is fixed merely because a button works or a page loads.
+
+---
+
+# PART 1 — NON-NEGOTIABLE PROJECT PROTECTION RULES
+
+Before making any changes, understand and follow these rules.
+
+### 1. Preserve the existing Datevra design
+
+Do not unnecessarily change:
+
+- Existing branding and visual identity.
+- Colours, typography, gradients, and backgrounds.
+- Spacing, sizing, border radii, shadows, and component styling.
+- Page layouts and navigation.
+- Existing animations and transitions.
+- Existing responsive design patterns.
+- Existing icons, imagery, and visual assets.
+
+Only make visual changes when a reported defect genuinely requires them.
+
+### 2. Preserve existing functionality
+
+Do not remove, replace, simplify, or disable existing working features to make an error disappear.
+
+Do not replace real Supabase functionality with mock data.
+
+Do not introduce duplicate implementations of existing features.
+
+Reuse existing components, hooks, services, RPCs, database structures, and utilities wherever appropriate.
+
+### 3. Work from evidence
+
+Before changing anything:
+
+1. Inspect the entire relevant codebase.
+2. Read the supplied client handover documentation.
+3. Inspect the original Changes & Issues PDF and its screenshots, if available in the project.
+4. Locate every relevant implementation.
+5. Trace frontend-to-backend data flow.
+6. Identify the actual failure point.
+7. Determine whether the issue is frontend, authentication, authorization, RLS, database schema, RPC, Edge Function, configuration, or external-service related.
+
+Never invent a root cause.
+
+Never report a fix without verifying it.
+
+### 4. Production safety
+
+You may inspect the existing project and implement appropriate local code corrections.
+
+However, do not independently:
+
+- Execute production SQL.
+- Apply database migrations.
+- Modify production tables, columns, constraints, triggers, or policies.
+- Change production authentication settings.
+- Change production SMTP or email settings.
+- Modify production storage permissions.
+- Deploy or modify production Edge Functions.
+- Modify production payment configuration.
+- Push commits to GitHub.
+- Deploy to Vercel or Hostinger.
+- Delete production data or accounts.
+- Change production administrator permissions.
+
+These actions require a separate explicit approval from the project owner after you provide the exact proposed operation, its purpose, its impact, and its rollback plan.
+
+Do not treat this prompt as automatic authorization for destructive production operations.
+
+### 5. No fake fixes
+
+Never:
+
+- Suppress an error without fixing its cause.
+- Replace an API call with hardcoded success.
+- Return fake success responses.
+- Hide failed requests from users.
+- Use mock data as a substitute for production data.
+- Disable RLS to make a feature work.
+- Give all users administrator permissions.
+- Expose service-role keys or administrative credentials in frontend code.
+- Add duplicate database functions without checking existing functions.
+- Add duplicate migrations without inspecting migration history.
+- Make a feature appear functional when its backend operation is still failing.
+
+---
+
+# PART 2 — SUPABASE CONNECTION INVESTIGATION
+
+This is a critical requirement.
+
+Previous diagnostics produced conflicting results:
+
+- One report claimed the modern Supabase publishable key was missing its final character and that adding a character produced HTTP 200 responses.
+- A subsequent report restored the original user-supplied key and reported HTTP 401.
+- The latest report classified the connection as configured but not verified.
+
+Therefore, do not assume the connection is working.
+
+### Investigate the current configuration
+
+Inspect:
+
+- `.env.local`
+- `.env`
+- `.env.production`, if present.
+- Vite environment variable handling.
+- Existing Supabase client initialization.
+- All Supabase URL and key references.
+- Duplicate or conflicting Supabase client instances.
+- Any mock/demo adapter fallback.
+- Authentication initialization and session persistence.
+
+The intended project URL is:
+
+`https://buendstsgzdcmzaodurp.supabase.co`
+
+Use the actual key currently supplied in the project's secure configuration.
+
+Do not guess, append, truncate, modify, or reconstruct API keys.
+
+Do not print complete secrets in reports or logs.
+
+### Verify the connection properly
+
+Test the following separately:
+
+1. Supabase project reachability.
+2. API key acceptance.
+3. Supabase client initialization.
+4. Authentication health.
+5. Publicly readable application data.
+6. Authenticated-user queries.
+7. RLS-protected queries.
+8. RPC availability.
+9. Realtime initialization, if used.
+10. Storage access, if used.
+
+Distinguish clearly between:
+
+- Network connectivity.
+- Valid API credentials.
+- Successful API requests.
+- Successful authenticated requests.
+- Successful authorization under RLS.
+
+An HTTP 200 response does not prove every part of Supabase is working.
+
+An empty array does not automatically indicate an error.
+
+A 401 must not be hidden or converted into a success state.
+
+### Mock-data protection
+
+Inspect `mockDb.ts` and all other demo/mock adapters.
+
+Determine exactly when mock mode is activated.
+
+Ensure production configuration cannot silently fall back to mock data when Supabase fails.
+
+Development previews may retain their existing mock functionality where appropriate.
+
+If the backend is unavailable, display a meaningful error and preserve the distinction between demo and production data.
+
+Do not remove existing mock functionality unnecessarily.
+
+---
+
+# PART 3 — COMPLETE WEBSITE-WIDE ERROR AUDIT
+
+Inspect the entire application, not only the pages mentioned below.
+
+Audit:
+
+- Public website.
+- Registration and login.
+- Email verification.
+- Password reset.
+- User dashboard.
+- Profile creation and editing.
+- Full Profile.
+- Discovery.
+- Likes and matching.
+- Matchmaking.
+- Chat and messaging.
+- Membership plans.
+- Membership passes.
+- Payments.
+- Café listings.
+- Café experiences.
+- Experience applications.
+- Date applications.
+- Bookings.
+- Notifications.
+- Admin authentication.
+- Every Admin Panel page.
+- CMS and legal pages.
+- Settings.
+- Mobile and tablet layouts.
+
+Search for:
+
+- Broken imports.
+- Missing components.
+- Invalid React hooks.
+- Incorrect state management.
+- Incorrect API response handling.
+- Missing database functions.
+- Incorrect RPC parameter names.
+- Incorrect table or column references.
+- Missing migrations.
+- Schema mismatches.
+- RLS authorization failures.
+- Incorrect user identity handling.
+- Stale or inconsistent cached data.
+- Duplicate requests.
+- Race conditions.
+- Incorrect date/time conversions.
+- Invalid form validation.
+- Broken loading and empty states.
+- Unhandled promise rejections.
+- Runtime exceptions.
+- Console errors.
+- Broken navigation.
+- Incorrect route guards.
+- Responsive layout failures.
+- Slow database queries.
+- Security weaknesses.
+
+Build a complete internal issue inventory before implementing changes.
+
+Do not stop after finding the first error.
+
+---
+
+# PART 4 — SPECIFIC KNOWN ISSUES THAT MUST BE INVESTIGATED
+
+## A. Full Profile display error
+
+Investigate the existing profile display issue.
+
+Requirements:
+
+- Essential profile information should remain visible in the normal profile view.
+- Full Profile should reveal the additional available profile information.
+- Existing saved profile data must be preserved.
+- Do not invent missing profile information.
+- Ensure the correct profile belongs to the correct authenticated user.
+- Investigate missing fields, incorrect joins, data mapping, loading states, and RLS.
+- Avoid breaking profile editing or profile visibility controls.
+
+## B. Website speed and performance
+
+Investigate actual performance bottlenecks.
+
+Check:
+
+- Unnecessary component rerenders.
+- Duplicate API calls.
+- Large database queries.
+- Missing pagination.
+- Inefficient list rendering.
+- Unoptimized images.
+- Unnecessary bundle imports.
+- Expensive effects.
+- Incorrect React Query or cache invalidation, if used.
+- Repeated profile and membership lookups.
+- Unnecessary network requests.
+
+Improve performance without sacrificing functionality or visual quality.
+
+Do not add arbitrary caching that causes stale user or payment information.
+
+## C. Duplicate email registration
+
+Investigate duplicate registration behaviour.
+
+Requirements:
+
+- Prevent duplicate account creation using the existing Supabase Auth identity model.
+- Handle existing email addresses gracefully.
+- Show a useful user-facing message.
+- Do not expose whether a private account exists where doing so creates an account-enumeration risk.
+- Do not create duplicate profiles.
+- Preserve legitimate login, email verification, and password reset flows.
+- Check database uniqueness constraints and trigger behaviour before recommending schema changes.
+
+## D. Admin verification RPC
+
+Investigate the missing or mismatched verification operation.
+
+A previously reported expected function signature was:
+
+`public.set_user_verified(p_note, p_user_id, p_verified)`
+
+Check:
+
+- Whether this function actually exists in the live database.
+- Whether a differently named function already performs the same operation.
+- Its actual argument names and types.
+- Whether the frontend sends matching parameters.
+- Whether it updates the correct profile.
+- Whether it verifies the administrator.
+- Whether it records the verification note.
+- Whether it updates the member badge consistently.
+- Whether RLS or permissions block execution.
+
+Do not create a duplicate function.
+
+Do not execute production SQL.
+
+If a database change is genuinely necessary, prepare the exact migration and clearly identify it as awaiting approval.
+
+## E. Verified member badge synchronization
+
+Investigate inconsistencies between:
+
+- Admin verification status.
+- Profile verification status.
+- Public profile badge.
+- Discovery cards.
+- Matchmaking results.
+- Full Profile.
+- User dashboard.
+
+The same verified status must be represented consistently.
+
+Do not allow users to self-assign verification.
+
+Only authorized administrators may change verification status.
+
+## F. Commission settings
+
+The client does not want percentage commission editing across:
+
+- Commissions.
+- Cafes.
+- Partnerships.
+
+Remove or disable percentage-editing functionality only where it conflicts with the client's actual requirements.
+
+Preserve existing fixed settlement records and historical payment information.
+
+Preserve the approved café-paid 10% commission arrangement where the agreement requires it.
+
+Do not delete financial history or silently change existing agreements.
+
+## G. Online members counter
+
+Investigate the online-members counter.
+
+It must not count:
+
+- Expired sessions.
+- Logged-out users.
+- Duplicate sessions as separate users.
+- Users whose presence is stale.
+
+Use the existing presence/realtime architecture if it is appropriate.
+
+Account for multiple tabs or devices belonging to the same user.
+
+Do not expose private user information through presence data.
+
+## H. Membership pass generation
+
+Investigate:
+
+- `create_membership_pass`
+- `complimentary_passes`
+- Migration 010.
+- Existing membership pass creation functions.
+- Pass assignment and redemption.
+- Duplicate pass generation.
+- Pass validity and expiry.
+- User-to-pass relationships.
+- Admin authorization.
+
+A previously reported error involved missing functions or schema cache entries.
+
+Trace the actual frontend RPC call and compare it with the real database definitions.
+
+Do not create a duplicate table or function simply to silence an error.
+
+## I. Additional membership pass errors
+
+Check the complete pass lifecycle:
+
+- Pass creation.
+- Complimentary pass assignment.
+- Admin-issued passes.
+- User visibility.
+- Pass status.
+- Redemption.
+- Expiration.
+- Membership upgrade/downgrade.
+- Duplicate prevention.
+- Audit trail.
+
+Preserve historical pass records.
+
+## J. Mobile responsiveness
+
+Audit the entire website on:
+
+- Small mobile screens.
+- Standard mobile screens.
+- Tablets.
+- Desktop.
+
+Check:
+
+- Horizontal overflow.
+- Broken navigation.
+- Modal sizing.
+- Admin tables.
+- Forms and dropdowns.
+- Profile cards.
+- Discovery cards.
+- Chat layout.
+- Payment screens.
+- Café and experience pages.
+
+Keep the existing design system.
+
+Do not redesign the desktop interface to fix mobile defects.
+
+## K. Café experience submission failure
+
+A previously reported user-facing error is:
+
+“Experience schedule is currently being synchronized with the venue. Please try again shortly or contact concierge.”
+
+A reported test scenario was:
+
+- Café: Café Hot Stag.
+- Experience: Premium Date.
+- Date: 20 November 2026.
+- Time: 7:30 PM.
+- Guests: 2.
+- Budget: ₹3,200–₹7,300.
+
+Investigate the actual root cause.
+
+Trace the complete flow:
+
+1. Experience selection.
+2. Café association.
+3. Experience availability.
+4. Schedule validation.
+5. Date and time handling.
+6. Guest count.
+7. Budget validation.
+8. Database insert.
+9. Related RPC or Edge Function.
+10. Confirmation response.
+
+Determine whether the error is caused by:
+
+- Missing experience records.
+- Invalid café relationships.
+- Foreign-key violations.
+- Missing schedule data.
+- Incorrect availability logic.
+- Incorrect column names.
+- RLS.
+- RPC mismatch.
+- Edge Function failure.
+- Time-zone conversion.
+- Frontend error handling.
+
+Do not replace a real availability check with unconditional success.
+
+Do not falsely tell users that a booking has been submitted.
+
+## L. Café and experience records
+
+The known approved cafés include:
+
+- Café Hot Stag — `c-hot-stag-del`
+- Karma La Cafe — `c-karmala-del`
+- The Yumm Club — `c-yumm-club-del`
+
+Previously identified experience IDs include:
+
+- `e-hotstag-premium-date`
+- `e-hotstag-coffee-date`
+- `e-hotstag-italian`
+- `e-karmala-karaoke`
+
+Investigate whether the required records exist in the actual database.
+
+Do not invent missing records or silently alter café data.
+
+The following were previously identified as demo cafés to exclude from the relevant production listings:
+
+- `c-roastery-mum`
+- `c-lodhi-del`
+- `c-thirdwave-blr`
+- `c-suzette-pune`
+- `c-tapri-jpr`
+- `c-aerocity-hyd`
+
+Verify their current usage before making any change. Do not delete records or modify production data.
+
+Experience budget sliders must remain venue-specific, not become one global budget slider.
+
+## M. Admin Date Applications
+
+Investigate the complete Date Applications interface.
+
+Check:
+
+- Listing.
+- Search.
+- Filters.
+- Status changes.
+- Application details.
+- Café and experience relationships.
+- Booking association.
+- Notes and parsing.
+- Date/time display.
+- Admin authorization.
+- Data refresh after an update.
+
+Ensure the admin sees actual database records and that status changes are persisted.
+
+## N. Membership prices
+
+The established membership prices are:
+
+- Select — ₹499.
+- Signature — ₹799.
+- Privé — ₹1,199.
+
+Verify that the correct prices are used consistently across the website, checkout, membership display, and relevant admin screens.
+
+Do not change historical transactions or payment records.
+
+Do not assume prices are stored in one location; inspect the actual source of truth.
+
+## O. Authentication and OTP
+
+Investigate:
+
+- Registration.
+- Email confirmation.
+- OTP handling.
+- Login.
+- Logout.
+- Password reset.
+- Session persistence.
+- Expired sessions.
+- Redirects.
+- User profile creation.
+- Duplicate profiles.
+- Admin authentication.
+
+Do not weaken authentication to make a flow work.
+
+Do not bypass email verification or expose account information.
+
+## P. Admin `/admin` redirect
+
+A previously reported production issue:
+
+Visiting:
+
+`https://www.datevra.com/admin`
+
+redirects to:
+
+`https://www.datevra.com/app`
+
+even when the founder/admin account is logged in.
+
+Investigate:
+
+- Route definitions.
+- Admin route guards.
+- Auth loading state.
+- Profile role loading.
+- `is_admin` checks.
+- Session persistence.
+- Redirect logic.
+- Role lookup failures.
+- RLS failures.
+- Production versus local configuration.
+
+Do not simply remove admin route protection.
+
+Do not grant admin privileges to ordinary users.
+
+The correct result must be:
+
+- Authorized admins can access admin routes.
+- Ordinary members cannot access admin routes.
+- Unauthenticated users are redirected appropriately.
+- Loading the admin role does not cause a false redirect.
+
+## Q. Razorpay and payment operations
+
+Investigate:
+
+- Payment order creation.
+- Order verification.
+- Webhook handling.
+- Payment status synchronization.
+- Membership activation.
+- Duplicate payment prevention.
+- Failed payments.
+- Refund handling, where implemented.
+- Secure server-side verification.
+
+Inspect existing Edge Function source:
+
+- `create-order`
+- `verify-payment`
+- `razorpay-webhook`
+
+Do not expose Razorpay secrets.
+
+Do not trust frontend payment-success parameters.
+
+Do not mark memberships as paid without server-side verification.
+
+If functions are missing from production, report that separately. Do not deploy them without approval.
+
+## R. Discovery, likes and matchmaking
+
+Investigate:
+
+- Candidate discovery.
+- Profile filtering.
+- Preferences.
+- Likes.
+- Mutual likes.
+- Match creation.
+- Duplicate match prevention.
+- Existing-match protection.
+- Manual admin matchmaking.
+- User blocking.
+- User reporting.
+- Visibility and authorization.
+
+Preserve existing matchmaking behaviour and the current Admin Matchmaking safeguards.
+
+Do not create duplicate matches or expose blocked users.
+
+## S. Chat and messaging
+
+Investigate:
+
+- Conversation creation.
+- Message sending.
+- Message retrieval.
+- Realtime updates.
+- Read/unread status.
+- Conversation authorization.
+- Blocked-user behaviour.
+- Message ordering.
+- Duplicate messages.
+- Empty and loading states.
+
+Only authorized conversation participants may access private messages.
+
+## T. Date and time handling
+
+Datevra operates with Indian users.
+
+Audit all relevant date/time operations.
+
+Use the correct Indian Standard Time handling where appropriate.
+
+Check:
+
+- Date selection.
+- Experience booking.
+- Application submission.
+- Booking confirmations.
+- Membership expiry.
+- Payment timestamps.
+- Admin date filters.
+- Realtime timestamps.
+
+Avoid UTC/IST conversion errors and dates shifting by one day.
+
+---
+
+# PART 5 — DATABASE AND MIGRATION INVESTIGATION
+
+Inspect the existing local database definitions and compare them with available live evidence.
+
+Important files include:
+
+- `db/schema.sql`
+- `db/000_full_setup.sql`
+- `db/migrations/`
+- `db/realtime_setup.sql`
+- Supabase functions.
+- Supabase configuration.
+
+There are reportedly 26 migration files, including migration 027.
+
+### Special warning: Migration 027
+
+Previously identified migration:
+
+`db/migrations/027_seed_curated_experiences.sql`
+
+It reportedly adds curated experiences and café associations.
+
+Do not execute this migration automatically.
+
+First inspect:
+
+1. Every SQL statement.
+2. Required tables and columns.
+3. Foreign keys and constraints.
+4. Existing experience records.
+5. Existing café records.
+6. Existing migration history.
+7. Whether equivalent records already exist.
+8. Whether the migration is idempotent.
+9. Whether it can overwrite or conflict with existing production information.
+10. Whether it is actually necessary to fix the reported issue.
+
+If it is required, prepare a clear explanation and a proposed safe migration for separate approval.
+
+Do not assume a local migration file is absent from production simply because it exists in the repository.
+
+### Database consistency
+
+Compare actual frontend usage against local schema definitions.
+
+Find:
+
+- Missing tables.
+- Missing columns.
+- Wrong column names.
+- Wrong types.
+- Incorrect nullability assumptions.
+- Missing RPCs.
+- RPC argument mismatches.
+- Missing indexes.
+- Incorrect foreign keys.
+- Duplicate records.
+- Incorrect RLS policies.
+- Inconsistent enum values.
+- Trigger problems.
+- Schema cache errors.
+
+Never disable RLS as a shortcut.
+
+---
+
+# PART 6 — SECURITY AND AUTHORIZATION
+
+Review the application for:
+
+- Exposed secrets.
+- Unsafe environment variable usage.
+- Client-side admin checks without server-side enforcement.
+- Insecure RPC permissions.
+- Incorrect RLS policies.
+- Unauthorized profile access.
+- Unauthorized message access.
+- Payment manipulation.
+- Unsafe file uploads.
+- Insecure storage access.
+- Unprotected admin actions.
+- Unvalidated user input.
+- Sensitive information in logs.
+
+The Supabase publishable key may be used in the browser when RLS and permissions are correctly configured.
+
+Never place the following in frontend code or Vite `VITE_` variables:
+
+- Supabase service-role key.
+- Supabase secret key.
+- Personal access tokens.
+- Database passwords.
+- Razorpay secret key.
+- Private webhook secrets.
+- GitHub tokens.
+- Vercel tokens.
+
+Administrative operations must use secure server-side mechanisms or authorized management tooling.
+
+Do not claim that a browser publishable key provides administrative control.
+
+---
+
+# PART 7 — GITHUB, VERCEL AND HOSTING READINESS
+
+Inspect the project for:
+
+- Git repository status.
+- Existing branches.
+- Uncommitted changes.
+- Build configuration.
+- Vercel configuration.
+- Environment variable requirements.
+- Production routing.
+- SPA fallback configuration.
+- Asset paths.
+- Production build errors.
+
+Do not assume GitHub or Vercel access is connected merely because their configuration files exist.
+
+If credentials or tools are unavailable, clearly identify the missing access.
+
+Do not create fake deployment success.
+
+Do not push or deploy without explicit approval.
+
+---
+
+# PART 8 — IMPLEMENTATION STRATEGY
+
+Work in controlled stages.
+
+### Stage 1: Complete investigation
+
+Inspect the whole codebase and supplied project documentation.
+
+Create an issue inventory with:
+
+- Issue.
+- Affected page or feature.
+- Actual root cause.
+- Relevant files.
+- Backend dependency.
+- Security impact.
+- Proposed correction.
+- Whether production access is required.
+
+Do not begin random changes before understanding the related systems.
+
+### Stage 2: Implement safe local fixes
+
+Fix confirmed frontend and local-code defects.
+
+Examples:
+
+- React runtime errors.
+- Incorrect component state.
+- Broken route handling.
+- Incorrect API parameter names.
+- Bad response handling.
+- Missing loading states.
+- Incorrect form validation.
+- Responsive issues.
+- Duplicate requests.
+- Local configuration errors.
+
+Keep changes minimal and targeted.
+
+### Stage 3: Backend-dependent issues
+
+For every issue requiring database, Auth, RLS, Storage, Realtime, or Edge Function changes:
+
+- Identify the exact missing or incorrect backend requirement.
+- Check existing definitions first.
+- Prepare the smallest safe correction.
+- Provide the exact migration or configuration change if necessary.
+- Explain its effect.
+- Identify risks and rollback steps.
+- Mark it as awaiting explicit approval.
+
+Do not claim the backend issue is fixed until the actual backend operation has been verified.
+
+### Stage 4: Integration verification
+
+Test all affected flows against the available environment.
+
+Distinguish:
+
+- Local mock mode.
+- Local real Supabase mode.
+- Production Supabase mode.
+
+Never use mock-mode success as evidence of production success.
+
+### Stage 5: Full regression testing
+
+Run available:
+
+- TypeScript checks.
+- Linting.
+- Unit tests.
+- Integration tests.
+- Production builds.
+- Route checks.
+- Existing automated tests.
+
+Add targeted tests where appropriate.
+
+Do not delete or weaken tests merely to get a passing result.
+
+### Stage 6: Final review
+
+Inspect the complete change set.
+
+Ensure no unrelated files or features were changed.
+
+Ensure no secrets were added to tracked files.
+
+Ensure no production operations were performed without approval.
+
+---
+
+# PART 9 — REQUIRED FINAL REPORT
+
+At the end, produce a detailed report with the following sections.
+
+## 1. Executive summary
+
+State the actual overall condition of Datevra.
+
+Do not call the website fully fixed if unresolved backend or production issues remain.
+
+## 2. Root-cause inventory
+
+For every discovered issue, provide:
+
+- Exact issue.
+- Root cause.
+- Affected files or backend objects.
+- Severity.
+- Correction performed or proposed.
+- Verification evidence.
+
+## 3. Changes made
+
+List every modified, created, or deleted file.
+
+Explain what changed and why.
+
+## 4. Supabase connection status
+
+Report separately:
+
+- Project URL configuration.
+- API key verification.
+- Authentication health.
+- Public data access.
+- Authenticated data access.
+- RLS-protected access.
+- RPC availability.
+- Realtime status.
+- Storage status.
+
+Do not print credentials.
+
+## 5. Database and migration status
+
+List:
+
+- Missing or mismatched database objects.
+- Required RPC corrections.
+- Required RLS corrections.
+- Required migrations.
+- Whether each change is local-only, verified live, or awaiting approval.
+
+## 6. Security review
+
+Report any identified security risks and the status of their corrections.
+
+## 7. Testing results
+
+Provide actual commands, test counts, failures, build results, and limitations.
+
+Never invent test results.
+
+## 8. Outstanding blockers
+
+List everything that cannot be completed because of missing credentials, permissions, production access, or required approval.
+
+## 9. Production readiness
+
+Choose exactly one:
+
+- READY FOR REVIEW.
+- READY FOR APPROVAL OF BACKEND CHANGES.
+- NOT READY — BLOCKING ISSUES REMAIN.
+- FULLY VERIFIED — only if all relevant functionality has actually been verified.
+
+## 10. Next actions
+
+Provide the exact next action required from the project owner.
+
+Do not silently proceed with production changes.
+
+---
+
+# FINAL INSTRUCTION
+
+Take responsibility for investigating the entire existing Datevra system, not merely the first visible error.
+
+Be thorough, precise, and conservative.
+
+Fix confirmed local-code problems wherever safely possible.
+
+Identify backend problems accurately.
+
+Preserve the existing website and its data.
+
+Do not invent success, bypass security, or execute unapproved production operations.
+
+Do not stop after a superficial audit.
+
+Do not claim completion until the relevant functionality has been tested.
+
+Begin with Stage 1: inspect the complete project, all available handover documentation, the original Changes & Issues PDF, and the current Supabase configuration.
+
+Then proceed systematically through the stages above.
+
+**The ultimate objective is a genuinely reliable Datevra platform, not merely a clean-looking diagnostic report.**

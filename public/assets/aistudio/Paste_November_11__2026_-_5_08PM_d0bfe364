@@ -1,0 +1,898 @@
+# DATEVRA — FINAL REMAINING ISSUES MASTER REPAIR, SCREENSHOT ERROR RESOLUTION & COMPLETE WEBSITE RELIABILITY AUDIT
+
+**Project:** Datevra  
+**Production website:** https://www.datevra.com  
+**Existing workspace:** Current imported Datevra project in Google AI Studio  
+**Backend:** Existing Supabase project  
+**Repository:** Existing Datevra GitHub repository  
+**Hosting:** Existing Vercel deployment
+
+## 1. PRIMARY OBJECTIVE
+
+I want you to identify and FIX every remaining unresolved problem in the existing Datevra website.
+
+This is a continuation of previous development and repair work. It is NOT a fresh website build, redesign, or repetition of completed tasks.
+
+Your responsibility is to:
+
+1. Inspect the existing project and its complete implementation history.
+2. Inspect the client's original `Changes and Issues(1).pdf`, including all embedded screenshots.
+3. Investigate the exact error messages visible in those screenshots.
+4. Review the latest audit reports and previous implementation reports.
+5. Identify which issues have genuinely been fixed and which remain unresolved.
+6. Fix all remaining issues that can safely be fixed in the current workspace.
+7. Investigate the entire application for additional errors, broken integrations, incomplete functionality, regressions and security problems.
+8. Implement the necessary corrections instead of merely producing recommendations.
+9. Test the actual affected code paths and report every remaining blocker honestly.
+
+**Do not make me run several separate prompts. Complete the entire safe remaining repair scope in this single master task.**
+
+---
+
+# 2. ABSOLUTE RULE: DO NOT REPEAT COMPLETED WORK
+
+Before modifying anything, inspect the latest source code, action history, implementation reports and test results.
+
+The following work has already been implemented and must NOT be unnecessarily repeated:
+
+- Public café demo filtering and preservation of genuine café records.
+- Experiences section budget-slider changes.
+- Café-specific experience application form improvements.
+- Admin experience application search, filters and detail management.
+- Admin commission percentage-option removal and preservation of fixed-amount settlement functionality.
+- Previously completed Admin Matchmaking phases and safeguards.
+- Previously completed Supabase connection and frontend configuration corrections.
+- Any other task that the latest code and reliable verification evidence prove is already completed.
+
+In particular, the previous implementation report records changes to:
+
+- `src/pages/public/ExperiencesPublic.tsx`
+- `src/pages/admin/Applications.tsx`
+- `src/components/layout.tsx`
+- `src/pages/admin/Commissions.tsx`
+
+It also records café filtering changes and tests. Do not recreate these implementations.
+
+The previous audit classified issues A–J, M–O and Q–T as resolved, while K, L and P remained pending. Treat this as a starting point, not unquestionable truth. Verify the current source and evidence before changing anything.
+
+### Required classification
+
+For every issue found, assign one of these statuses:
+
+- **VERIFIED FIXED:** Working implementation and sufficient test evidence exist. Do not modify it.
+- **UNRESOLVED:** The defect still exists. Implement its correction.
+- **REGRESSION:** Previously fixed functionality has broken again. Repair the regression.
+- **PARTIALLY FIXED:** Some functionality exists, but an important part remains broken. Complete the missing part.
+- **BLOCKED:** Requires an external production action or authorization that cannot safely be performed in this workspace.
+
+Never mark an issue fixed merely because a previous report says it was fixed.
+
+Do not modify verified working features just to make unnecessary changes.
+
+---
+
+# 3. SOURCE MATERIAL THAT MUST BE INSPECTED
+
+Inspect the complete original client document:
+
+`Changes and Issues(1).pdf`
+
+Read all pages and examine the embedded screenshots, not only the extracted text.
+
+The following errors and requirements are visible in that document.
+
+### Screenshot error A — Invalid profile when recording interest
+
+The screenshot shows:
+
+`Could not record interest: Invalid profile`
+
+Investigate the actual Like/Interest action and its complete data flow.
+
+Inspect:
+
+- Discover profile cards.
+- Full Profile actions.
+- Like/interest handlers.
+- Profile ID and authenticated user ID mapping.
+- Supabase queries and insert operations.
+- Existing database constraints.
+- Profile lookup and authorization.
+- Mock and production backend parity.
+- Any stale or invalid profile references.
+
+Determine why the application considers a displayed member an invalid profile when a user tries to record interest.
+
+Fix the actual root cause.
+
+Acceptance criteria:
+
+- A valid displayed profile can receive a genuine interest action.
+- The action uses the correct persistent profile/user ID.
+- The database receives the correct authenticated actor and target.
+- Duplicate interests are prevented using the existing intended rules.
+- Invalid or unavailable profiles produce a useful error.
+- Failed requests do not display fake success.
+- Existing block, privacy and eligibility protections remain enforced.
+- Both mock and Supabase implementations behave consistently where applicable.
+
+Do not bypass profile validation or weaken RLS to make the button work.
+
+### Screenshot error B — Verification approval RPC failure
+
+The screenshot shows:
+
+`Could not update verification: Could not find the function public.set_user_verified(p_note, p_user_id, p_verified) in the schema cache`
+
+Investigate the actual current implementation.
+
+Inspect:
+
+- `src/pages/admin/Verification.tsx`
+- `src/lib/data.ts`
+- `src/lib/supabase/db.ts`
+- Relevant migration files.
+- The current Supabase RPC name and parameter signature.
+- Existing approval/rejection logic.
+- Database functions, permissions and RLS.
+- Activity logging and verification badge updates.
+
+The latest reports indicate that migration 019 and frontend argument alignment were previously addressed. Verify whether that is actually true in the current workspace and production assumptions.
+
+If the frontend and database function still disagree, correct the frontend implementation or prepare the precise missing database migration.
+
+Do not create a duplicate RPC or duplicate verification workflow.
+
+Acceptance criteria:
+
+- Authorized administrators can approve and reject verification requests.
+- The RPC name and parameters exactly match the existing supported database function.
+- The authenticated user and target member are correctly identified.
+- Approval and rejection persist successfully.
+- Approved members receive the correct verified status and badge.
+- The badge appears consistently in relevant member-facing profile/discovery locations.
+- Rejected members do not receive an approved badge.
+- Activity logging records the actual action.
+- Unauthorized users cannot perform verification actions.
+
+### Screenshot error C — Membership pass creation RPC failure
+
+The screenshot shows:
+
+`Could not find the function public.create_membership_pass(p_duration_days, p_expires_at, p_issued_to_user_id, p_note, p_plan_id) in the schema cache`
+
+Investigate the actual membership pass generation implementation.
+
+Inspect:
+
+- Admin membership/pass generation forms.
+- `src/lib/data.ts`
+- `src/lib/supabase/db.ts`
+- Membership pass-related types.
+- Existing migrations and functions.
+- Current database function names and parameter signatures.
+- Membership plan relationships.
+- Expiry calculations.
+- Assignment and redemption rules.
+
+Do not confuse membership passes with complimentary café passes or dating/swipe passes.
+
+Reuse the correct existing pass system.
+
+Acceptance criteria:
+
+- Authorized admins can generate valid membership passes.
+- Duration and expiry are handled correctly.
+- Optional member assignment works.
+- Plan selection maps to a real supported plan.
+- Generated passes are persisted in the correct backend table.
+- Existing pass codes and redemption rules remain valid.
+- Errors are handled without generating duplicate or fake passes.
+- Existing membership and payment entitlements are not corrupted.
+
+If a database function is genuinely missing, create a local migration proposal and report it. Do not execute it against production.
+
+### Screenshot error D — Complimentary pass table missing
+
+The screenshot shows:
+
+`Could not find the table 'public.complimentary_passes' in the schema cache`
+
+This is a separate error from the membership pass RPC failure.
+
+Investigate the actual complimentary café pass feature.
+
+Inspect:
+
+- `src/pages/admin/MembershipPasses.tsx` and relevant café pass components.
+- `src/lib/data.ts`
+- `src/lib/supabase/db.ts`
+- `src/lib/mockDb.ts`
+- Existing complimentary-pass migrations.
+- Existing table names, column names, RPCs and RLS policies.
+- Whether the correct table already exists under a different name.
+- Whether the frontend is using a stale or incorrect schema reference.
+
+Do not create a second table if an equivalent existing table is already present.
+
+Do not confuse:
+- Complimentary café passes.
+- Membership passes.
+- Dating/swipe passes.
+
+Acceptance criteria:
+
+- The correct complimentary pass data source is used.
+- Admins can generate and view genuine complimentary passes.
+- Open/unassigned and member-assigned passes behave correctly.
+- Existing expiry and redemption rules are respected.
+- Revocation and activity logging work.
+- Historical records remain intact.
+- No pass can be redeemed or revoked through unauthorized access.
+
+If the live database genuinely lacks the required table or function, prepare the minimum safe migration locally and identify the exact dependency.
+
+### Screenshot requirement E — Excessively long profile information
+
+The PDF shows that the member-facing discovery profile is displaying too much information.
+
+The client specifically requires:
+
+- Show only necessary information on the discovery card.
+- Display detailed information when the user clicks **Full Profile**.
+
+Inspect the current implementation before making changes.
+
+Acceptance criteria:
+
+**Discovery card:** Show only the essential information supported by the existing product, such as:
+
+- Profile photo.
+- Name.
+- Age, if permitted.
+- Location.
+- Short introduction or selected highlights.
+- Existing Like/Pass/Interest actions.
+
+**Full Profile:** Show the additional supported profile details when the user opens Full Profile.
+
+Do not duplicate the biography, interests, lifestyle answers or long questionnaire content across the discovery card.
+
+Preserve existing user data and privacy rules.
+
+The Full Profile page must remain readable, properly organized and mobile-friendly.
+
+Do not remove fields from the database or destroy information merely to shorten the discovery card.
+
+---
+
+# 4. REMAINING ISSUES FROM THE CLIENT'S PDF
+
+Inspect and verify every remaining requirement below.
+
+Do not redo a requirement that has already been fully implemented and tested.
+
+### A. Website speed and responsiveness
+
+Investigate the actual reasons for slow loading and poor responsiveness.
+
+Inspect:
+
+- Initial page loading.
+- Large JavaScript bundles.
+- Repeated database queries.
+- Unnecessary React renders.
+- Unoptimized images.
+- Duplicate network requests.
+- Inefficient profile/discovery queries.
+- Unbounded database queries.
+- Unnecessary subscriptions.
+- Slow loading states.
+- Animation and rendering performance.
+
+Implement safe, measurable improvements.
+
+Do not remove important functionality or images simply to make the website appear faster.
+
+Do not redesign the website.
+
+### B. Duplicate email registration
+
+The client requires a clear message when a user attempts to register with an email address already associated with an account.
+
+Inspect:
+
+- Supabase signup.
+- Email normalization.
+- Existing account handling.
+- Duplicate account constraints.
+- Frontend error mapping.
+- Login and Forgot Password links.
+
+Acceptance criteria:
+
+- Duplicate signup is handled clearly.
+- Existing accounts are not duplicated.
+- Users receive useful guidance to log in or recover their password.
+- Authentication security and email privacy are not weakened.
+- No insecure account-enumeration workaround is introduced.
+
+### C. Verified member badge
+
+Confirm that an approved member actually receives the verified status/badge.
+
+Test the full lifecycle:
+
+1. Member submits verification.
+2. Admin reviews it.
+3. Admin approves it.
+4. Backend persists approval.
+5. Profile status reflects approval.
+6. Member-facing UI displays the correct badge.
+7. Refreshing the page does not remove the badge.
+
+If the approval workflow is already fixed, do not rewrite it. Only repair a proven remaining defect or regression.
+
+### D. Accurate online members counter
+
+The client requested a live online-members counter.
+
+Inspect whether the existing implementation is real or merely a static number.
+
+If incomplete, implement it using the existing Supabase infrastructure.
+
+Requirements:
+
+- Count genuine authenticated online members.
+- Update automatically as users come online and go offline.
+- Avoid duplicate sessions counting the same member multiple times.
+- Handle disconnects and stale presence.
+- Use a reasonable heartbeat/expiry strategy.
+- Avoid exposing private member data.
+- Do not count admins or system sessions as members unless the existing product explicitly requires it.
+- Avoid expensive full-table polling.
+
+Do not invent online counts or use fake demo numbers.
+
+### E. Mobile optimization
+
+Test the existing website on mobile, tablet and desktop.
+
+Pay particular attention to:
+
+- Navigation.
+- Profile cards.
+- Full Profile.
+- Verification.
+- Membership pass generation.
+- Admin tables and modals.
+- Forms.
+- Chat.
+- Bottom navigation.
+- Image sliders.
+- On-screen keyboard behaviour.
+- Touch targets.
+- Safe-area spacing.
+- Horizontal overflow.
+- Scrolling and fixed-position elements.
+
+Fix actual defects without changing Datevra's visual identity.
+
+### F. Tinder-style member experience
+
+The PDF requests a Tinder-like experience and additional matching features.
+
+Inspect the existing implementation and identify any genuinely unfinished or broken requirements.
+
+Where the current product already supports the functionality, verify it rather than recreating it.
+
+Check:
+
+- Discovery cards.
+- Like and Pass.
+- Interest recording.
+- Mutual matches.
+- Full Profile.
+- Profile photo navigation.
+- Swipe gestures where supported.
+- Match notifications.
+- Chat access.
+- Profile privacy.
+- Block and report.
+- Free-user limits and existing membership entitlements.
+
+Important:
+
+- Do not copy Tinder branding, proprietary assets or exact UI.
+- Maintain Datevra's existing premium visual identity.
+- Do not invent paid features, quotas, matching rules or user entitlements.
+- Do not bypass mutual consent.
+- Do not allow an admin or frontend action to force an unauthorized match.
+
+---
+
+# 5. KNOWN REMAINING AUDIT BLOCKERS — PRIORITY REPAIR
+
+The latest post-audit review identified three unresolved areas. Investigate these first.
+
+## K. Experience application submission relationship / foreign-key issue
+
+Investigate the exact failure in the experience application submission workflow.
+
+Inspect:
+
+- `src/pages/public/ExperiencesPublic.tsx`
+- Existing experience application submission methods.
+- `public.date_applications`
+- `public.date_experiences`
+- `public.cafes`
+- Foreign-key relationships.
+- Existing migration history.
+- Existing experience IDs.
+- Current application form data.
+- Supabase error responses.
+
+The current application must not submit an experience ID that does not exist or does not satisfy the actual database relationship.
+
+Do not assume a hardcoded ID is valid merely because the frontend displays the corresponding experience name.
+
+Verify every referenced ID against the current source definitions and existing schema.
+
+Known experience identifiers previously encountered include:
+
+- `e-hotstag-premium-date`
+- `e-hotstag-coffee-date`
+- `e-hotstag-italian`
+- `e-karmala-karaoke`
+
+These are investigation references, not permission to insert duplicate rows.
+
+Determine whether the actual problem is:
+
+- Missing experience records.
+- Incorrect experience IDs.
+- A foreign-key mismatch.
+- Incorrect café-to-experience mapping.
+- A wrong insert payload.
+- A schema mismatch.
+- A stale database relationship.
+- Another root cause.
+
+Fix the frontend relationship and submission payload wherever possible.
+
+If a live database record or foreign-key change is required, prepare the exact minimal local migration and explain the production dependency.
+
+## L. Missing or inconsistent live curated experience records
+
+Inspect whether the required curated experience records actually exist in the current backend.
+
+Check:
+
+- Exact IDs.
+- Titles.
+- Café relationships.
+- Experience type.
+- Eligibility.
+- Pricing fields.
+- Slots or scheduling fields.
+- Active status.
+- Required columns.
+- Existing migration history.
+
+Previously identified migration 027 uses these actual columns:
+
+`id`, `title`, `kind`, `city`, `description`, `image`, `price_from`, `duration_mins`, `eligibility`, `slots`, `elite_only`.
+
+Do not assume that another table has the same schema.
+
+Use the actual current schema as the source of truth.
+
+Do not invent experience prices, schedules, slots or availability.
+
+If the correct experience records are missing from the live database, create a precise, idempotent local SQL migration proposal containing only the required records and relationships.
+
+Do not execute it remotely.
+
+Ensure the frontend shows a useful message if the experience is unavailable, rather than misleading users with a generic synchronization error.
+
+The application form must only display and submit valid experiences.
+
+A successful application must be saved against the correct genuine experience record.
+
+Never claim a confirmed booking when the actual workflow only creates a pending application.
+
+## P. Founder/admin `/admin` access and authorization
+
+Investigate the unresolved production issue:
+
+The founder/admin account logs in, but visiting:
+
+`https://www.datevra.com/admin`
+
+redirects to:
+
+`https://www.datevra.com/app`
+
+Inspect:
+
+- `src/components/layout.tsx`
+- `src/context/AuthContext.tsx`
+- Admin route guards.
+- Login redirect logic.
+- `profiles.is_admin`.
+- `public.is_admin()`.
+- Existing admin RPCs.
+- Admin route configuration.
+- Auth session initialization.
+- RLS policies.
+- Relevant migrations.
+- Production and local environment differences.
+
+The latest investigation confirmed that:
+
+- `profiles.is_admin` exists.
+- `admin_exists()`, `bootstrap_first_admin(text)` and `is_admin()` exist in the live database.
+- The bootstrap function checks for an existing admin and looks up the requested Auth user.
+- The bootstrap function is not executable by `anon` or `authenticated`, while `service_role` can execute it.
+- An earlier founder-account lookup returned no rows, so the actual founder account and linked profile must not be assumed to exist or be correctly configured.
+
+Important security warning:
+
+Do not assume that checking `auth.uid()` alone proves that a SECURITY DEFINER function can only be called through the SQL Editor.
+
+Do not introduce an unsafe admin bootstrap route or allow users to promote themselves.
+
+Required acceptance criteria:
+
+- A normal member accessing `/admin` is denied or redirected safely.
+- An unauthenticated visitor is sent through the existing login flow.
+- A genuinely authorized founder/admin can access `/admin`.
+- Refreshing `/admin` preserves the correct admin session.
+- Login redirects the authorized admin to the admin dashboard.
+- Admin authorization is enforced by the backend and RLS, not only the frontend.
+- Admin access does not depend on a stale cached role.
+- Session loading does not cause a false redirect before role evaluation finishes.
+
+If the founder account is missing or has no valid admin assignment, report the exact account-level action that the project owner must perform through the authorized process.
+
+Do not grant admin privileges, alter production roles, or execute bootstrap SQL.
+
+---
+
+# 6. COMPLETE ADDITIONAL ERROR DISCOVERY
+
+After addressing the known issues, inspect the rest of the Datevra application.
+
+Do not stop after fixing the screenshots.
+
+Inspect the full existing application, including:
+
+- Public pages.
+- Authentication.
+- Signup and OTP.
+- Password recovery.
+- Member dashboard.
+- Profiles.
+- Discovery.
+- Likes and interests.
+- Matches.
+- Chat.
+- Notifications.
+- Cafés.
+- Experiences.
+- Applications and bookings.
+- Memberships.
+- Payments.
+- Complimentary passes.
+- Admin dashboard.
+- Verification.
+- Admin users.
+- Admin matchmaking.
+- Admin reports.
+- Admin settings.
+- Admin activity logs.
+- Legal and CMS pages.
+- Routing.
+- Database integration.
+- Error handling.
+- Responsive layouts.
+
+Investigate:
+
+1. Broken imports and exports.
+2. React runtime errors.
+3. Invalid hook usage.
+4. Incorrect state management.
+5. Missing or incorrect RPC calls.
+6. Missing database tables or columns.
+7. Foreign-key mismatches.
+8. Incorrect TypeScript types.
+9. Failed Supabase queries.
+10. RLS permission errors.
+11. Missing loading states.
+12. Incorrect empty states.
+13. Silent failures.
+14. Duplicate submissions.
+15. Incorrect user/profile ID mappings.
+16. Stale cached data.
+17. Unhandled network failures.
+18. Incorrect redirects.
+19. Broken navigation.
+20. Mobile overflow and interaction problems.
+21. Performance bottlenecks.
+22. Security or privacy regressions.
+23. Mock backend behaviour that differs from Supabase.
+24. Features that display success without actual backend persistence.
+
+For every additional defect:
+
+- Identify the exact root cause.
+- Identify affected files and database dependencies.
+- Fix it if safe and within the current workspace.
+- Add or update a focused test.
+- Verify that the correction does not break unrelated functionality.
+
+Do not invent bugs just to increase the number of changes.
+
+Do not modify unrelated working code.
+
+---
+
+# 7. STRICT IMPLEMENTATION AND DATABASE SAFETY
+
+Work only in the existing Google AI Studio workspace.
+
+You are authorized to inspect the existing source and implement safe local code corrections.
+
+You are NOT authorized to:
+
+- Execute SQL against production.
+- Apply remote migrations.
+- Change production Supabase tables or records.
+- Change RLS policies remotely.
+- Grant or revoke admin access.
+- Change Supabase Auth settings.
+- Change SMTP, DNS or email provider configuration.
+- Change Vercel environment variables.
+- Change payment provider settings.
+- Process real payments or refunds.
+- Delete genuine user data.
+- Delete historical applications, bookings or financial records.
+- Commit or push to GitHub.
+- Deploy to Vercel.
+- Change the live production website directly.
+
+If production database work is necessary:
+
+1. Complete all safe local frontend/backend code work first.
+2. Create the exact local migration file where appropriate.
+3. Make it idempotent where possible.
+4. Include comments and explain its purpose.
+5. Identify dependencies and risks.
+6. Provide a rollback strategy where practical.
+7. Report precisely what requires project-owner approval.
+8. Do not execute the migration.
+
+Never expose or hardcode a Supabase service-role key.
+
+Never weaken RLS to solve a frontend problem.
+
+Never request passwords, API keys or private credentials.
+
+---
+
+# 8. DATEVRA DESIGN PRESERVATION
+
+This repair must preserve the existing Datevra design system.
+
+Do not change:
+
+- Brand identity.
+- Logo.
+- Colours.
+- Purple/pink gradients.
+- Typography.
+- Existing visual theme.
+- Spacing system.
+- Card design.
+- Buttons.
+- Navigation appearance.
+- Component styling.
+- Existing animations.
+- Page layout.
+- Branding.
+
+Only make visual changes where strictly necessary to fix a specific documented usability or responsiveness defect.
+
+For the profile-card issue, show less information on the discovery card and move the existing details into Full Profile. Do not redesign the profile system.
+
+For mobile optimization, fix actual layout and interaction defects while maintaining the same design language.
+
+---
+
+# 9. TESTING AND VERIFICATION — REQUIRED
+
+A successful build alone is not sufficient.
+
+After implementation, run all available checks.
+
+### A. Build and code checks
+
+- TypeScript build/check.
+- Lint.
+- Existing automated tests.
+- Relevant focused regression tests.
+- Production build.
+- Import and dependency checks.
+
+### B. Screenshot error regression tests
+
+Test each of the following:
+
+1. Interest recording no longer fails for a valid profile.
+2. Verification approval uses the correct RPC and parameters.
+3. Verified badges persist and display correctly.
+4. Membership pass generation uses the correct backend function.
+5. Complimentary café passes use the correct table and schema.
+6. Discovery cards do not display excessive profile details.
+7. Full Profile displays the supported detailed information.
+8. Duplicate email registration is handled correctly.
+9. Online member count is based on genuine presence.
+10. Mobile layouts work without unintended overflow.
+
+### C. Experience application tests
+
+- Experience IDs exist and match their actual relationships.
+- Café-to-experience mapping is correct.
+- Foreign keys are valid.
+- Application submission payload matches the real schema.
+- Backend errors are displayed accurately.
+- Successful submissions persist.
+- Pending applications are not represented as confirmed bookings.
+
+### D. Admin authorization tests
+
+- Logged-out user.
+- Normal authenticated member.
+- Authorized administrator.
+- Refresh on `/admin`.
+- Direct `/admin` navigation.
+- Login redirect.
+- Unauthorized RPC or API access.
+
+### E. Whole-site regression tests
+
+Verify that previously completed functionality remains intact, especially:
+
+- Public café filtering.
+- Genuine café records.
+- Experiences page.
+- Application management.
+- Fixed-amount commission settlement.
+- Admin Matchmaking safeguards.
+- Authentication.
+- Memberships.
+- Chat.
+- Existing admin navigation.
+
+Do not reimplement these features unless a specific regression is found.
+
+### F. Actual versus simulated verification
+
+Clearly distinguish:
+
+- Tests run against local/mock data.
+- Tests run against the real connected Supabase project.
+- Tests run in the browser preview.
+- Tests performed against the deployed production website.
+- Tests that could not be performed because production changes are pending.
+
+Do not claim live verification when only local tests were run.
+
+---
+
+# 10. FINAL DELIVERABLE — COMPLETE ISSUE TRACKER
+
+When the work is complete, produce a detailed final report with the following sections.
+
+## Section 1 — Executive summary
+
+Explain what was investigated and what was actually repaired.
+
+## Section 2 — Issue-by-issue status
+
+Provide a table:
+
+| Issue | Original symptom | Root cause | Status | Evidence |
+|---|---|---|---|---|
+
+Include every screenshot issue, every PDF requirement, the K/L/P audit blockers and all newly discovered defects.
+
+## Section 3 — Completed repairs
+
+For each actual repair, explain:
+
+- What was wrong.
+- Why it happened.
+- What was changed.
+- Which files were changed.
+- How it was tested.
+- Actual test result.
+
+## Section 4 — Previously completed work preserved
+
+List completed areas that were inspected and left untouched.
+
+Do not claim they were repaired again.
+
+## Section 5 — Database dependencies
+
+List every missing production database object or relationship, including:
+
+- Table.
+- Column.
+- RPC.
+- Function signature.
+- Foreign key.
+- Required permission or RLS dependency.
+
+Provide the exact local migration file names and explain what each requires.
+
+## Section 6 — Testing results
+
+Show actual results for:
+
+- TypeScript.
+- Lint.
+- Automated tests.
+- Production build.
+- Browser checks.
+- Backend integration.
+- Mobile responsiveness.
+- Regression tests.
+
+Do not invent successful results.
+
+## Section 7 — Remaining blockers
+
+List only work that genuinely remains incomplete or requires an authorized external action.
+
+For each blocker, explain the exact reason and the next required action.
+
+## Section 8 — Changed-file list
+
+List every modified file and why it was necessary.
+
+Confirm that unrelated files and completed modules were not unnecessarily changed.
+
+## Section 9 — Final readiness assessment
+
+Choose one:
+
+- **Ready for owner review:** All safe local work is complete; production actions remain.
+- **Partially complete:** Some fixes remain blocked or unverified.
+- **Not ready:** Critical defects remain.
+
+Never declare the live production website fully fixed or launch-ready merely because the local build succeeds.
+
+---
+
+# 11. EXECUTION INSTRUCTION
+
+Do not stop after producing an audit report or implementation plan.
+
+Perform the full audit, then implement all safe, verified outstanding fixes in the current workspace.
+
+Work through the complete scope in this one task.
+
+Do not ask me to paste another prompt for each individual error.
+
+Do not repeat completed work.
+
+Do not create fake data or fake functionality.
+
+Do not introduce unrelated changes.
+
+If one production database dependency prevents a complete feature, finish all safe local work and prepare the exact migration or owner action required.
+
+**The final goal is to leave the existing Datevra codebase with every safely repairable outstanding screenshot error, PDF issue and newly discovered defect fixed, all previously completed work preserved, and a truthful evidence-based report of anything that still requires production authorization.**
