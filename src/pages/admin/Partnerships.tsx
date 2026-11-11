@@ -136,26 +136,9 @@ export default function Partnerships() {
                               />
                             </td>
                             <td className={tdCls}>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  key={`pct-${c.id}-${c.commissionPct}`}
-                                  defaultValue={c.commissionPct}
-                                  inputMode="decimal"
-                                  className={`${inputCls} w-20 !py-1.5 text-center`}
-                                  onBlur={(e) => {
-                                    const next = Number(e.target.value);
-                                    if (next !== c.commissionPct) {
-                                      if (!Number.isFinite(next) || next < 0 || next > 100) {
-                                        toast("Commission must be 0–100%", "rose");
-                                        refresh();
-                                        return;
-                                      }
-                                      saveField(c, { commissionPct: next });
-                                    }
-                                  }}
-                                />
-                                <span className="text-mist">%</span>
-                              </div>
+                              <span className="text-ivory-dim font-medium text-xs">
+                                {c.commissionPct != null ? `${c.commissionPct}%` : "Fixed"}
+                              </span>
                             </td>
                             <td className={`${tdCls} text-ivory-dim`}>{c.totalBookings}</td>
                             <td className={`${tdCls} text-ivory-dim whitespace-nowrap`}>{inr(c.revenue)}</td>

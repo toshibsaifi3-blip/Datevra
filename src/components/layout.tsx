@@ -557,7 +557,7 @@ const ADMIN_LINKS: AdminNavItem[] = [
   { to: "/admin/commissions", label: "Commissions", group: "Revenue", icon: Percent },
 
   // Experiences
-  { to: "/admin/applications", label: "Date applications", group: "Experiences", icon: Sparkles },
+  { to: "/admin/applications", label: "Applications", group: "Experiences", icon: Sparkles },
   { to: "/admin/bookings", label: "Bookings", group: "Experiences", icon: CalendarCheck },
   { to: "/admin/cafes", label: "Cafés", group: "Experiences", icon: Coffee },
   { to: "/admin/passes", label: "Comp. passes", group: "Experiences", icon: Ticket },

@@ -1,0 +1,858 @@
+# DATEVRA — PUBLIC CAFÉ FIX, EXPERIENCE APPLICATION SYSTEM, ADMIN APPLICATION MANAGEMENT & COMMISSION UPDATE
+
+## PROJECT OBJECTIVE
+
+Implement the following four coordinated tasks in the existing Datevra project:
+
+1. Permanently prevent all confirmed demo cafés from appearing on the Public Cafés page of the deployed website.
+2. Remove the budget slider from the main Experiences section and add a separate café-specific budget slider inside each café's application form.
+3. Add a complete Admin Panel section where authorized administrators can view and manage all submitted experience applications.
+4. Remove the percentage-based commission option from the Admin Panel while preserving existing valid commission functionality and historical records.
+
+This is an existing production website. Do not rebuild it, redesign it, or replace working functionality.
+
+**IMPORTANT: Audit the entire relevant implementation before editing anything. Reuse existing components, Supabase queries, database tables, authentication, application workflows, and admin permissions wherever possible.**
+
+---
+
+# PART 1 — STRICT IMPLEMENTATION RULES
+
+These rules apply to the entire task.
+
+### 1. Preserve the existing Datevra website
+
+Do not change the existing design system.
+
+Preserve:
+- Existing colours.
+- Typography.
+- Gradients.
+- Spacing.
+- Buttons.
+- Cards.
+- Components.
+- Page layouts.
+- Animations.
+- Branding and logo.
+- Navigation styling.
+- Responsive design.
+
+Only make the changes explicitly requested in this prompt.
+
+### 2. Protect existing functionality
+
+Do not break or unnecessarily modify:
+- Authentication and user accounts.
+- User profiles.
+- Matchmaking.
+- Likes and matches.
+- Chat.
+- Memberships and payments.
+- Membership passes.
+- Notifications.
+- Existing café records.
+- Existing bookings and applications.
+- Existing Admin Panel permissions.
+- Existing Supabase security policies.
+
+### 3. Work safely
+
+Work only inside the local Google AI Studio project.
+
+Do not:
+- Execute SQL.
+- Apply database migrations.
+- Delete production Supabase records.
+- Modify production database settings.
+- Change RLS policies.
+- Push to GitHub.
+- Commit changes.
+- Deploy to Vercel.
+- Change unrelated functionality.
+
+If a feature requires a database change, identify the exact requirement and report it separately. Do not execute or apply it.
+
+### 4. No fake functionality
+
+Never create fake café applications, fake bookings, fake approval statuses, fake commission calculations, or fake database success messages.
+
+Every implemented feature must use genuine existing backend functionality or be clearly reported as blocked.
+
+---
+
+# PART 2 — FIX THE PUBLIC CAFÉS PAGE: REMOVE ALL DEMO CAFÉS
+
+## 2.1 Existing unresolved issue
+
+The six old demo cafés are still appearing on the actual deployed website even after an earlier implementation was pushed to GitHub and deployed through Vercel.
+
+The previous implementation edited:
+
+- `src/lib/cafeFilter.ts`
+- `src/lib/supabase/db.ts`
+- `src/pages/public/CafesPublic.tsx`
+- `src/lib/mockDb.ts`
+- Other related pages.
+
+A second attempt edited additional files, including:
+
+- `src/pages/user/SavedCafes.tsx`
+- `src/pages/public/CafeDetail.tsx`
+
+However, the second attempt was interrupted when the Google AI Studio usage limit was reached, and its build did not complete.
+
+**Do not assume that the previous implementation is complete or correct. Inspect the current code before proceeding.**
+
+## 2.2 Demo cafés that must be excluded
+
+These six confirmed demo café records must never appear in customer-facing café listings:
+
+| Demo café | Existing ID |
+|---|---|
+| Kala Ghoda Roastery | `c-roastery-mum` |
+| Lodhi Art House | `c-lodhi-del` |
+| Indiranagar Brew Room | `c-thirdwave-blr` |
+| Maison Suzette | `c-suzette-pune` |
+| Johari Courtyard | `c-tapri-jpr` |
+| Deccan Table | `c-aerocity-hyd` |
+
+Use the existing centralized filtering logic where appropriate.
+
+Check both exact record IDs and normalized café names so that a demo record cannot reappear merely because its displayed name or capitalization changes.
+
+## 2.3 Three genuine Delhi cafés that must be preserved
+
+These three cafés must remain available:
+
+**Café Hot Stag**
+
+ID: `c-hot-stag-del`
+
+Address: 1st Floor, Opp. Deer Park, Ayyappa Temple Road, Dilshad Garden, Delhi-110095
+
+**KARMALA CAFE & RESTAURANT**
+
+ID: `c-karmala-del`
+
+Address: Tsampa House, 5th Floor, Plot Nos. 18 & 19, Gate No. 3, Majnu Ka Tilla, New Aruna Nagar Colony, Delhi-110054
+
+**The Yumm Club**
+
+ID: `c-yumm-club-del`
+
+Address: Shop no-G5, Aditya Arcade, C Block, Preet Vihar, Delhi, 110092
+
+Preserve their:
+- Existing database IDs.
+- Names and addresses.
+- Photographs.
+- Image sliders.
+- Descriptions.
+- Existing booking/application relationships.
+
+Do not create duplicate records.
+
+Also preserve any other verified genuine cafés added by an authorized administrator. Do not classify a café as demo merely because it was added recently or is not in the three-café list.
+
+## 2.4 Investigate the actual Public Cafés rendering problem
+
+Trace the complete data flow from the source to the final rendered café cards.
+
+Inspect:
+
+- `src/pages/public/CafesPublic.tsx`
+- `src/lib/cafeFilter.ts`
+- `src/lib/supabase/db.ts`
+- `src/lib/mockDb.ts`
+- `src/pages/public/CafeDetail.tsx`
+- Any shared café card components.
+- Any café hooks, contexts or stores.
+- All relevant routes.
+- Supabase queries.
+- Query caching and persisted state.
+- Any alternate café arrays or fallback sources.
+
+Determine exactly why the previous fix did not remove the old cafés from the live Public Cafés page.
+
+Investigate:
+- Whether another component renders café cards without using `sanitizeCafeList()`.
+- Whether the page uses a different Supabase query.
+- Whether an old data source bypasses the centralized filter.
+- Whether React Query or another cache returns stale café records.
+- Whether local storage or persisted state restores old results.
+- Whether the public page uses another route or component.
+- Whether the deployed branch or build configuration differs from the local project.
+
+Fix the actual root cause, not just the visible symptoms.
+
+## 2.5 Final filtering protection
+
+Ensure confirmed demo cafés are filtered out before they reach the final customer-facing rendering layer.
+
+Filtering must apply consistently to:
+- Public Cafés listings.
+- Café discovery results.
+- Saved Cafés.
+- Café detail pages.
+- Any other customer-facing café listing that displays the same records.
+
+For a direct URL to a demo café, show the existing Café Not Found state rather than rendering the demo café.
+
+For unavailable or empty Supabase responses, display a genuine loading, error or empty state. Never restore old demo cafés as fallback data.
+
+Do not unnecessarily hide genuine café records from authorized admin management.
+
+## 2.6 Supabase data protection
+
+The six demo rows may still exist in production `public.cafes`.
+
+For this task, the requirement is to prevent them from appearing on the website.
+
+Do not delete them from production.
+
+Do not delete associated saved café records, historical applications, bookings or other relationships.
+
+If you identify demo rows that could eventually be deleted safely, report their exact IDs separately and wait for explicit permission.
+
+---
+
+# PART 3 — EXPERIENCES SECTION: REMOVE THE MAIN BUDGET BAR
+
+## 3.1 Remove the existing shared budget slider
+
+The current Experiences section previously had one shared budget slider.
+
+Remove that budget slider completely from the main Experiences section.
+
+Do not replace it with another global slider.
+
+Do not leave a duplicate, hidden or unused budget bar elsewhere in the Experiences header or café listing.
+
+Keep the Experiences page layout consistent with the existing Datevra design.
+
+## 3.2 Only these two cafés should appear in Experiences
+
+The Experiences section must contain only:
+
+### Café Hot Stag
+
+Display these experience options:
+
+1. Premium Date.
+2. Premium Coffee Date.
+3. Italian Cuisine Date with Premium Experience.
+
+Indicative budget range: ₹3,200–₹13,000.
+
+### Karma La Cafe
+
+Display this experience option:
+
+1. Premium Date with Live Karaoke.
+
+Indicative budget range: ₹4,500–₹25,000.
+
+Use the existing KARMALA CAFE & RESTAURANT database record and ID `c-karmala-del`.
+
+Display the requested name Karma La Cafe in Experiences if this can be done without creating a duplicate café record.
+
+Use the existing photographs:
+
+- Café Hot Stag: `public/assets/cafes/hot-stag-1.jpg` through `hot-stag-4.jpg`.
+- Karma La Cafe: `public/assets/cafes/karmala-1.jpg` through `karmala-4.jpg`.
+
+Do not show The Yumm Club in Experiences.
+
+Do not show any other café or previous demo experience.
+
+Do not delete The Yumm Club's genuine café record from Supabase.
+
+## 3.3 Experience cards
+
+Each café card should use the existing Datevra design and include:
+
+- Café name.
+- Existing photographs and image slider.
+- Existing address.
+- Its specified experience options.
+- Indicative budget range.
+- An Apply for Experience button.
+
+Do not invent additional packages, menus, inclusions, facilities, discounts or guarantees.
+
+The indicative budget ranges must not be presented as guaranteed final package prices.
+
+---
+
+# PART 4 — CAFÉ-SPECIFIC BUDGET SLIDER INSIDE EACH APPLICATION FORM
+
+This is an important change.
+
+**There must be NO budget slider on the main Experiences page.**
+
+Instead, each café must have its own separate budget slider inside its application form.
+
+## 4.1 Café Hot Stag application form
+
+When a user clicks Apply for Experience on Café Hot Stag, open its application form.
+
+Inside that form, include a dedicated dual-handle budget range slider.
+
+Settings:
+
+- Minimum: ₹3,200.
+- Maximum: ₹13,000.
+- Initial selected range: ₹3,200–₹13,000.
+
+The user should be able to choose the minimum and maximum budget they are comfortable spending.
+
+Display both selected values clearly in INR.
+
+Do not allow the selected range to exceed the café's configured range.
+
+## 4.2 Karma La Cafe application form
+
+When a user clicks Apply for Experience on Karma La Cafe, open its separate application form.
+
+Inside that form, include a dedicated dual-handle budget range slider.
+
+Settings:
+
+- Minimum: ₹4,500.
+- Maximum: ₹25,000.
+- Initial selected range: ₹4,500–₹25,000.
+
+The user should be able to select their preferred minimum and maximum budget.
+
+Display both selected values clearly in INR.
+
+Do not allow the selected range to exceed the café's configured range.
+
+## 4.3 Slider behaviour
+
+Both sliders must:
+
+- Work independently.
+- Be touch-friendly.
+- Work on mobile and desktop.
+- Support keyboard accessibility.
+- Display live INR values.
+- Prevent the lower handle from exceeding the upper handle.
+- Prevent the upper handle from falling below the lower handle.
+- Have sensible step increments.
+- Use the existing Datevra visual design.
+
+Do not create one shared budget state that causes the two café forms to interfere with one another.
+
+The selected budget range must be associated with the correct café application.
+
+If a user closes a form and opens another café's form, the second café must use its own budget limits.
+
+Do not use the budget slider as a fake price quote or a guarantee that a package is available at the selected amount.
+
+---
+
+# PART 5 — COMPLETE EXPERIENCE APPLICATION FORM
+
+Each café must have its own application form with the correct café identity and experience options.
+
+Reuse existing application components and backend functionality wherever possible.
+
+## 5.1 Form fields
+
+Each application must support the following fields where compatible with the existing database model:
+
+**A. Café**
+
+Automatically associate the application with the café whose Apply for Experience button was selected.
+
+The user must not accidentally submit the form against a different café.
+
+**B. Experience type**
+
+Café Hot Stag:
+- Premium Date.
+- Premium Coffee Date.
+- Italian Cuisine Date with Premium Experience.
+
+Karma La Cafe:
+- Premium Date with Live Karaoke.
+
+Only show options belonging to the selected café.
+
+**C. Preferred date**
+
+Add an interactive calendar.
+
+Requirements:
+- Allow future dates.
+- Disable past dates.
+- Clearly show the selected date.
+- Validate the date before submission.
+
+**D. Preferred time**
+
+Allow the user to select a preferred time.
+
+Reuse real existing time-slot availability if it exists.
+
+If live availability is not supported, label the selection as a preferred time subject to café confirmation.
+
+Never invent available slots or claim that the booking is confirmed.
+
+**E. Guest count**
+
+Include guest count if supported by the existing application workflow.
+
+**F. Budget range**
+
+Include the correct café-specific dual-handle budget slider described in Part 4.
+
+**G. Additional note**
+
+Allow an optional note if compatible with the existing application model.
+
+## 5.2 Application review
+
+Before submitting, show a clear summary:
+
+- Café name.
+- Selected experience.
+- Preferred date.
+- Preferred time.
+- Guest count.
+- Selected budget range.
+- Additional note.
+
+Allow the user to go back and edit the details before final submission.
+
+## 5.3 Application submission
+
+Use the existing authenticated user and existing backend application system.
+
+Inspect the database schema and existing application submission logic before editing.
+
+Persist the following information using the existing supported schema:
+
+- User ID.
+- Café ID.
+- Experience type.
+- Preferred date.
+- Preferred time.
+- Guest count, if supported.
+- Minimum budget.
+- Maximum budget.
+- Additional note, if supported.
+- Application status.
+- Creation timestamp.
+
+Do not silently discard the selected budget values.
+
+If the existing application table cannot store the selected budget range, identify the exact missing fields and report the required change. Do not invent persistence or claim the values were saved.
+
+## 5.4 Application status
+
+A successful application submission must:
+
+- Be saved in the real backend.
+- Receive the existing pending application status.
+- Appear in the user's existing application area if supported.
+- Appear in the Admin Panel application management section described below.
+
+A pending application is NOT a confirmed booking.
+
+Display a genuine submission confirmation only after the backend confirms success.
+
+If the backend fails:
+- Display a useful error.
+- Preserve the entered form information.
+- Allow the user to retry.
+
+Do not create fake success messages.
+
+---
+
+# PART 6 — ADMIN PANEL: EXPERIENCE APPLICATION MANAGEMENT
+
+## 6.1 Objective
+
+Add a clearly accessible section in the existing Datevra Admin Panel where authorized administrators can see all experience application forms submitted by users.
+
+Before creating anything, inspect the existing Admin Panel.
+
+There may already be a route or section named:
+
+**Date applications — `/admin/applications`**
+
+If it exists, inspect and improve/reuse it.
+
+Do not create a second application management page or duplicate backend workflow.
+
+If it does not exist or is incomplete, implement the missing functionality using the existing Admin Panel architecture.
+
+## 6.2 Navigation
+
+Add or ensure a clearly visible Admin Panel navigation entry:
+
+**Experiences → Applications**
+
+Use the existing Admin Panel sidebar structure and navigation styling.
+
+Suggested route if a new route is genuinely required:
+
+`/admin/applications`
+
+Do not create duplicate routes if this route already exists.
+
+Only authorized administrators may access this section.
+
+Use the existing admin authorization and permission checks. Do not rely only on hiding the sidebar link.
+
+## 6.3 Application list
+
+Display all genuine submitted experience applications retrieved from the backend.
+
+Include useful information in the list:
+
+- Application ID.
+- User name.
+- User email, if available and authorized.
+- Café name.
+- Selected experience.
+- Preferred date.
+- Preferred time.
+- Guest count.
+- Selected budget range.
+- Application status.
+- Submission date.
+
+Include useful filtering/search functionality using existing design patterns:
+
+- Search by user name or email.
+- Filter by café.
+- Filter by experience.
+- Filter by application status.
+- Filter by submission date if supported.
+
+Use real backend data, not sample application cards.
+
+Handle loading, empty and error states properly.
+
+## 6.4 Full application details
+
+When an admin opens an application, show a complete detail view.
+
+Display:
+
+1. Application ID.
+2. User details.
+3. Café details.
+4. Experience type.
+5. Preferred date.
+6. Preferred time.
+7. Guest count.
+8. Selected minimum budget.
+9. Selected maximum budget.
+10. Additional note.
+11. Submission timestamp.
+12. Current application status.
+
+The admin must be able to understand the complete request without having to inspect database records manually.
+
+## 6.5 Admin actions
+
+Reuse the existing application approval/rejection functionality.
+
+Provide the actions supported by the existing backend:
+
+- View application.
+- Approve application.
+- Reject application.
+- Review application status.
+- Add an admin note if the existing workflow supports it.
+
+Before an approval or rejection, require an appropriate confirmation step.
+
+Only update the application status after a successful authorized backend operation.
+
+If approval does not guarantee café availability, make that clear. Do not automatically label an application as a confirmed reservation unless the existing booking system genuinely confirms it.
+
+Preserve existing application history and prevent accidental duplicate submissions or repeated approval actions.
+
+## 6.6 Admin security
+
+- Verify the current admin authorization model.
+- Protect the route against unauthorized access.
+- Use existing Supabase RLS and backend permissions.
+- Do not expose private user information to ordinary users.
+- Do not bypass backend authorization.
+- Do not introduce insecure client-side admin privileges.
+
+If the existing backend does not support an admin operation, report the exact missing capability instead of faking it.
+
+---
+
+# PART 7 — ADMIN PANEL: REMOVE PERCENTAGE COMMISSION OPTION
+
+## 7.1 Objective
+
+Remove the percentage-based commission option from the Admin Panel.
+
+Inspect the current commission implementation before editing.
+
+Check:
+
+- `src/pages/admin/Commissions.tsx`
+- Commission-related forms.
+- Commission creation and editing components.
+- Commission calculation logic.
+- Commission validation.
+- Commission reports.
+- Relevant Supabase queries and types.
+
+## 7.2 Required changes
+
+Remove the ability to select or configure commission as a percentage from the Admin Panel.
+
+Remove:
+- Percentage commission selection option.
+- Percentage-specific form fields.
+- Percentage-specific validation where no longer needed.
+- Percentage-specific UI controls.
+- Any percentage-only calculation option that is directly connected to the Admin Panel configuration.
+
+Preserve the existing supported fixed-amount commission functionality, if available.
+
+Do not invent a replacement commission amount or default.
+
+## 7.3 Existing records and data protection
+
+Do not delete historical commission records.
+
+Do not automatically convert historical percentage-based records into fixed amounts.
+
+Do not alter past payouts, revenue records, investor ledger entries or financial history.
+
+If historical percentage-based commission records exist, preserve their original values and report how they are handled.
+
+If removing percentage support requires a database migration or production schema change, do not execute it. Report the exact requirement separately.
+
+The goal is to remove percentage commission as a selectable Admin Panel option without corrupting historical financial data.
+
+---
+
+# PART 8 — INTEGRATION AND DATA CONSISTENCY
+
+Before completing the implementation, verify that all four tasks work together.
+
+### Café data
+
+- Public Cafés excludes the six confirmed demo cafés.
+- The three genuine Delhi cafés remain preserved.
+- Other verified genuine admin-added cafés are not accidentally hidden.
+- Experiences displays only Café Hot Stag and Karma La Cafe.
+
+### Experience applications
+
+- Each application belongs to the correct café ID.
+- Each application has the correct experience type.
+- Each application stores its selected budget range.
+- The application is associated with the correct authenticated user.
+- Pending status is handled correctly.
+- Applications appear in the Admin Panel.
+
+### Admin Panel
+
+- Only authorized administrators can view and manage applications.
+- Approval/rejection uses the existing backend.
+- No duplicate application system is created.
+- Percentage commission is no longer selectable.
+- Fixed-amount commission functionality continues to work if already supported.
+
+### Historical data
+
+- Existing users remain unaffected.
+- Existing café records remain intact.
+- Existing applications and bookings remain intact.
+- Existing financial records remain intact.
+
+---
+
+# PART 9 — TESTING REQUIREMENTS
+
+Do not finish based only on successful compilation.
+
+Run appropriate tests for every task.
+
+## A. Public Cafés tests
+
+1. All six confirmed demo café IDs are blocked.
+2. All six demo café names are blocked.
+3. Café Hot Stag remains available.
+4. KARMALA CAFE & RESTAURANT remains available.
+5. The Yumm Club remains available.
+6. Other genuine admin-added cafés remain available.
+7. No alternate public listing bypasses filtering.
+8. Demo café direct URLs show Café Not Found.
+9. Empty or failed database responses do not restore demo data.
+10. Existing photo sliders continue working.
+
+## B. Experiences tests
+
+1. Only Café Hot Stag and Karma La Cafe appear.
+2. The Yumm Club does not appear in Experiences.
+3. No demo experience remains.
+4. The global budget slider is completely removed.
+5. Each café opens its own correct application form.
+6. Each café displays only its own experience options.
+
+## C. Budget slider tests
+
+1. Café Hot Stag has a separate ₹3,200–₹13,000 slider.
+2. Karma La Cafe has a separate ₹4,500–₹25,000 slider.
+3. Both sliders work independently.
+4. The selected values are visible.
+5. Values cannot exceed each café's configured limits.
+6. Budget selections are saved with the correct application.
+7. Budget selections are displayed correctly in the Admin Panel.
+
+## D. Application form tests
+
+1. Date selection works.
+2. Past dates are disabled.
+3. Preferred time validation works.
+4. Guest count validation works if applicable.
+5. Selected experience is correct.
+6. Selected café ID is correct.
+7. Selected budget range is correct.
+8. Form review displays all entered details.
+9. Genuine backend submission works.
+10. Failed submission displays an error without losing entered information.
+11. New applications receive the correct pending status.
+
+## E. Admin application tests
+
+1. Applications appear in the Admin Panel.
+2. All submitted details are visible.
+3. Search and filters work.
+4. Full application details open correctly.
+5. Authorized approval/rejection works.
+6. Unauthorized users cannot access the page or actions.
+7. Application records are not duplicated.
+8. Existing application history remains intact.
+
+## F. Commission tests
+
+1. Percentage option is no longer displayed.
+2. Percentage configuration cannot be submitted through the Admin UI.
+3. Existing fixed-amount commission functionality still works.
+4. Historical commission records remain intact.
+5. No historical financial values are silently modified.
+
+## G. Technical checks
+
+- Run TypeScript checks.
+- Run available lint checks.
+- Run relevant automated tests.
+- Run the production build using the existing package manager.
+- Inspect browser console errors.
+- Inspect failed network/backend requests where possible.
+- Test mobile and desktop layouts.
+- Verify that no unrelated page or functionality has been broken.
+
+Fix errors introduced by your changes before reporting completion.
+
+If the build fails, report the exact error and do not claim success.
+
+---
+
+# PART 10 — IMPLEMENTATION ORDER
+
+Follow this order to avoid incomplete or conflicting changes.
+
+**Stage 1 — Audit**
+
+Inspect the current code, backend schema, routes, components, authorization and unfinished changes from the previous interrupted attempt.
+
+Produce an internal implementation plan.
+
+**Stage 2 — Public Cafés**
+
+Find and fix the exact reason demo cafés still appear. Add final rendering protection and tests.
+
+**Stage 3 — Experiences**
+
+Remove the global budget bar. Keep only the two specified cafés and their correct experience options.
+
+**Stage 4 — Application forms**
+
+Implement separate café-specific budget sliders inside the corresponding application forms. Complete the date, time, guest count and review functionality using the existing application workflow.
+
+**Stage 5 — Admin applications**
+
+Reuse or complete `/admin/applications`. Ensure authorized administrators can view, filter and manage all submitted applications.
+
+**Stage 6 — Commission update**
+
+Remove the percentage commission option while preserving fixed-amount functionality and historical records.
+
+**Stage 7 — Integration and verification**
+
+Run the complete test suite and production build. Check all affected pages and report any remaining blockers.
+
+Do not stop after implementing the UI while leaving the backend integration incomplete.
+
+---
+
+# PART 11 — FINAL REPORT
+
+When the work is finished, provide a detailed implementation report.
+
+Include:
+
+1. Audit findings.
+2. Root cause of the Public Cafés demo listing issue.
+3. Exact files modified.
+4. Exact demo filtering changes.
+5. Confirmation that the three genuine Delhi café records were preserved.
+6. Confirmation that the Experiences global budget slider was removed.
+7. Details of both separate café-specific budget sliders.
+8. Application form implementation details.
+9. Backend tables and existing workflows reused.
+10. Admin application section and route.
+11. Admin application actions implemented.
+12. Percentage commission removal details.
+13. Confirmation of fixed-amount commission functionality.
+14. Tests performed and actual results.
+15. TypeScript, lint and production build results.
+16. Any database or production action that still requires my permission.
+
+Clearly distinguish between:
+- Completed and tested.
+- Implemented but not fully tested.
+- Blocked by missing backend support.
+- Requiring a separately authorized production action.
+
+Do not claim the deployed website has been fixed until I push the code and Vercel deploys it successfully and we verify the actual live website.
+
+---
+
+# FINAL NON-NEGOTIABLE INSTRUCTIONS
+
+This is a focused update to the existing Datevra application.
+
+Do not redesign the website.
+
+Do not create duplicate cafés, applications, bookings, routes or commission systems.
+
+Do not delete genuine records or historical data.
+
+Do not execute SQL or make production database changes.
+
+Do not weaken security or RLS.
+
+Do not push, commit or deploy.
+
+Preserve the existing Datevra design and unrelated functionality.
+
+**Most importantly: finish all four requested tasks as one coordinated implementation, verify the actual code paths and backend integrations, and report honestly if anything cannot be completed safely.**

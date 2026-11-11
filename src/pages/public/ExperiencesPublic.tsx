@@ -72,13 +72,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     (b) => b.listCafes(),
     [db],
     [] as Cafe[],
-    { cacheKey: "cafes" },
   );
-
-  // One shared dual-handle budget slider state
-  const SLIDER_MIN = 3000;
-  const SLIDER_MAX = 25000;
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([3000, 25000]);
 
   // Application booking form state
   const [activeCafeConfig, setActiveCafeConfig] = useState<CafeExperienceConfig | null>(null);
@@ -87,6 +81,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [preferredTime, setPreferredTime] = useState<string>("7:30 PM");
   const [guestCount, setGuestCount] = useState<number>(2);
+  const [formBudgetRange, setFormBudgetRange] = useState<[number, number]>([3200, 13000]);
   const [note, setNote] = useState<string>("");
   const [isReviewStep, setIsReviewStep] = useState<boolean>(false);
   const [busy, setBusy] = useState<boolean>(false);
@@ -96,6 +91,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     date: string;
     time: string;
     guests: number;
+    budgetRange: [number, number];
   } | null>(null);
 
   // Today's date string YYYY-MM-DD for date-picker min
@@ -107,13 +103,9 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     return `${yyyy}-${mm}-${dd}`;
   }, []);
 
-  // Filter the 2 cafes by user's shared budget slider range
-  const filteredCafes = useMemo(() => {
-    const [userMin, userMax] = budgetRange;
-    return EXPERIENCES_CONFIG.filter((cfg) => {
-      // Overlap condition: max(userMin, cfg.minBudget) <= min(userMax, cfg.maxBudget)
-      return Math.max(userMin, cfg.minBudget) <= Math.min(userMax, cfg.maxBudget);
-    }).map((cfg) => {
+  // Display ONLY the two specified cafés: Café Hot Stag and Karma La Cafe
+  const displayedCafes = useMemo(() => {
+    return EXPERIENCES_CONFIG.map((cfg) => {
       const cafeRecord = allCafes.find((c) => c.id === cfg.cafeId);
       return {
         cfg,
@@ -155,9 +147,9 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         },
       };
     });
-  }, [allCafes, budgetRange]);
+  }, [allCafes]);
 
-  // Open Application Form
+  // Open Application Form with cafe-specific budget initialization
   const openApplication = (cfg: CafeExperienceConfig, cafe: Cafe) => {
     if (!session || !user) {
       navigate("/login");
@@ -169,6 +161,8 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     setSelectedDate("");
     setPreferredTime("7:30 PM");
     setGuestCount(2);
+    // Initialize dedicated café-specific budget slider limits
+    setFormBudgetRange([cfg.minBudget, cfg.maxBudget]);
     setNote("");
     setIsReviewStep(false);
     setSubmittedApp(null);
@@ -178,10 +172,6 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
     setActiveCafeConfig(null);
     setSelectedCafe(null);
     setIsReviewStep(false);
-  };
-
-  const resetBudgetSlider = () => {
-    setBudgetRange([SLIDER_MIN, SLIDER_MAX]);
   };
 
   // Submit Application
@@ -201,11 +191,12 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
 
     setBusy(true);
     try {
-      // Build structured note combining guest count, venue details, and user note
+      // Build structured note combining venue, experience, guests, budget range, and user note
       const structuredNoteParts = [
         `[Venue: ${activeCafeConfig.displayName}]`,
         `[Experience: ${expTitle}]`,
         `[Guests: ${guestCount}]`,
+        `[Budget: ₹${formBudgetRange[0].toLocaleString("en-IN")} – ₹${formBudgetRange[1].toLocaleString("en-IN")}]`,
         note.trim() ? `Note: ${note.trim()}` : "",
       ].filter(Boolean);
 
@@ -225,6 +216,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         date: selectedDate,
         time: preferredTime,
         guests: guestCount,
+        budgetRange: formBudgetRange,
       });
       setIsReviewStep(false);
       toast("Application submitted successfully — pending review by our team.", "gold");
@@ -259,109 +251,11 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         <PageHero
           kicker="Curated experiences"
           title="Dates, arranged like art"
-          sub="Explore partner cafés, filter by your indicative budget range, and apply for exclusive dates arranged with care."
+          sub="Explore partner cafés and apply for exclusive dates arranged with care."
         />
       )}
 
       <section className="relative max-w-6xl mx-auto px-5 py-10 md:py-14">
-        {/* ============================================================== */}
-        {/* ONE SHARED DUAL-HANDLE BUDGET SLIDER (₹3,000 – ₹25,000)          */}
-        {/* ============================================================== */}
-        <Reveal>
-          <div className="glass-strong rounded-3xl p-6 sm:p-8 mb-12 max-w-3xl mx-auto border border-white/10 shadow-2xl relative overflow-hidden">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div>
-                <p className="text-[0.68rem] uppercase tracking-[0.25em] text-rosegold font-semibold">
-                  Shared Filter
-                </p>
-                <h3 className="font-display text-2xl text-ivory mt-0.5">Indicative Budget Range</h3>
-                <p className="text-xs text-mist mt-1">
-                  Filter curated experiences by your preferred budget range
-                </p>
-              </div>
-
-              {/* Reset button */}
-              {(budgetRange[0] !== SLIDER_MIN || budgetRange[1] !== SLIDER_MAX) && (
-                <button
-                  type="button"
-                  onClick={resetBudgetSlider}
-                  className="btn-ghost rounded-full px-4 py-2 text-xs self-start sm:self-auto touch-manipulation text-champagne hover:text-rosegold transition-colors border border-champagne/30"
-                >
-                  ↺ Reset (₹3,000 – ₹25,000)
-                </button>
-              )}
-            </div>
-
-            {/* Current Range Display in INR */}
-            <div className="flex items-center justify-between py-2 px-4 rounded-2xl bg-white/[0.04] border border-white/5 mb-6">
-              <div>
-                <span className="text-[0.65rem] uppercase tracking-wider text-mist block">Min budget</span>
-                <span className="font-display text-2xl text-champagne font-semibold">
-                  ₹{budgetRange[0].toLocaleString("en-IN")}
-                </span>
-              </div>
-              <div className="text-mist text-lg font-light px-2">to</div>
-              <div className="text-right">
-                <span className="text-[0.65rem] uppercase tracking-wider text-mist block">Max budget</span>
-                <span className="font-display text-2xl text-rosegold font-semibold">
-                  ₹{budgetRange[1].toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-
-            {/* Dual Slider Controls */}
-            <div className="relative pt-6 pb-3 px-2">
-              {/* Visual Track */}
-              <div className="relative h-2 rounded-full bg-white/10">
-                {/* Active range fill */}
-                <div
-                  className="absolute h-full rounded-full bg-gradient-to-r from-champagne via-rosegold to-burgundy-soft"
-                  style={{
-                    left: `${((budgetRange[0] - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100}%`,
-                    right: `${100 - ((budgetRange[1] - SLIDER_MIN) / (SLIDER_MAX - SLIDER_MIN)) * 100}%`,
-                  }}
-                />
-              </div>
-
-              {/* Range Input: Lower Handle */}
-              <input
-                type="range"
-                min={SLIDER_MIN}
-                max={SLIDER_MAX}
-                step={500}
-                value={budgetRange[0]}
-                aria-label="Minimum budget in INR"
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setBudgetRange(([_, upper]) => [Math.min(val, upper - 500), upper]);
-                }}
-                className="absolute inset-x-2 top-4 w-[calc(100%-1rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-champagne [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(240,220,174,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-champagne [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
-              />
-
-              {/* Range Input: Upper Handle */}
-              <input
-                type="range"
-                min={SLIDER_MIN}
-                max={SLIDER_MAX}
-                step={500}
-                value={budgetRange[1]}
-                aria-label="Maximum budget in INR"
-                onChange={(e) => {
-                  const val = Number(e.target.value);
-                  setBudgetRange(([lower, _]) => [lower, Math.max(val, lower + 500)]);
-                }}
-                className="absolute inset-x-2 top-4 w-[calc(100%-1rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rosegold [&::-webkit-slider-thumb]:shadow-[0_0_12px_rgba(255,61,154,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-rosegold [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
-              />
-            </div>
-
-            <div className="flex justify-between text-[0.7rem] text-mist/60 px-2 mt-2">
-              <span>₹3,000</span>
-              <span>₹14,000</span>
-              <span>₹25,000</span>
-            </div>
-          </div>
-        </Reveal>
-
         {/* ============================================================== */}
         {/* CAFÉ EXPERIENCE CARDS (Café Hot Stag & Karma La Cafe only)      */}
         {/* ============================================================== */}
@@ -373,23 +267,9 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
           </div>
         ) : cafesError ? (
           <p className="text-center text-rosegold">{cafesError}</p>
-        ) : filteredCafes.length === 0 ? (
-          <div className="glass rounded-[2rem] p-12 text-center max-w-xl mx-auto my-6">
-            <p className="font-display text-2xl text-ivory">No cafés match this budget</p>
-            <p className="text-sm text-mist mt-2 leading-relaxed">
-              Neither Café Hot Stag (₹3,200–₹13,000) nor Karma La Cafe (₹4,500–₹25,000)
-              overlap your selected budget of ₹{budgetRange[0].toLocaleString("en-IN")} – ₹{budgetRange[1].toLocaleString("en-IN")}.
-            </p>
-            <button
-              onClick={resetBudgetSlider}
-              className="btn-gold rounded-full px-6 py-2.5 text-sm mt-5"
-            >
-              Reset budget filter
-            </button>
-          </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-8">
-            {filteredCafes.map(({ cfg, cafe }, i) => (
+            {displayedCafes.map(({ cfg, cafe }, i) => (
               <Reveal key={cfg.cafeId} delay={i * 0.1} className="h-full">
                 <motion.article
                   whileHover={{ y: -8 }}
@@ -483,7 +363,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
             <p className="text-[0.7rem] uppercase tracking-[0.3em] text-rosegold relative">Honest by design</p>
             <h3 className="font-display text-2xl text-ivory mt-2 relative">How experience applications work</h3>
             <p className="mt-3 text-sm text-ivory-dim/85 leading-relaxed relative">
-              Submit your preferred date and timing for either venue. Our team reviews every application manually to ensure seamless coordination with the partner café. Applications remain pending until confirmed by an authorized administrator.
+              Submit your preferred date and timing for either venue along with your comfortable budget range. Our team reviews every application manually to ensure seamless coordination with the partner café. Applications remain pending until confirmed by an authorized administrator.
             </p>
           </div>
         </Reveal>
@@ -529,6 +409,12 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               <div className="flex justify-between">
                 <span className="text-mist">Party Size:</span>
                 <span className="text-ivory font-medium">{submittedApp.guests} guests</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mist">Budget Preference:</span>
+                <span className="text-champagne font-medium">
+                  ₹{submittedApp.budgetRange[0].toLocaleString("en-IN")} – ₹{submittedApp.budgetRange[1].toLocaleString("en-IN")}
+                </span>
               </div>
               <div className="flex justify-between pt-1 border-t border-white/5">
                 <span className="text-mist">Status:</span>
@@ -585,6 +471,12 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               <div className="flex items-start justify-between gap-4">
                 <span className="text-xs uppercase tracking-wider text-mist">Guest Count</span>
                 <span className="text-sm text-ivory font-medium text-right">{guestCount} Guests</span>
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-xs uppercase tracking-wider text-mist">Comfortable Budget</span>
+                <span className="text-sm text-champagne font-semibold text-right">
+                  ₹{formBudgetRange[0].toLocaleString("en-IN")} – ₹{formBudgetRange[1].toLocaleString("en-IN")}
+                </span>
               </div>
               {note.trim() && (
                 <div className="pt-2 border-t border-white/10">
@@ -661,7 +553,92 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               </div>
             </Field>
 
-            {/* Field C: Date Selection (Interactive calendar picker, past disabled) */}
+            {/* Field C: Dedicated Café-Specific Budget Slider */}
+            {activeCafeConfig && (
+              <Field
+                label={`Preferred Budget Range (${activeCafeConfig.displayName})`}
+                hint={`Indicative range: ₹${activeCafeConfig.minBudget.toLocaleString("en-IN")} – ₹${activeCafeConfig.maxBudget.toLocaleString("en-IN")}`}
+              >
+                <div className="glass rounded-2xl p-4 border border-white/10 mt-1">
+                  <div className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.03] border border-white/5 mb-4">
+                    <div>
+                      <span className="text-[0.62rem] uppercase tracking-wider text-mist block">Min budget</span>
+                      <span className="font-display text-lg text-champagne font-semibold">
+                        ₹{formBudgetRange[0].toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                    <div className="text-mist text-sm font-light px-2">to</div>
+                    <div className="text-right">
+                      <span className="text-[0.62rem] uppercase tracking-wider text-mist block">Max budget</span>
+                      <span className="font-display text-lg text-rosegold font-semibold">
+                        ₹{formBudgetRange[1].toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Dual-Handle Slider Controls */}
+                  <div className="relative pt-4 pb-2 px-1">
+                    <div className="relative h-2 rounded-full bg-white/10">
+                      <div
+                        className="absolute h-full rounded-full bg-gradient-to-r from-champagne via-rosegold to-burgundy-soft"
+                        style={{
+                          left: `${
+                            ((formBudgetRange[0] - activeCafeConfig.minBudget) /
+                              (activeCafeConfig.maxBudget - activeCafeConfig.minBudget)) *
+                            100
+                          }%`,
+                          right: `${
+                            100 -
+                            ((formBudgetRange[1] - activeCafeConfig.minBudget) /
+                              (activeCafeConfig.maxBudget - activeCafeConfig.minBudget)) *
+                              100
+                          }%`,
+                        }}
+                      />
+                    </div>
+
+                    {/* Lower Handle */}
+                    <input
+                      type="range"
+                      min={activeCafeConfig.minBudget}
+                      max={activeCafeConfig.maxBudget}
+                      step={activeCafeConfig.cafeId === "c-hot-stag-del" ? 100 : 500}
+                      value={formBudgetRange[0]}
+                      aria-label="Minimum comfortable budget in INR"
+                      onChange={(e) => {
+                        const step = activeCafeConfig.cafeId === "c-hot-stag-del" ? 100 : 500;
+                        const val = Number(e.target.value);
+                        setFormBudgetRange(([_, upper]) => [Math.min(val, upper - step), upper]);
+                      }}
+                      className="absolute inset-x-1 top-2.5 w-[calc(100%-0.5rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-champagne [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(240,220,174,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-champagne [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+                    />
+
+                    {/* Upper Handle */}
+                    <input
+                      type="range"
+                      min={activeCafeConfig.minBudget}
+                      max={activeCafeConfig.maxBudget}
+                      step={activeCafeConfig.cafeId === "c-hot-stag-del" ? 100 : 500}
+                      value={formBudgetRange[1]}
+                      aria-label="Maximum comfortable budget in INR"
+                      onChange={(e) => {
+                        const step = activeCafeConfig.cafeId === "c-hot-stag-del" ? 100 : 500;
+                        const val = Number(e.target.value);
+                        setFormBudgetRange(([lower, _]) => [lower, Math.max(val, lower + step)]);
+                      }}
+                      className="absolute inset-x-1 top-2.5 w-[calc(100%-0.5rem)] pointer-events-none appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rosegold [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,61,154,0.8)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:touch-manipulation [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-rosegold [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-[0.65rem] text-mist/70 px-1 mt-1">
+                    <span>₹{activeCafeConfig.minBudget.toLocaleString("en-IN")}</span>
+                    <span>₹{activeCafeConfig.maxBudget.toLocaleString("en-IN")}</span>
+                  </div>
+                </div>
+              </Field>
+            )}
+
+            {/* Field D: Date Selection (Interactive calendar picker, past disabled) */}
             <div className="grid sm:grid-cols-2 gap-4">
               <Field
                 label="Preferred Reservation Date"
@@ -677,7 +654,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                 />
               </Field>
 
-              {/* Field D: Preferred Timing */}
+              {/* Field E: Preferred Timing */}
               <Field
                 label="Preferred Reservation Time"
                 hint="Preferred time (subject to café confirmation)."
@@ -696,7 +673,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               </Field>
             </div>
 
-            {/* Field E: Guest Count */}
+            {/* Field F: Guest Count */}
             <Field label="Guest Count" hint="Table seating party size">
               <select
                 value={guestCount}
@@ -709,7 +686,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               </select>
             </Field>
 
-            {/* Field F: Additional Note */}
+            {/* Field G: Additional Note */}
             <Field
               label="Additional Note / Special Requests"
               hint="Optional — dietary preferences, seating requests, or special occasions."

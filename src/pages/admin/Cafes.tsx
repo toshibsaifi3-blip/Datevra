@@ -260,8 +260,10 @@ export default function Cafes() {
                     <option value="yes">Partner</option>
                   </select>
                 </Field>
-                <Field label="Commission %">
-                  <input value={String(form.commissionPct)} onChange={(e) => setForm({ ...form, commissionPct: Number(e.target.value) })} inputMode="decimal" className={inputCls} />
+                <Field label="Historical Rate" hint="Percentage rate (read-only)">
+                  <div className={`${inputCls} flex items-center bg-white/[0.02] text-ivory-dim cursor-not-allowed select-none`}>
+                    {form.commissionPct != null ? `${form.commissionPct}%` : "Fixed"}
+                  </div>
                 </Field>
                 <Field label="Agreement reference">
                   <input value={form.agreementRef ?? ""} onChange={(e) => setForm({ ...form, agreementRef: e.target.value })} className={inputCls} placeholder="CAFE-2026-…" />

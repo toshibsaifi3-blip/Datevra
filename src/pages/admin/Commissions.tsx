@@ -26,30 +26,16 @@ export default function Commissions() {
 
   const partners = cafes.filter((c) => c.partner && !isDemoCafe(c));
 
-  const totalDue = partners.reduce((s, c) => s + Math.round((c.revenue * c.commissionPct) / 100), 0);
+  // Compute total due across partners using historical commission calculations without modification
+  const totalDue = partners.reduce((s, c) => s + Math.round((c.revenue * (c.commissionPct ?? 0)) / 100), 0);
   const totalRevenue = partners.reduce((s, c) => s + c.revenue, 0);
-
-  const savePct = async (cafe: Cafe, pct: number) => {
-    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
-      toast("Commission must be 0–100%", "rose");
-      refresh();
-      return;
-    }
-    try {
-      await db.upsertCafe({ ...cafe, commissionPct: pct }, actor);
-      refresh();
-      toast(`${cafe.name} commission set to ${pct}%`, "gold");
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not update commission", "rose");
-    }
-  };
 
   const submitSettlement = async () => {
     if (!settleFor) return;
     const amount = Number(settleAmount);
-    if (!Number.isFinite(amount) || amount <= 0) return toast("Enter a valid amount", "rose");
+    if (!Number.isFinite(amount) || amount <= 0) return toast("Enter a valid fixed settlement amount", "rose");
     try {
-      // Audit-logged: every settlement attempt is recorded against the café record.
+      // Fixed-amount settlement recorded against the partner café record (audit-logged)
       await db.upsertCafe(settleFor, actor);
       toast(
         `Settlement of ${inr(amount)} recorded for ${settleFor.name}${
@@ -71,8 +57,8 @@ export default function Commissions() {
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Partner finance"
-          title="Café Commissions"
-          sub="Revenue shares owed to partner cafés, computed from real booking revenue × agreed percentages."
+          title="Café Commissions & Settlements"
+          sub="Track partner café revenue, view settled amounts, and record fixed-amount payouts. Percentage commission configuration has been removed."
           align="left"
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load cafés: {error}</p>}
@@ -88,13 +74,13 @@ export default function Commissions() {
             <div className="grid grid-cols-3 gap-4 mt-10">
               <Stat label="Partner cafés" value={partners.length} sub="active agreements" />
               <Stat label="Partner revenue" value={inr(totalRevenue)} sub="booked through Datevra" />
-              <Stat label="Commission due" value={inr(totalDue)} sub="across all partners" />
+              <Stat label="Calculated balance" value={inr(totalDue)} sub="across partner venues" />
             </div>
 
             <div className="glass rounded-3xl mt-8 overflow-hidden">
               {partners.length === 0 ? (
                 <div className="p-6">
-                  <EmptyState title="No partners yet" body="Mark a café as a partner in Café Management to track commissions." />
+                  <EmptyState title="No partners yet" body="Mark a café as a partner in Café Management to track commissions and settlements." />
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -105,14 +91,14 @@ export default function Commissions() {
                         <th className={thCls}>Agreement</th>
                         <th className={thCls}>Bookings</th>
                         <th className={thCls}>Revenue</th>
-                        <th className={thCls}>Commission %</th>
+                        <th className={thCls}>Historical Rate</th>
                         <th className={thCls}>Due</th>
                         <th className={thCls}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {partners.map((c) => {
-                        const due = Math.round((c.revenue * c.commissionPct) / 100);
+                        const due = Math.round((c.revenue * (c.commissionPct ?? 0)) / 100);
                         return (
                           <tr key={c.id} className={rowCls}>
                             <td className={tdCls}>
@@ -125,25 +111,16 @@ export default function Commissions() {
                             <td className={`${tdCls} text-ivory-dim`}>{c.totalBookings}</td>
                             <td className={`${tdCls} text-ivory-dim whitespace-nowrap`}>{inr(c.revenue)}</td>
                             <td className={tdCls}>
-                              <div className="flex items-center gap-2">
-                                <input
-                                  key={`${c.id}-${c.commissionPct}`}
-                                  defaultValue={c.commissionPct}
-                                  inputMode="decimal"
-                                  className={`${inputCls} w-20 !py-1.5 text-center`}
-                                  onBlur={(e) => {
-                                    const next = Number(e.target.value);
-                                    if (next !== c.commissionPct) savePct(c, next);
-                                  }}
-                                />
-                                <span className="text-mist">%</span>
-                              </div>
+                              {/* Read-only historical rate display; percentage input configuration removed */}
+                              <span className="text-ivory-dim font-medium text-xs">
+                                {c.commissionPct != null ? `${c.commissionPct}%` : "Fixed"}
+                              </span>
                             </td>
                             <td className={`${tdCls} text-rosegold font-medium whitespace-nowrap`}>{inr(due)}</td>
                             <td className={tdCls}>
                               <button
                                 onClick={() => setSettleFor(c)}
-                                className="text-xs text-champagne hover:text-rosegold whitespace-nowrap"
+                                className="text-xs text-champagne hover:text-rosegold font-medium whitespace-nowrap"
                               >
                                 Record settlement
                               </button>
@@ -157,7 +134,7 @@ export default function Commissions() {
               )}
             </div>
             <p className="text-xs text-mist mt-4">
-              Commission % edits are audit-logged. Settlements are paid externally (bank/UPI) and recorded here as ledger entries.
+              Fixed-amount settlements are paid externally (bank/UPI) and recorded here as ledger entries. Percentage commission configuration is disabled.
             </p>
           </>
         )}
@@ -165,15 +142,15 @@ export default function Commissions() {
 
       <AnimatePresence>
         {settleFor && (
-          <Modal open onClose={() => setSettleFor(null)} title={`Settle — ${settleFor.name}`}>
+          <Modal open onClose={() => setSettleFor(null)} title={`Record Fixed Settlement — ${settleFor.name}`}>
             <div className="space-y-4">
               <p className="text-sm text-ivory-dim">
-                Computed due:{" "}
+                Calculated balance on record:{" "}
                 <span className="text-rosegold font-medium">
-                  {inr(Math.round((settleFor.revenue * settleFor.commissionPct) / 100))}
+                  {inr(Math.round((settleFor.revenue * (settleFor.commissionPct ?? 0)) / 100))}
                 </span>
               </p>
-              <Field label="Settlement amount (₹)">
+              <Field label="Fixed settlement amount (₹)" hint="Enter the fixed amount settled with the partner.">
                 <input
                   value={settleAmount}
                   onChange={(e) => setSettleAmount(e.target.value)}
@@ -182,7 +159,7 @@ export default function Commissions() {
                   placeholder="e.g. 8500"
                 />
               </Field>
-              <Field label="Transfer reference" hint="UPI/bank transaction id or cheque number.">
+              <Field label="Transfer reference" hint="UPI/bank transaction ID or cheque number.">
                 <input
                   value={settleRef}
                   onChange={(e) => setSettleRef(e.target.value)}
@@ -190,9 +167,22 @@ export default function Commissions() {
                   placeholder="UTR / txn id"
                 />
               </Field>
-              <button onClick={submitSettlement} className="btn-gold rounded-xl px-6 py-3 text-sm w-full">
-                Record settlement
-              </button>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setSettleFor(null)}
+                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={submitSettlement}
+                  className="btn-gold rounded-xl px-5 py-2.5 text-sm font-semibold flex-1"
+                >
+                  Record Settlement
+                </button>
+              </div>
             </div>
           </Modal>
         )}
