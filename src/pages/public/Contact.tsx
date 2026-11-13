@@ -1,17 +1,8 @@
 import { useState } from "react";
 import { Field, PageHero, Reveal, inputCls, useToast } from "../../components/ui";
-import { useBackend, useAsync } from "../../lib/data";
-import type { PlatformSettings } from "../../lib/types";
 
 export default function Contact() {
   const { toast } = useToast();
-  const db = useBackend();
-  const { data: settings } = useAsync(
-    (b) => b.getSettings(),
-    [db],
-    null as PlatformSettings | null,
-  );
-  const supportEmail = settings?.supportEmail ?? "care@datevra.in";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -92,10 +83,10 @@ export default function Contact() {
               <div>
                 <p className="text-[0.68rem] uppercase tracking-[0.25em] text-mist">Support</p>
                 <a
-                  href={`mailto:${supportEmail}`}
+                  href="mailto:support@datevra.com"
                   className="text-champagne hover:text-rosegold transition-colors mt-1 inline-block break-all"
                 >
-                  {supportEmail}
+                  support@datevra.com
                 </a>
                 <p className="text-mist/75 text-xs mt-1">Replies within 2 days · safety reports within 24 hours</p>
               </div>
