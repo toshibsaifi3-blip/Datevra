@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useBackend } from "../../lib/data";
 import { Avatar, Badge, EmptyState, Modal, Reveal, Skeleton, useToast } from "../../components/ui";
+import { computeCompatibility } from "../../lib/compat";
 import { partnerOf, timeAgo, useDbRefresh } from "./shared";
-import type { Match, MatchProposal, UserProfile } from "../../lib/types";
+import type { Match, MatchPreferences, MatchProposal, UserProfile } from "../../lib/types";
 
 interface MatchRow {
   match: Match;
   profile: UserProfile;
+}
+
+interface MatchesData {
+  rows: MatchRow[];
+  prefs: MatchPreferences | null;
 }
 
 export default function Matches() {
@@ -17,19 +23,28 @@ export default function Matches() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const db = useBackend();
-  const tick = useDbRefresh("matches", "conversations", "blocks");
+  const reducedMotion = useReducedMotion();
+  const tick = useDbRefresh("matches", "conversations", "blocks", "profiles");
+
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<MatchRow | null>(null);
+  const [busyProposalId, setBusyProposalId] = useState<string | null>(null);
+  const [unmatching, setUnmatching] = useState(false);
+  const busyProposalRef = useRef<string | null>(null);
+  const unmatchingRef = useRef(false);
 
   const {
-    data: matches,
+    data,
     loading,
     error,
     refresh,
   } = useAsync(
-    async (b): Promise<MatchRow[]> => {
-      if (!user) return [];
-      const ms = await b.matchesFor(user.id);
+    async (b): Promise<MatchesData> => {
+      if (!user) return { rows: [], prefs: null };
+      const [ms, prefs] = await Promise.all([
+        b.matchesFor(user.id),
+        b.getPrefs(user.id),
+      ]);
       const profs = await Promise.all(
         ms.map((m) => b.getUser(partnerOf(m, user.id))),
       );
@@ -38,11 +53,13 @@ export default function Matches() {
         const profile = profs[i];
         if (profile) rows.push({ match, profile });
       });
-      return rows;
+      return { rows, prefs };
     },
     [user?.id, tick],
-    [] as MatchRow[],
+    { rows: [], prefs: null } as MatchesData,
   );
+
+  const matches = data.rows;
 
   const {
     data: proposals,
@@ -57,7 +74,9 @@ export default function Matches() {
   );
 
   const respond = async (p: MatchProposal, accept: boolean) => {
-    if (!user) return;
+    if (!user || busyProposalRef.current) return;
+    busyProposalRef.current = p.id;
+    setBusyProposalId(p.id);
     try {
       const updated = await db.respondToMatchProposal(p.id, user.id, accept);
       if (updated.status === "accepted") {
@@ -71,6 +90,9 @@ export default function Matches() {
       refresh();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not respond", "rose");
+    } finally {
+      busyProposalRef.current = null;
+      setBusyProposalId(null);
     }
   };
 
@@ -88,7 +110,9 @@ export default function Matches() {
   };
 
   const doUnmatch = async () => {
-    if (!confirmId) return;
+    if (!confirmId || unmatchingRef.current) return;
+    unmatchingRef.current = true;
+    setUnmatching(true);
     try {
       await db.unmatch(confirmId, me.id);
       setConfirmId(null);
@@ -99,11 +123,20 @@ export default function Matches() {
         e instanceof Error ? e.message : "Couldn't end the match.",
         "rose",
       );
+    } finally {
+      unmatchingRef.current = false;
+      setUnmatching(false);
     }
   };
 
+  const viewingFactors = viewing
+    ? viewing.match.factors.length > 0
+      ? viewing.match.factors
+      : computeCompatibility(me, viewing.profile, data.prefs).factors
+    : [];
+
   return (
-    <div className="max-w-5xl mx-auto px-5 py-10">
+    <div className="max-w-5xl mx-auto px-5 py-10 overflow-x-hidden">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Matches</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">
@@ -121,6 +154,7 @@ export default function Matches() {
             {proposals.map((p) => {
               const otherName = p.userAId === me.id ? p.userBName : p.userAName;
               const myResponse = p.userAId === me.id ? p.userAResponse : p.userBResponse;
+              const isBusy = busyProposalId === p.id;
               return (
                 <div key={p.id} className="rounded-2xl border border-champagne/30 p-5 bg-gradient-to-br from-champagne/10 to-transparent">
                   <p className="font-semibold">Datevra curators suggest: {otherName}</p>
@@ -128,9 +162,23 @@ export default function Matches() {
                   {myResponse === true ? (
                     <p className="text-sm text-champagne mt-3">You accepted — waiting for {otherName}.</p>
                   ) : (
-                    <div className="flex gap-2 mt-4">
-                      <button onClick={() => respond(p, true)} className="btn-gold flex-1">Accept</button>
-                      <button onClick={() => respond(p, false)} className="px-4 py-2 rounded-full bg-white/5 text-white/60 text-sm">Decline</button>
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => void respond(p, true)}
+                        className="btn-gold rounded-full min-h-[44px] px-5 text-sm flex-1 disabled:opacity-50"
+                      >
+                        {isBusy ? "Sending…" : "Accept"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => void respond(p, false)}
+                        className="px-4 min-h-[44px] rounded-full bg-white/5 text-white/70 hover:text-ivory text-sm disabled:opacity-50"
+                      >
+                        Decline
+                      </button>
                     </div>
                   )}
                 </div>
@@ -147,13 +195,25 @@ export default function Matches() {
           ))}
         </div>
       ) : error ? (
-        <p className="text-sm text-rosegold">Couldn't load matches: {error}</p>
+        <EmptyState
+          title="Couldn't load matches"
+          body={error}
+          action={
+            <button
+              type="button"
+              onClick={refresh}
+              className="btn-gold rounded-full px-6 min-h-[44px] text-sm"
+            >
+              Try again
+            </button>
+          }
+        />
       ) : matches.length === 0 ? (
         <EmptyState
           title="No matches yet"
           body="Like profiles in Discover — when someone likes you back, you'll both appear here and can start chatting."
           action={
-            <Link to="/discover" className="btn-gold rounded-full px-6 py-2.5 text-sm inline-block">
+            <Link to="/discover" className="btn-gold rounded-full px-6 py-2.5 min-h-[44px] text-sm inline-flex items-center">
               Discover people
             </Link>
           }
@@ -165,13 +225,14 @@ export default function Matches() {
             return (
               <Reveal key={match.id}>
                 <motion.div
-                  whileHover={{ y: -4 }}
+                  whileHover={reducedMotion ? undefined : { y: -4 }}
                   className="glass glow-border rounded-[1.5rem] overflow-hidden card-hover relative"
                 >
                   {/* Photo banner with dreamy lighting */}
                   <button
+                    type="button"
                     onClick={() => setViewing({ match, profile })}
-                    className="block w-full text-left"
+                    className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
                     aria-label={`View ${profile.firstName}'s profile`}
                   >
                     <div className="relative h-40">
@@ -191,13 +252,13 @@ export default function Matches() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/40 to-transparent" />
                       <div className="absolute inset-0 bg-gradient-to-tr from-burgundy/25 via-transparent to-rosegold/15" />
-                      <div className="absolute bottom-3 left-4 flex items-center gap-3">
+                      <div className="absolute bottom-3 left-4 flex items-center gap-3 pr-16">
                         <Avatar name={profile.firstName} photo={photo} size={56} ring />
-                        <div>
-                          <p className="text-ivory font-medium text-lg leading-tight">
+                        <div className="min-w-0">
+                          <p className="text-ivory font-medium text-lg leading-tight truncate">
                             {profile.firstName}, {profile.age}
                           </p>
-                          <p className="text-xs text-ivory-dim">{profile.city}</p>
+                          <p className="text-xs text-ivory-dim truncate">{profile.city}</p>
                         </div>
                       </div>
                       <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-midnight/60 backdrop-blur px-2.5 py-1 border border-champagne/30">
@@ -218,23 +279,26 @@ export default function Matches() {
                         style={{ width: `${match.compatibility}%` }}
                       />
                     </div>
-                    <div className="flex gap-2 mt-5">
+                    <div className="flex flex-wrap gap-2 mt-5">
                       <button
-                        onClick={() => openChat(match.id)}
-                        className="btn-gold rounded-full px-4 py-2.5 text-xs font-semibold flex-1"
+                        type="button"
+                        onClick={() => void openChat(match.id)}
+                        className="btn-gold rounded-full px-4 min-h-[44px] text-xs font-semibold flex-1"
                       >
                         💬 Message
                       </button>
                       <button
+                        type="button"
                         onClick={() => setViewing({ match, profile })}
-                        className="btn-ghost rounded-full px-4 py-2.5 text-xs"
+                        className="btn-ghost rounded-full px-4 min-h-[44px] text-xs"
                       >
                         Profile
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfirmId(match.id)}
                         aria-label={`Unmatch ${profile.firstName}`}
-                        className="btn-ghost rounded-full px-3.5 py-2.5 text-xs text-mist hover:text-rosegold"
+                        className="btn-ghost rounded-full px-3.5 min-h-[44px] min-w-[44px] text-xs text-mist hover:text-rosegold"
                       >
                         ✕
                       </button>
@@ -288,21 +352,94 @@ export default function Matches() {
             {viewing.profile.bio && (
               <p className="text-ivory-dim leading-relaxed">{viewing.profile.bio}</p>
             )}
-            {viewing.profile.interests.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {viewing.profile.interests.map((t) => (
-                  <span key={t} className="rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 text-xs text-champagne">{t}</span>
-                ))}
+            {viewing.profile.photos.length > 0 && (
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">Photos</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {viewing.profile.photos.map((url, i) => (
+                    <div
+                      key={url}
+                      className="aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/5"
+                    >
+                      <img
+                        src={url}
+                        alt={`${viewing.profile.firstName}'s photo ${i + 1}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            <div className="flex gap-3 pt-2">
+            {viewing.profile.interests.length > 0 && (
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">Interests</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewing.profile.interests.map((t) => (
+                    <span key={t} className="rounded-full border border-champagne/40 bg-champagne/10 px-3 py-1 text-xs text-champagne">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {viewing.profile.hobbies.length > 0 && (
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">Hobbies</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewing.profile.hobbies.map((t) => (
+                    <span key={t} className="rounded-full border border-rosegold/40 bg-rosegold/10 px-3 py-1 text-xs text-rosegold">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {viewing.profile.lifestyle.length > 0 && (
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">Lifestyle</p>
+                <div className="flex flex-wrap gap-2">
+                  {viewing.profile.lifestyle.map((t) => (
+                    <span key={t} className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-ivory-dim">{t}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {viewingFactors.length > 0 && (
+              <div>
+                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">
+                  Compatibility factors
+                </p>
+                <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-2.5">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-rosegold via-champagne to-rosegold"
+                    style={{ width: `${viewing.match.compatibility}%` }}
+                  />
+                </div>
+                <ul className="space-y-1">
+                  {viewingFactors.slice(0, 4).map((f) => (
+                    <li key={f} className="text-xs text-ivory-dim/90 flex gap-1.5">
+                      <span className="text-rosegold">✦</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
-                onClick={() => { const m = viewing.match.id; setViewing(null); void openChat(m); }}
-                className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium flex-1"
+                type="button"
+                onClick={() => {
+                  const m = viewing.match.id;
+                  setViewing(null);
+                  void openChat(m);
+                }}
+                className="btn-gold rounded-full px-6 min-h-[44px] text-sm font-medium flex-1"
               >
                 💬 Message
               </button>
-              <button onClick={() => setViewing(null)} className="btn-ghost rounded-full px-6 py-2.5 text-sm">
+              <button
+                type="button"
+                onClick={() => setViewing(null)}
+                className="btn-ghost rounded-full px-6 min-h-[44px] text-sm"
+              >
                 Close
               </button>
             </div>
@@ -313,14 +450,24 @@ export default function Matches() {
       <Modal open={!!confirmId} onClose={() => setConfirmId(null)} title="End this match?">
         <p className="text-sm text-ivory-dim">
           This will permanently close the conversation and remove the match for both of you.
-          This can't be undone.
+          This can&apos;t be undone.
         </p>
         <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setConfirmId(null)} className="btn-ghost rounded-full px-5 py-2 text-sm">
+          <button
+            type="button"
+            disabled={unmatching}
+            onClick={() => setConfirmId(null)}
+            className="btn-ghost rounded-full px-5 min-h-[44px] text-sm disabled:opacity-50"
+          >
             Keep match
           </button>
-          <button onClick={doUnmatch} className="rounded-full px-5 py-2 text-sm bg-burgundy text-ivory hover:bg-burgundy-soft transition-colors">
-            Yes, unmatch
+          <button
+            type="button"
+            disabled={unmatching}
+            onClick={() => void doUnmatch()}
+            className="rounded-full px-5 min-h-[44px] text-sm bg-burgundy text-ivory hover:bg-burgundy-soft transition-colors disabled:opacity-50"
+          >
+            {unmatching ? "Ending…" : "Yes, unmatch"}
           </button>
         </div>
       </Modal>

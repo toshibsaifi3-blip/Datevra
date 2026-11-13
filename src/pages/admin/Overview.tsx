@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAsync, useBackend } from "../../lib/data";
 import type { ActivityLog, Payment, UserProfile, DateApplication, DateBooking } from "../../lib/types";
+import { countActiveOnlineUsers } from "../../lib/presence";
 import { EmptyState, Skeleton } from "../../components/ui";
 import { fmtDate, inr, rowCls, tdCls, thCls, timeAgo } from "./_util";
 
@@ -141,6 +142,7 @@ export default function Overview() {
       tierCounts,
       pendingAppsCount,
       upcomingBookingsCount,
+      onlineCount: countActiveOnlineUsers(users),
       recentPayments: sortedPayments.slice(0, 7),
     };
   }, [users, applications, bookings, payments]);
@@ -258,10 +260,13 @@ export default function Overview() {
           </div>
           <div className="mt-3">
             <p className="font-display text-3xl text-ivory font-semibold">{s.totalUsers}</p>
-            <div className="flex items-center gap-2 mt-1.5 text-xs text-mist">
-              <span className="text-champagne font-medium">+{metrics.newRegistrations7d} this week</span>
+            <div className="flex items-center gap-2 mt-1.5 text-xs text-mist flex-wrap">
+              <span className="text-emerald-400 font-medium flex items-center gap-1.5" title="Members with verifiable activity in the last 15 minutes">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse" />
+                {metrics.onlineCount} active recently
+              </span>
               <span>•</span>
-              <span>+{metrics.newRegistrations30d} 30d</span>
+              <span className="text-champagne font-medium">+{metrics.newRegistrations7d} this week</span>
             </div>
           </div>
           <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-champagne/5 rounded-full blur-xl pointer-events-none group-hover:bg-champagne/10 transition-colors" />

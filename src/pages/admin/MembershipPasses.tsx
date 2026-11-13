@@ -19,6 +19,7 @@ import {
   inputCls,
   useToast,
 } from "../../components/ui";
+import { MigrationAlertBanner } from "../../components/MigrationAlertBanner";
 import { fmtDate, fmtDay, rowCls, tdCls, thCls } from "./_util";
 
 const STATUS_TONES: Record<MembershipPassStatus, "gold" | "green" | "muted" | "rose"> = {
@@ -234,6 +235,20 @@ export default function MembershipPasses() {
           <span>Generate Pass</span>
         </button>
       </div>
+
+      {error?.includes("MIGRATION_REQUIRED") ? (
+        <MigrationAlertBanner
+          migrationId="011"
+          migrationFile="db/migrations/011_membership_passes.sql"
+          featureName="Membership Passes"
+          description="The database table public.membership_passes and its generation RPCs have not been installed yet in your Supabase backend. Execute Migration 011 in the Supabase Dashboard SQL Editor to activate promotional and concierge membership passes."
+          onRefresh={refresh}
+        />
+      ) : error ? (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs mb-6">
+          Could not load membership passes: {error}
+        </div>
+      ) : null}
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">

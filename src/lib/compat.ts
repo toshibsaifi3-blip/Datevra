@@ -208,7 +208,78 @@ export function evaluatePairwiseCompatibility(
   };
 }
 
-/** Rank candidates by compatibility, filtering out blocked/self/liked. */
+export const BROAD_DEFAULT_PREFS: MatchPreferences = {
+  ageMin: 18,
+  ageMax: 99,
+  interestedIn: "everyone",
+  cities: [],
+  maxDistanceKm: 100,
+  relationshipIntents: [],
+  minSharedInterests: 0,
+};
+
+/** Returns true when a candidate satisfies the member's active discovery filters. */
+export function matchesPreferences(
+  me: UserProfile,
+  candidate: UserProfile,
+  prefs: MatchPreferences | null,
+): boolean {
+  if (!prefs) return true;
+  if (candidate.age < prefs.ageMin || candidate.age > prefs.ageMax) return false;
+  if (!isGenderOriented(prefs.interestedIn, candidate.gender)) return false;
+
+  if (prefs.cities.length > 0) {
+    const candCity = candidate.city.trim().toLowerCase();
+    const ok = prefs.cities.some((c) => c.trim().toLowerCase() === candCity);
+    if (!ok) return false;
+  }
+
+  if (prefs.relationshipIntents.length > 0) {
+    const candIntent = candidate.relationshipIntent.trim().toLowerCase();
+    const ok =
+      !!candIntent &&
+      prefs.relationshipIntents.some((r) => r.trim().toLowerCase() === candIntent);
+    if (!ok) return false;
+  }
+
+  if (prefs.minSharedInterests > 0) {
+    const mine = new Set(
+      [...me.interests, ...me.hobbies].map((s) => s.trim().toLowerCase()).filter(Boolean),
+    );
+    const sharedUnique = new Set(
+      [...candidate.interests, ...candidate.hobbies]
+        .map((s) => s.trim().toLowerCase())
+        .filter((s) => s && mine.has(s)),
+    );
+    if (sharedUnique.size < prefs.minSharedInterests) return false;
+  }
+
+  return true;
+}
+
+/** Human-readable list of active non-broad discovery filters for synchronized UI feedback. */
+export function activeFilterLabels(prefs: MatchPreferences | null): string[] {
+  if (!prefs) return [];
+  const labels: string[] = [];
+  if (prefs.ageMin > 18 || prefs.ageMax < 99) {
+    labels.push(`Ages ${prefs.ageMin}–${prefs.ageMax}`);
+  }
+  if (prefs.interestedIn !== "everyone") {
+    labels.push(prefs.interestedIn === "women" ? "Women" : "Men");
+  }
+  if (prefs.cities.length > 0) {
+    labels.push(prefs.cities.join(", "));
+  }
+  if (prefs.relationshipIntents.length > 0) {
+    labels.push(prefs.relationshipIntents.join(" / "));
+  }
+  if (prefs.minSharedInterests > 0) {
+    labels.push(`${prefs.minSharedInterests}+ shared interests`);
+  }
+  return labels;
+}
+
+/** Rank candidates by compatibility, filtering out blocked/self/liked and applying active preferences. */
 export function rankCandidates(
   me: UserProfile,
   candidates: UserProfile[],
@@ -216,7 +287,12 @@ export function rankCandidates(
   excludedIds: Set<string>,
 ): { profile: UserProfile; score: number; factors: string[] }[] {
   return candidates
-    .filter((c) => c.id !== me.id && !excludedIds.has(c.id))
+    .filter(
+      (c) =>
+        c.id !== me.id &&
+        !excludedIds.has(c.id) &&
+        matchesPreferences(me, c, prefs),
+    )
     .map((c) => {
       const r = computeCompatibility(me, c, prefs);
       return { profile: c, score: r.score, factors: r.factors };

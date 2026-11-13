@@ -48,15 +48,18 @@ export async function supaSignIn(
   // Ensure a profile row exists (defensive: auth user without profile).
   const existing = await supaGetProfile(uid);
   if (!existing) {
+    const meta = (data.user?.user_metadata ?? {}) as Record<string, unknown>;
+    const rawAge = Number(meta.age);
+    const safeAge = Number.isFinite(rawAge) && rawAge >= 18 && rawAge <= 100 ? rawAge : 18;
     const { error: pErr } = await c.from("profiles").insert({
       id: uid,
       email: data.user?.email ?? email.trim().toLowerCase(),
-      first_name: (data.user?.user_metadata?.first_name as string) || "Member",
-      age: 18,
-      gender: "woman",
-      interested_in: "everyone",
-      city: "Mumbai",
-      profile_complete: 20,
+      first_name: (typeof meta.first_name === "string" && meta.first_name.trim()) || "Member",
+      age: safeAge,
+      gender: (meta.gender as UserProfile["gender"]) || "woman",
+      interested_in: (meta.interested_in as UserProfile["interestedIn"]) || "everyone",
+      city: (typeof meta.city === "string" && meta.city.trim()) || "Mumbai",
+      profile_complete: 35,
     });
     if (pErr) return { ok: false, error: "Signed in, but your profile could not be loaded. Contact support." };
   }
@@ -79,7 +82,15 @@ export async function supaSignUp(input: SupaSignUpInput): Promise<AuthResult> {
   const { data, error } = await c.auth.signUp({
     email,
     password: input.password,
-    options: { data: { first_name: input.firstName } },
+    options: {
+      data: {
+        first_name: input.firstName,
+        age: input.age,
+        gender: input.gender,
+        interested_in: input.interestedIn,
+        city: input.city,
+      },
+    },
   });
   if (error) return { ok: false, error: friendlyAuthError(error.message) };
   const uid = data.user?.id;

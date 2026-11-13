@@ -4,6 +4,7 @@ import type { UserProfile, VerificationStatus } from "../../lib/types";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { Avatar, Badge, EmptyState, Modal, SectionHead, Skeleton, inputCls, useToast } from "../../components/ui";
+import { MigrationAlertBanner } from "../../components/MigrationAlertBanner";
 import { fmtDate, fmtDay, timeAgo } from "./_util";
 import {
   AlertTriangle,
@@ -66,6 +67,7 @@ export default function Verification() {
   const [declineTarget, setDeclineTarget] = useState<UserProfile | null>(null);
   const [declineReason, setDeclineReason] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [migrationError, setMigrationError] = useState<string | null>(null);
 
   const selectTab = (t: VerificationTab) => {
     setActiveTab(t);
@@ -198,7 +200,11 @@ export default function Verification() {
         setDeclineReason("");
       }
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not update verification status", "rose");
+      const msg = e instanceof Error ? e.message : "Could not update verification status";
+      if (msg.includes("MIGRATION_REQUIRED")) {
+        setMigrationError(msg);
+      }
+      toast(msg, "rose");
     } finally {
       setSubmittingIds((prev) => {
         const next = new Set(prev);
@@ -231,6 +237,16 @@ export default function Verification() {
           sub="Review member identity signals, portrait authenticity, and trust standing before approving verification badges."
           align="left"
         />
+
+        {migrationError && (
+          <MigrationAlertBanner
+            migrationId="019"
+            migrationFile="db/migrations/019_verification_defense_in_depth.sql"
+            featureName="Profile Verification RPC"
+            description="The database function public.set_user_verified is not installed in your Supabase backend. Please execute Migration 019 in your Supabase Dashboard SQL Editor to activate administrative verification actions."
+            onRefresh={() => setMigrationError(null)}
+          />
+        )}
 
         {error && (
           <div className="glass rounded-2xl p-4 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-3">

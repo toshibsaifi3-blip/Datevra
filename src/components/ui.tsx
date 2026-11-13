@@ -3,12 +3,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { PlanId } from "../lib/types";
 
 /* ============================== Logo ============================== */
@@ -340,6 +341,11 @@ export function Modal({
   children: ReactNode;
   wide?: boolean;
 }) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const reducedMotion = useReducedMotion();
+
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -347,6 +353,19 @@ export function Modal({
     if (open) window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      previousFocusRef.current = document.activeElement as HTMLElement | null;
+      const frame = requestAnimationFrame(() => {
+        panelRef.current?.focus({ preventScroll: true });
+      });
+      return () => cancelAnimationFrame(frame);
+    } else if (previousFocusRef.current) {
+      previousFocusRef.current.focus?.({ preventScroll: true });
+      previousFocusRef.current = null;
+    }
+  }, [open]);
 
   return (
     <AnimatePresence>
@@ -359,19 +378,23 @@ export function Modal({
           onClick={onClose}
           role="dialog"
           aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
         >
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 24 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 12 }}
-            transition={{ type: "spring", damping: 26, stiffness: 300 }}
-            className={`glass-strong rounded-3xl p-6 md:p-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[90vh] overflow-y-auto`}
+            ref={panelRef}
+            tabIndex={-1}
+            initial={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 24 }}
+            animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+            exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
+            transition={reducedMotion ? { duration: 0.1 } : { type: "spring", damping: 26, stiffness: 300 }}
+            className={`glass-strong rounded-3xl p-6 md:p-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[90vh] overflow-y-auto focus:outline-none`}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="flex items-start justify-between mb-5">
-                <h3 className="font-display text-2xl text-ivory">{title}</h3>
+              <div className="flex items-start justify-between gap-3 mb-5">
+                <h3 id={titleId} className="font-display text-2xl text-ivory">{title}</h3>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="min-h-[44px] min-w-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-mist hover:text-ivory active:bg-white/10 transition-colors text-2xl leading-none touch-manipulation"
                   aria-label="Close"

@@ -4,6 +4,7 @@ import type { Cafe, ComplimentaryPass, ComplimentaryPassStatus, UserProfile } fr
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { Badge, EmptyState, Field, Modal, SectionHead, Skeleton, inputCls, useToast } from "../../components/ui";
+import { MigrationAlertBanner } from "../../components/MigrationAlertBanner";
 import { fmtDate, rowCls, tdCls, thCls } from "./_util";
 
 const STATUS_TONES: Record<ComplimentaryPassStatus, "gold" | "green" | "muted" | "rose"> = {
@@ -128,6 +129,21 @@ export default function Passes() {
         title="Passes"
         sub="Generate complimentary cafe passes for members. Passes carry a unique code the member redeems at the venue."
       />
+
+      {error?.includes("MIGRATION_REQUIRED") ? (
+        <MigrationAlertBanner
+          migrationId="010"
+          migrationFile="db/migrations/010_passes_proposals.sql"
+          featureName="Complimentary Café Passes"
+          description="The database table public.complimentary_passes has not been installed yet in your Supabase backend. Execute Migration 010 in the Supabase Dashboard SQL Editor to activate complimentary passes."
+          onRefresh={refresh}
+        />
+      ) : error ? (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs mb-6">
+          Could not load complimentary passes: {error}
+        </div>
+      ) : null}
+
       <div className="flex justify-end mb-4">
         <button className="btn-gold" onClick={() => setShowCreate(true)}>Generate pass</button>
       </div>

@@ -99,7 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const [profile, role] = await Promise.all([supaGetProfile(uid), supaRole(uid)]);
-    setSession({ userId: uid, role });
+    const finalRole: "user" | "admin" = role === "admin" || Boolean(profile?.isAdmin) ? "admin" : "user";
+    setSession({ userId: uid, role: finalRole });
     setUser(profile);
     setReady(true);
   }, []);

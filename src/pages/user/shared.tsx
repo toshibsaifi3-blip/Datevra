@@ -44,11 +44,15 @@ export function timeAgo(iso: string): string {
 export const inr = (n: number): string => `₹${n.toLocaleString("en-IN")}`;
 
 /** Ids the discovery deck must skip: self, liked, passed, and anyone blocked either way. */
-export async function excludedIdsFor(db: Backend, meId: string): Promise<Set<string>> {
+export async function excludedIdsFor(
+  db: Backend,
+  meId: string,
+  prefetchedProfiles?: { id: string }[],
+): Promise<Set<string>> {
   const ex = new Set<string>([meId]);
   const [sent, profiles] = await Promise.all([
     db.likesSent(meId),
-    db.listProfiles(),
+    prefetchedProfiles ? Promise.resolve(prefetchedProfiles) : db.listProfiles(),
   ]);
   for (const l of sent) ex.add(l.toUserId);
   await Promise.all(

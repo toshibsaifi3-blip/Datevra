@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useBackend } from "../../lib/data";
 import { CONVERSATION_STARTERS } from "../../data/seed";
@@ -99,9 +99,11 @@ export default function Chat() {
 
   const tick = useDbRefresh("conversations", "matches", "blocks", "notifications");
 
+  const reducedMotion = useReducedMotion();
   const [msgs, setMsgs] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [failedText, setFailedText] = useState<string | null>(null);
   const [typingFrom, setTypingFrom] = useState<string | null>(null);
   const [convSearch, setConvSearch] = useState("");
   const [msgSearch, setMsgSearch] = useState("");
@@ -115,6 +117,7 @@ export default function Chat() {
   const [confirmUnmatch, setConfirmUnmatch] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
 
+  const sendingRef = useRef(false);
   const typingTimer = useRef<number | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -185,6 +188,7 @@ export default function Chat() {
 
   // Subscribe to the active conversation.
   useEffect(() => {
+    setFailedText(null);
     if (!meId || !activeId) {
       setMsgs([]);
       return;
@@ -207,17 +211,37 @@ export default function Chat() {
     });
     return () => {
       cancelled = true;
+      if (typingTimer.current) {
+        window.clearTimeout(typingTimer.current);
+        typingTimer.current = null;
+      }
       offMsg();
-      offType();
       db.setTyping(activeId, meId, false);
+      offType();
       setTypingFrom(null);
     };
   }, [activeId, meId, db, refreshConvs]);
 
+  // Close options dropdown or emoji popover on Escape
+  useEffect(() => {
+    if (!menuOpen && !showEmoji) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setShowEmoji(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen, showEmoji]);
+
   // Autoscroll to latest message.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs.length, activeId]);
+    bottomRef.current?.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "end",
+    });
+  }, [msgs.length, activeId, reducedMotion]);
 
   // Debounced "I'm typing" state sent to the partner.
   const handleInput = (v: string) => {
@@ -245,20 +269,28 @@ export default function Chat() {
   };
 
   const doSend = async (preset?: string) => {
-    const text = (preset ?? input).trim();
-    if (!text || !active || !me || sending) return;
+    const raw = preset ?? input;
+    const text = raw.trim();
+    if (!text || !active || !me || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     try {
       const m = await db.sendMessage(active.id, me.id, text);
       if (!m) {
+        setFailedText(text);
         toast("Message couldn't be sent.", "rose");
         return;
       }
-      setInput("");
+      setFailedText(null);
+      if (preset === undefined || preset === input.trim()) {
+        setInput("");
+      }
       db.setTyping(active.id, me.id, false);
     } catch (e) {
+      setFailedText(text);
       toast(e instanceof Error ? e.message : "Message couldn't be sent.", "rose");
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -268,6 +300,7 @@ export default function Chat() {
     setMenuOpen(false);
     setShowMsgSearch(false);
     setMsgSearch("");
+    setFailedText(null);
   };
 
   const closeConv = () => {
@@ -275,6 +308,7 @@ export default function Chat() {
     setMenuOpen(false);
     setShowMsgSearch(false);
     setMsgSearch("");
+    setFailedText(null);
   };
 
   const fillStarter = (s: string) =>
@@ -359,7 +393,7 @@ export default function Chat() {
   if (!me) return null;
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-hidden">
       {/* Dreamy ambient glows */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-burgundy/30 blur-[110px]" />
       <div aria-hidden className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-rosegold/15 blur-[120px]" />
@@ -520,10 +554,11 @@ export default function Chat() {
               ) : (
                 <>
                   {/* Header */}
-                  <div className="border-b border-white/10 bg-white/[0.02] px-3 sm:px-4 py-3 flex items-center gap-2 sm:gap-3 shrink-0">
+                  <div className="border-b border-white/10 bg-white/[0.02] px-2.5 sm:px-4 py-2.5 flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
                     <button
+                      type="button"
                       onClick={closeConv}
-                      className="md:hidden text-mist hover:text-ivory transition-colors p-1.5 -ml-1"
+                      className="md:hidden text-mist hover:text-ivory transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl shrink-0"
                       aria-label="Back to conversations"
                     >
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -531,12 +566,13 @@ export default function Chat() {
                       </svg>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setShowProfile(true)}
-                      className="flex items-center gap-3 flex-1 min-w-0 text-left group"
+                      className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0 text-left group rounded-xl py-1"
                       aria-label={`View ${partner.firstName}'s profile`}
                     >
                       <div className="relative shrink-0">
-                        <Avatar name={partner.firstName} photo={partner.photos[0]} size={46} />
+                        <Avatar name={partner.firstName} photo={partner.photos[0]} size={44} />
                         <span
                           aria-hidden
                           className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-midnight ${
@@ -555,7 +591,7 @@ export default function Chat() {
                             <>
                               <span
                                 aria-hidden
-                                className={`h-1.5 w-1.5 rounded-full ${
+                                className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                                   partner.online ? "bg-emerald-400" : "bg-white/20"
                                 }`}
                               />
@@ -570,8 +606,9 @@ export default function Chat() {
                       </div>
                     </button>
                     <button
+                      type="button"
                       onClick={() => setShowMsgSearch((s) => !s)}
-                      className={`p-2 rounded-full transition-colors ${
+                      className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full transition-colors shrink-0 ${
                         showMsgSearch ? "text-rosegold bg-rosegold/10" : "text-mist hover:text-ivory"
                       }`}
                       aria-label="Search messages"
@@ -582,10 +619,11 @@ export default function Chat() {
                         <path d="m20 20-3.5-3.5" strokeLinecap="round" />
                       </svg>
                     </button>
-                    <div className="relative">
+                    <div className="relative shrink-0">
                       <button
+                        type="button"
                         onClick={() => setMenuOpen((o) => !o)}
-                        className="text-mist hover:text-ivory transition-colors p-2"
+                        className="text-mist hover:text-ivory transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full"
                         aria-label="Conversation options"
                         aria-expanded={menuOpen}
                       >
@@ -597,39 +635,52 @@ export default function Chat() {
                       </button>
                       <AnimatePresence>
                         {menuOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute right-0 top-11 z-20 glass-strong rounded-2xl p-2 w-52 shadow-2xl"
-                          >
+                          <>
                             <button
-                              onClick={() => { setShowProfile(true); setMenuOpen(false); }}
-                              className="w-full text-left px-3 py-2.5 text-sm text-ivory hover:bg-white/5 rounded-xl transition-colors"
+                              type="button"
+                              aria-hidden
+                              tabIndex={-1}
+                              className="fixed inset-0 z-10 cursor-default"
+                              onClick={() => setMenuOpen(false)}
+                            />
+                            <motion.div
+                              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
+                              animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+                              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.97 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute right-0 top-12 z-20 glass-strong rounded-2xl p-2 w-52 shadow-2xl"
                             >
-                              View profile
-                            </button>
-                            <button
-                              onClick={() => { setShowReport(true); setMenuOpen(false); }}
-                              className="w-full text-left px-3 py-2.5 text-sm text-ivory hover:bg-white/5 rounded-xl transition-colors"
-                            >
-                              Report
-                            </button>
-                            <div className="hairline my-1" />
-                            <button
-                              onClick={() => { setConfirmBlock(true); setMenuOpen(false); }}
-                              className="w-full text-left px-3 py-2.5 text-sm text-rosegold hover:bg-white/5 rounded-xl transition-colors"
-                            >
-                              Block
-                            </button>
-                            <button
-                              onClick={() => { setConfirmUnmatch(true); setMenuOpen(false); }}
-                              className="w-full text-left px-3 py-2.5 text-sm text-rosegold hover:bg-white/5 rounded-xl transition-colors"
-                            >
-                              Unmatch
-                            </button>
-                          </motion.div>
+                              <button
+                                type="button"
+                                onClick={() => { setShowProfile(true); setMenuOpen(false); }}
+                                className="w-full text-left px-3 min-h-[44px] flex items-center text-sm text-ivory hover:bg-white/5 rounded-xl transition-colors"
+                              >
+                                View profile
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setShowReport(true); setMenuOpen(false); }}
+                                className="w-full text-left px-3 min-h-[44px] flex items-center text-sm text-ivory hover:bg-white/5 rounded-xl transition-colors"
+                              >
+                                Report
+                              </button>
+                              <div className="hairline my-1" />
+                              <button
+                                type="button"
+                                onClick={() => { setConfirmBlock(true); setMenuOpen(false); }}
+                                className="w-full text-left px-3 min-h-[44px] flex items-center text-sm text-rosegold hover:bg-white/5 rounded-xl transition-colors"
+                              >
+                                Block
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => { setConfirmUnmatch(true); setMenuOpen(false); }}
+                                className="w-full text-left px-3 min-h-[44px] flex items-center text-sm text-rosegold hover:bg-white/5 rounded-xl transition-colors"
+                              >
+                                Unmatch
+                              </button>
+                            </motion.div>
+                          </>
                         )}
                       </AnimatePresence>
                     </div>
@@ -700,17 +751,17 @@ export default function Chat() {
                           ) : (
                             <motion.div
                               key={item.msg.id}
-                              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                              initial={reducedMotion ? false : { opacity: 0, y: 10, scale: 0.98 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ duration: 0.22, ease: "easeOut" }}
+                              transition={{ duration: reducedMotion ? 0.01 : 0.22, ease: "easeOut" }}
                               className={`flex ${item.msg.senderId === me.id ? "justify-end" : "justify-start"}`}
                             >
                               <div
-                                className={`max-w-[80%] sm:max-w-[72%] rounded-2xl px-4 py-2.5 ${
+                                className={`max-w-[84%] sm:max-w-[72%] rounded-2xl px-4 py-2.5 min-w-0 ${
                                   item.msg.senderId === me.id ? "bubble-out" : "bubble-in"
                                 }`}
                               >
-                                <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words text-ivory">
+                                <p className="text-[0.95rem] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-ivory">
                                   {item.msg.text}
                                 </p>
                                 <p
@@ -733,9 +784,9 @@ export default function Chat() {
                         <AnimatePresence>
                           {typingFrom && (
                             <motion.div
-                              initial={{ opacity: 0, y: 8 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 8 }}
+                              initial={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                              animate={reducedMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                              exit={reducedMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
                               transition={{ duration: 0.18 }}
                               className="flex justify-start pt-1"
                             >
@@ -743,8 +794,8 @@ export default function Chat() {
                                 {[0, 1, 2].map((i) => (
                                   <span
                                     key={i}
-                                    className="animate-typing-dot h-1.5 w-1.5 rounded-full bg-rosegold"
-                                    style={{ animationDelay: `${i * 0.2}s` }}
+                                    className={`${reducedMotion ? "" : "animate-typing-dot"} h-1.5 w-1.5 rounded-full bg-rosegold`}
+                                    style={reducedMotion ? undefined : { animationDelay: `${i * 0.2}s` }}
                                   />
                                 ))}
                               </div>
@@ -758,21 +809,44 @@ export default function Chat() {
 
                   {/* Composer */}
                   <div
-                    className="border-t border-white/10 bg-white/[0.02] px-3 sm:px-4 pt-3 shrink-0"
+                    className="border-t border-white/10 bg-white/[0.02] px-2.5 sm:px-4 pt-3 shrink-0"
                     style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
                   >
+                    {failedText && (
+                      <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-rosegold/40 bg-rosegold/10 px-3 py-2 text-xs text-ivory">
+                        <span className="truncate">Message didn&apos;t send. Your text was kept.</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            disabled={sending}
+                            onClick={() => void doSend(failedText)}
+                            className="font-semibold text-champagne hover:underline px-2 py-1"
+                          >
+                            Retry
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFailedText(null)}
+                            aria-label="Dismiss error"
+                            className="text-mist hover:text-ivory px-1 py-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <form
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1.5 sm:gap-2 min-w-0"
                       onSubmit={(e) => {
                         e.preventDefault();
                         void doSend();
                       }}
                     >
-                      <div className="relative">
+                      <div className="relative shrink-0">
                         <button
                           type="button"
                           onClick={() => setShowEmoji((s) => !s)}
-                          className={`p-2.5 rounded-full transition-colors ${
+                          className={`min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full transition-colors ${
                             showEmoji ? "text-rosegold bg-rosegold/10" : "text-mist hover:text-ivory"
                           }`}
                           aria-label="Add emoji"

@@ -45,6 +45,7 @@ export interface UserProfile {
   profileComplete: number; // 0-100
   plan: PlanId | null;
   planExpiresAt: string | null;
+  isAdmin?: boolean;
   createdAt: string;
 }
 

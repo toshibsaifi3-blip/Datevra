@@ -1,0 +1,1349 @@
+# DATEVRA — ULTIMATE MASTER REPAIR: ALL REMAINING ISSUES, EXPERIENCE APPLICATION SYSTEM, MEMBERSHIP & CAFÉ PASS GENERATORS, ADMIN PANEL, BACKEND & COMPLETE WEBSITE RELIABILITY
+
+**Project:** Datevra  
+**Production website:** https://www.datevra.com  
+**GitHub repository:** https://github.com/toshibsaifi3-blip/Datevra  
+**Supabase project reference:** buendstsgzdcmzaodurp  
+**Development environment:** Existing Google AI Studio local workspace  
+**Application stack:** React 19, Vite, TypeScript, Supabase
+
+---
+
+# 1. PRIMARY OBJECTIVE
+
+You are continuing the existing Datevra application after previous repair work.
+
+Your responsibility is to investigate, repair, implement, and verify ALL remaining unresolved issues across the entire application, including:
+
+1. Outstanding errors identified in the previously supplied screenshots.
+2. Outstanding requirements from the client's Changes and Issues PDF.
+3. Remaining problems identified in previous audit reports.
+4. Experience submission and application management.
+5. Backend storage and management of experience applications.
+6. Admin Date Applications management.
+7. Membership pass generator and complete membership pass lifecycle.
+8. Café pass generator and complete café pass lifecycle.
+9. Missing or incompatible Supabase tables, functions, RPCs, and migrations.
+10. Admin authorization and routing.
+11. Online-member presence and analytics.
+12. Verification functionality.
+13. Admin Panel functionality and reliability.
+14. Authentication, discovery, matchmaking, messaging, café, and other website functionality.
+15. Any additional genuine errors discovered during a complete application audit.
+
+**This is an implementation task, not merely an audit.**
+
+You must implement all safe, necessary local code changes. Do not stop after identifying problems or writing recommendations.
+
+However, do not execute production SQL, apply production migrations, modify remote Supabase settings, push GitHub changes, or deploy the website.
+
+First inspect the current workspace and existing implementation. Reuse existing functionality wherever possible.
+
+---
+
+# 2. STRICTLY EXCLUDE PREVIOUSLY COMPLETED WORK
+
+The following corrections have already been implemented and reviewed. Do not repeat, rewrite, redesign, or unnecessarily modify them.
+
+### A. Profile interest-recording correction
+
+Previously corrected:
+
+- `Discover.tsx` calls `db.recordProfileInterest(me.id, profile.id)`.
+- The database helper accepts the viewer and target profile IDs.
+- The target profile ID is passed to `record_profile_interest(p_viewed_user_id)`.
+
+Do not redo this correction.
+
+Only investigate it if another independently discovered defect directly prevents the functionality from working.
+
+### B. Discovery profile card compactness
+
+The discovery cards were already shortened to display less information.
+
+Do not repeat this redesign.
+
+### C. Full profile information
+
+The previous review confirmed that the full profile view retains complete profile information, including biography, photos, interests, hobbies, lifestyle information, compatibility information, and actions.
+
+Do not remove, shorten, or redesign the full-profile experience.
+
+### D. Existing visual design
+
+Preserve Datevra's existing design system.
+
+Do not change:
+
+- Colours.
+- Typography.
+- Fonts.
+- Gradients.
+- Branding.
+- Logos.
+- Spacing.
+- Layout.
+- Components.
+- Animations.
+- Navigation appearance.
+- Responsive design.
+- Existing visual interactions.
+
+Only introduce necessary status messages, warnings, or error displays using existing components and styling.
+
+### E. Previously completed work must remain intact
+
+Perform regression checks on the above functionality, but do not waste time repeating its implementation.
+
+---
+
+# 3. FOUNDER ADMIN ACCOUNT AND AUTHORIZATION
+
+The latest read-only Supabase investigation confirmed the following:
+
+**Account 1:**
+
+- Email: `founder@datevra.com`
+- Auth ID: `e0934a1e-cbf4-434d-93f1-56ead67e8df7`
+- Profile ID: `e0934a1e-cbf4-434d-93f1-56ead67e8df7`
+- Email confirmed: true
+- `is_admin`: true
+
+**Account 2:**
+
+- Email: `founder@gmail.com`
+- Auth ID: `464d4146-18cc-4dda-b6de-98804f9998f2`
+- Profile ID: `464d4146-18cc-4dda-b6de-98804f9998f2`
+- Email confirmed: true
+- `is_admin`: false
+
+These are two separate accounts.
+
+The previous browser investigation showed that the browser was logged in as `founder@gmail.com`, explaining the earlier false admin authorization result.
+
+### Required implementation and investigation
+
+Inspect:
+
+- Admin authentication.
+- Admin route protection.
+- `/admin` and `/app` routing.
+- Session initialization.
+- Session refresh.
+- Current authenticated-user identification.
+- Profile mapping.
+- `is_admin()` RPC.
+- RPC error handling.
+- Loading states.
+- Redirect logic.
+- Protected admin data access.
+
+Correct any genuine frontend authorization or routing defects.
+
+Ensure:
+
+1. A confirmed administrator with `is_admin = true` can access the existing Admin Panel.
+2. A non-administrator cannot access protected admin pages or data.
+3. Users are not redirected before authentication and authorization checks finish.
+4. Stale session state does not incorrectly deny administrator access.
+5. RPC failures are not silently treated as successful authorization.
+6. The application does not hardcode founder email addresses as an authorization mechanism.
+
+### Restrictions
+
+- Do not grant admin privileges to `founder@gmail.com`.
+- Do not change any `profiles.is_admin` values.
+- Do not execute `bootstrap_first_admin`.
+- Do not weaken RLS.
+- Do not create another admin authorization system.
+
+The correct founder account must be tested using `founder@datevra.com`.
+
+If production account testing is unavailable, explicitly state that the live admin login test remains pending.
+
+---
+
+# 4. COMPLETE EXPERIENCE SUBMISSION AND APPLICATION SYSTEM
+
+This is a mandatory core feature.
+
+Do not treat experience submission as simply a frontend form. It must work end-to-end with real backend storage and an administrative management workflow.
+
+## A. User-facing experience application
+
+Inspect and repair the existing experience submission interface.
+
+The application must support:
+
+- Venue selection.
+- Experience selection.
+- Number of guests.
+- Budget range.
+- Preferred date.
+- Preferred time.
+- User note.
+
+The user must be able to:
+
+1. Browse available experiences.
+2. Select the intended experience.
+3. Select its associated venue.
+4. Enter guest information.
+5. Select budget.
+6. Select a preferred date.
+7. Select a preferred time.
+8. Add a note.
+9. Submit the application.
+10. Receive a clear success or failure message.
+11. View their submitted application and its current status where supported by the existing product design.
+
+Ensure the selected venue and experience remain correctly associated.
+
+Validate required fields before submission.
+
+Prevent invalid dates, times, guest counts, missing experience IDs, and unauthorized user IDs.
+
+Resolve the previously identified schedule and venue synchronization problems.
+
+Do not allow the frontend to show a successful submission when the backend operation failed.
+
+## B. Backend storage — mandatory
+
+Applications must be stored in:
+
+`public.date_applications`
+
+Inspect the existing schema before changing anything.
+
+Verify the required fields:
+
+- `user_id`
+- `experience_id`
+- `slot_date`
+- `slot_time`
+- `note`
+
+Preserve foreign-key integrity.
+
+Every application must be associated with the correct authenticated user and selected experience.
+
+The structured information in the user's note must preserve the established format:
+
+- `[Venue]`
+- `[Experience]`
+- `[Guests]`
+- `[Budget]`
+- `Note`
+
+Do not silently discard submitted information.
+
+Use a separate `admin_note` for internal administrator comments. Never overwrite the original user's application note.
+
+Prevent:
+
+- Duplicate applications where duplication is not permitted.
+- Invalid experience IDs.
+- Invalid or unavailable date/time selections.
+- Unauthorized submissions on behalf of another user.
+- Broken foreign-key references.
+- Invalid user IDs.
+
+Inspect existing constraints and business rules before introducing duplicate-prevention logic.
+
+## C. Admin Date Applications management
+
+Implement or repair the Admin Date Applications section.
+
+Administrators must be able to:
+
+1. View all submitted applications.
+2. Search applications.
+3. Filter by status.
+4. Filter by venue.
+5. Filter by experience.
+6. Open an application and inspect its complete details.
+7. Identify the submitting user.
+8. View venue, experience, guests, budget, date, time, and user note.
+9. Add an internal admin note.
+10. Update the internal admin note.
+11. Change application status through authorized actions.
+12. Review application history and administrative actions.
+13. Handle errors without losing application records.
+
+Support the established lifecycle:
+
+`submitted → under_review → eligible → selected → confirmed/completed`
+
+Also support appropriate decline and cancellation outcomes.
+
+Validate permitted status transitions.
+
+Do not allow arbitrary status changes that bypass required steps.
+
+## D. Approval and booking confirmation must be separate
+
+This distinction is mandatory.
+
+- `under_review`, `eligible`, and `selected` do NOT create bookings.
+- Approval or selection does NOT mean the date is booked.
+- Confirmation requires a paired partner, date, time, and financial amount.
+- Only after all required information has been supplied and validated should the system create a record in `public.date_bookings`.
+
+Preserve the relationship between the application and resulting booking.
+
+Record the administrator responsible for confirmation and maintain an appropriate audit trail.
+
+Never create fake bookings or mark applications confirmed without the required information.
+
+## E. Application security and RLS
+
+- Users may submit and view their own permitted applications.
+- Users must not read or modify other users' private applications.
+- Users must not change administrative statuses or admin notes.
+- Authorized administrators can review and manage applications.
+- Enforce permissions in Supabase, not only through hidden frontend buttons.
+
+---
+
+# 5. MEMBERSHIP PASS GENERATOR — COMPLETE SEPARATE SYSTEM
+
+Implement and verify the dedicated Admin Panel page:
+
+`/admin/membership-passes`
+
+This system is exclusively for membership entitlements.
+
+It must NOT be combined with café passes.
+
+## A. Membership plans
+
+Support the existing membership plans:
+
+- Select / connect.
+- Signature / plus.
+- Privé / elite.
+
+Inspect the actual existing plan IDs, descriptions, and entitlements.
+
+Do not invent new plan identifiers, plan names, or benefits.
+
+## B. Membership pass generator
+
+The administrator must be able to:
+
+1. Select a membership plan.
+2. Select a duration:
+   - 30 days.
+   - 90 days.
+   - 180 days.
+   - 365 days.
+   - Custom positive number of days.
+3. Set an optional future expiry date.
+4. Leave the pass open/unassigned or assign it to a member.
+5. Search and select a member using existing member information, including name and email.
+6. Add an optional administrative note.
+7. Generate the pass.
+8. View the generated code.
+9. Copy the generated code.
+10. Receive a clear success or failure message.
+
+When no custom expiry is supplied, preserve the established default of a future 90-day expiry window.
+
+Use the established code format:
+
+`MEM-XXXX-XXXX-XXXX`
+
+Ensure codes are generated securely and collisions are prevented at the database level.
+
+## C. Membership backend
+
+Use:
+
+`public.membership_passes`
+
+Inspect the existing table and verify these fields:
+
+- `id`
+- `code`
+- `plan_id`
+- `duration_days`
+- `issued_to_user_id`
+- `issued_by_admin_id`
+- `status`
+- `note`
+- `expires_at`
+- `redeemed_at`
+- `created_at`
+
+Preserve relationships to the issuing administrator and assigned member.
+
+Inspect the actual existing RPC definitions and types before changing frontend calls.
+
+Established RPC signatures to verify:
+
+`create_membership_pass(p_plan_id, p_duration_days, p_expires_at, p_issued_to_user_id, p_note)`
+
+`revoke_membership_pass(p_pass_id, p_reason)`
+
+Do not assume these functions are already present or that their actual parameter names match. Inspect their definitions.
+
+## D. Membership redemption and entitlement security
+
+Ensure:
+
+1. A pass can only be redeemed once.
+2. An assigned pass cannot be redeemed by another user.
+3. An unassigned pass follows the established permitted assignment/redemption behavior.
+4. Expired passes cannot be redeemed.
+5. Revoked passes cannot be redeemed.
+6. Already redeemed passes cannot be redeemed again.
+7. Membership entitlements are provisioned correctly.
+8. Entitlements cannot be provisioned twice.
+9. Payment and membership entitlement records remain consistent.
+10. Administrative operations are protected through database authorization and RLS.
+
+Preserve the established wrong-assignee error:
+
+`NOT_ASSIGNED_TO_CALLER`
+
+Do not weaken this restriction.
+
+## E. Membership pass ledger
+
+Provide a complete working ledger.
+
+Administrators must be able to:
+
+- Search by code.
+- Search by member.
+- Filter by plan.
+- Filter by status.
+- View assigned member.
+- View issuing administrator.
+- View creation date.
+- View expiry date.
+- View redemption status.
+- View pass details.
+- Revoke a pass with a mandatory reason.
+- Preserve the revocation reason in the pass note.
+- Review appropriate administrative audit history.
+
+The ledger must use actual backend records, not hardcoded or mock records.
+
+---
+
+# 6. CAFÉ PASS GENERATOR — COMPLETE SEPARATE SYSTEM
+
+Implement and verify the existing dedicated Admin Panel page:
+
+`/admin/passes`
+
+This page is exclusively for complimentary café passes.
+
+It is NOT the membership pass generator.
+
+## A. Café pass generator
+
+The administrator must be able to:
+
+1. Select an existing café. Café selection is mandatory.
+2. Leave the pass open/unassigned or assign it to a specific user.
+3. Set an optional expiry date.
+4. Add an optional note.
+5. Generate a café pass.
+6. Display the generated code.
+7. Copy the generated code.
+8. View the pass in the café pass ledger.
+9. Receive clear success or error feedback.
+
+Use the established code format:
+
+`DVR-XXXXXX`
+
+Use existing café records. Do not invent café records.
+
+## B. Café pass backend
+
+Use:
+
+`public.complimentary_passes`
+
+Inspect the actual existing schema and verify:
+
+- `id`
+- `code`
+- `cafe_id`
+- `issued_to_user_id`
+- `issued_by_admin_id`
+- `status`
+- `note`
+- `expires_at`
+- `redeemed_at`
+- `created_at`
+
+Requirements:
+
+- `cafe_id` is mandatory.
+- `cafe_id` must reference an existing café.
+- `issued_to_user_id = NULL` represents an open/unassigned pass.
+- A supplied expiry date must be valid and in the future.
+- Pass codes must be unique.
+- The issuing administrator must be recorded.
+
+Supported statuses:
+
+- `active`
+- `redeemed`
+- `expired`
+- `revoked`
+
+## C. Café pass database operations
+
+Inspect and verify the existing frontend methods:
+
+- `listComplimentaryPasses`
+- `createComplimentaryPass`
+- `redeemComplimentaryPass`
+- `revokeComplimentaryPass`
+
+Inspect their actual database implementation and RLS policies before changing them.
+
+Ensure frontend parameters match the actual backend signatures.
+
+## D. Café pass redemption
+
+Use and verify:
+
+`public.redeem_pass(p_code text)`
+
+Redemption must:
+
+1. Lock the relevant pass row to prevent concurrent duplicate redemption.
+2. Validate that the code exists.
+3. Verify that the pass is active.
+4. Reject expired passes.
+5. Enforce assigned-user eligibility.
+6. Allow an open pass to be redeemed and bound to the authenticated user according to the established rules.
+7. Mark the pass redeemed.
+8. Record `redeemed_at`.
+9. Prevent subsequent redemption.
+
+Ensure the redemption operation is atomic.
+
+## E. Café pass revocation and security
+
+- Only authorized administrators may generate or revoke café passes.
+- Users may only read their own assigned passes.
+- Users must not change café assignment, status, or expiry.
+- Revocation must be recorded in `public.activity_logs`.
+- All operations must respect RLS and database authorization.
+
+## F. Café pass ledger
+
+Administrators must be able to:
+
+- Search by code.
+- Filter by café.
+- Filter by status.
+- View assigned user.
+- View issuing administrator.
+- View expiry information.
+- View redemption information.
+- Revoke a pass.
+- Review appropriate audit history.
+
+Expired passes must be displayed accurately without incorrectly modifying unrelated pass records.
+
+## G. Strict separation between the two generators
+
+| Membership passes | Café passes |
+|---|---|
+| `/admin/membership-passes` | `/admin/passes` |
+| `public.membership_passes` | `public.complimentary_passes` |
+| `MEM-XXXX-XXXX-XXXX` | `DVR-XXXXXX` |
+| Membership entitlement | Café voucher benefit |
+| Membership plan and duration | Mandatory café selection |
+| Membership redemption | Café voucher redemption |
+
+Never merge their tables, code formats, redemption functions, ledgers, or business rules.
+
+---
+
+# 7. ACCURATE ONLINE MEMBER PRESENCE AND ANALYTICS
+
+The previous audit identified a genuine defect.
+
+The existing implementation uses:
+
+`users.filter(u => u.online).length`
+
+However, `profiles.online` is a persistent status/privacy flag and may default to true. It does not reliably represent actual online presence.
+
+The Admin Overview and Analytics must not label this as a genuine real-time online count.
+
+### Required investigation
+
+Inspect:
+
+- Admin Overview.
+- Admin Analytics.
+- User/profile data mapping.
+- `profiles.online`.
+- Existing activity timestamps.
+- Authentication session lifecycle.
+- Supabase Realtime configuration.
+- Existing privacy settings.
+
+### Required correction
+
+Implement a reliable online-presence solution compatible with the existing architecture.
+
+Prefer Supabase Realtime Presence when appropriate.
+
+Alternatively, implement a secure heartbeat and last-active mechanism if more suitable.
+
+Requirements:
+
+1. Online status represents recent, verifiable activity.
+2. Users do not remain online indefinitely after closing their browser or losing their session.
+3. Stale presence expires.
+4. Multiple tabs and devices do not create duplicate member counts.
+5. Authentication and privacy restrictions are respected.
+6. Admin Overview and Analytics use the same counting logic.
+7. Loading and unavailable states are accurate.
+8. Do not silently fall back to the old persistent `profiles.online` flag.
+9. Do not label approximate or stale values as real-time.
+
+If database changes are required, prepare migrations locally without executing them remotely.
+
+---
+
+# 8. EMAIL VERIFICATION AND VERIFICATION RPC
+
+Previous screenshots identified a missing RPC/schema-cache error involving:
+
+`public.set_user_verified(p_note, p_user_id, p_verified)`
+
+Migration 019 was identified as a possible source of the required functionality.
+
+### Required investigation
+
+Inspect:
+
+- Verification UI.
+- Frontend RPC calls.
+- Actual database function signature.
+- `profiles.verified`.
+- `verification_status`.
+- Verification states.
+- Existing RLS.
+- Admin authorization.
+- Migration 019.
+- All related verification migrations.
+
+### Required corrections
+
+1. Make frontend RPC calls match the actual function signature.
+2. Ensure authorized administrators can approve or reject verification.
+3. Ensure ordinary users cannot grant themselves verified status.
+4. Keep verification status and verified badge consistent.
+5. Correct approval and rejection handling.
+6. Show an explicit actionable warning if the RPC is missing.
+7. Preserve existing verification data.
+8. Preserve the established badge lifecycle.
+
+### Migration safety
+
+Before introducing or changing constraints linking `verified` and `verification_status`:
+
+- Inspect the existing schema.
+- Prepare a read-only preflight query.
+- Identify inconsistent records.
+- Explain the safe reconciliation approach.
+
+Do not add a constraint that may fail on existing data without addressing the data compatibility issue first.
+
+Do not execute SQL remotely.
+
+---
+
+# 9. DATABASE MIGRATION AUDIT — 010, 011, 019, 027
+
+Inspect the existing migration history and all relevant SQL definitions.
+
+Do not assume migrations are missing or applied based only on previous reports.
+
+### Migration 010
+
+Review:
+
+- `complimentary_passes`.
+- `match_proposals`.
+- Café menu changes.
+- `redeem_pass`.
+- `respond_to_proposal`.
+- Dependencies on profiles, cafés, matches, conversations, notifications, and `is_admin()`.
+
+Check foreign keys, dependencies, function signatures, RLS, duplicate objects, duplicate redemption, and unauthorized mutations.
+
+### Migration 011
+
+Review:
+
+- `membership_passes`.
+- Rate-limit and intent tables.
+- Pass creation functions.
+- Pass revocation functions.
+- Pass redemption functions.
+- Replacement of `protect_profile_fields()`.
+
+Inspect the complete original and replacement function definitions.
+
+Ensure the replacement does not remove existing profile protections or weaken any security exception.
+
+### Migration 019
+
+Review:
+
+- Verification consistency constraint.
+- `set_user_verified(...)`.
+- Existing profile data.
+- Frontend RPC compatibility.
+- RLS and admin authorization.
+
+Prepare a read-only preflight query.
+
+### Migration 027
+
+Review these experience records:
+
+- `e-hotstag-premium-date`
+- `e-hotstag-coffee-date`
+- `e-hotstag-italian`
+- `e-karmala-karaoke`
+
+Review the associated café IDs:
+
+- `c-hot-stag-del`
+- `c-karmala-del`
+
+Verify:
+
+- Required columns.
+- Café records.
+- Foreign keys.
+- Experience records.
+- Duplicate prevention.
+- Conflict handling.
+- Experience-to-café relationships.
+- Experience title updates.
+
+Do not invent café details or experience information.
+
+### Migration delivery requirements
+
+For every required database correction:
+
+1. Identify the exact issue.
+2. Identify the relevant migration.
+3. Reuse or correct existing migrations where safe.
+4. Avoid duplicate migrations.
+5. Create a new migration only when necessary.
+6. Ensure migrations are carefully ordered.
+7. Make them idempotent where appropriate.
+8. Include rollback considerations.
+9. Include read-only preflight queries.
+10. Explain the exact eventual production action.
+
+Never execute SQL or apply migrations against production.
+
+---
+
+# 10. MISSING-SCHEMA WARNINGS AND DATABASE ERROR HANDLING
+
+The independent audit found that some read functions return empty arrays when required tables are missing.
+
+This can make the Admin Panel appear to have no records instead of showing the actual database problem.
+
+Inspect all database-dependent Admin Panel sections, especially:
+
+- Complimentary passes.
+- Membership passes.
+- Experience applications.
+- Verification.
+- Matchmaking.
+- Analytics.
+- Other administrative sections.
+
+### Required corrections
+
+1. Distinguish an empty result from a missing table.
+2. Distinguish a missing RPC from a permission error.
+3. Show a clear warning when a required migration is missing.
+4. Identify the affected feature.
+5. Explain the required corrective action.
+6. Preserve existing records.
+7. Do not expose secrets or sensitive technical details to ordinary users.
+8. Use the existing Datevra design system.
+9. Never hide database failures behind empty arrays.
+10. Ensure error handling does not crash unrelated Admin Panel sections.
+
+---
+
+# 11. COMPLETE ADMIN PANEL RELIABILITY AUDIT
+
+Inspect the existing Admin Panel without redesigning it.
+
+Review:
+
+- Admin authentication.
+- Admin authorization.
+- User listing.
+- User search by name, email, and ID.
+- User profile details.
+- Membership pass generator.
+- Café pass generator.
+- Pass management.
+- Verification management.
+- Date Applications.
+- Matchmaking.
+- Match proposals.
+- Analytics.
+- Overview statistics.
+- Online-member presence.
+- Loading states.
+- Empty states.
+- Pagination.
+- Query efficiency.
+- Error handling.
+
+The Admin Panel must preserve the client's broad administrative-control requirement.
+
+Administrators must have the appropriate ability to:
+
+- Search users.
+- Inspect relevant user details.
+- Manage membership passes.
+- Manage café passes.
+- Review experience applications.
+- Manage verification.
+- Review and manage matchmaking.
+- Manually arrange or fix matches through existing authorized workflows.
+- View accurate operational statistics.
+- Understand database and application errors.
+
+Do not add unsafe permissions or expose private information unnecessarily.
+
+All privileged operations must be protected by database authorization and RLS.
+
+---
+
+# 12. COMPLETE WEBSITE REGRESSION AUDIT
+
+After completing the specific systems above, inspect the entire application for additional genuine unresolved defects.
+
+## Authentication
+
+Review:
+
+- Sign-up.
+- Duplicate email handling.
+- Login.
+- Logout.
+- Session persistence.
+- Email confirmation.
+- Password recovery.
+- Protected routes.
+- Admin authorization.
+
+## User profiles
+
+Review:
+
+- Profile creation.
+- Profile editing.
+- Profile photos.
+- Interests.
+- Hobbies.
+- Lifestyle information.
+- Profile visibility.
+- Privacy settings.
+- Verification lifecycle.
+
+## Discovery and matchmaking
+
+Review:
+
+- Profile discovery.
+- Likes.
+- Passes.
+- Interest recording.
+- Mutual matches.
+- Duplicate prevention.
+- Match protection.
+- Curated experiences.
+- Café associations.
+
+Preserve the previously completed interest-recording correction and compact discovery cards.
+
+## Messaging
+
+Review:
+
+- Conversation creation.
+- Message sending.
+- Message retrieval.
+- Access control.
+- Notifications.
+- Unread states.
+
+## Café and experience features
+
+Review:
+
+- Café listings.
+- Experience records.
+- Café associations.
+- Experience applications.
+- Application status.
+- Booking creation.
+- Missing data handling.
+
+## Membership and café passes
+
+Review:
+
+- Membership pass creation.
+- Membership redemption.
+- Membership entitlement provisioning.
+- Membership expiry.
+- Membership revocation.
+- Café pass creation.
+- Café pass redemption.
+- Café pass expiry.
+- Café pass revocation.
+
+## Admin
+
+Review all administrative routes, authorization, data loading, actions, and statistics.
+
+## Responsive behavior
+
+Check:
+
+- Desktop.
+- Tablet.
+- Mobile.
+- Navigation.
+- Forms.
+- Modals.
+- Discovery cards.
+- Admin tables.
+- Pass generators.
+- Experience application interface.
+
+## Performance and reliability
+
+Check:
+
+- Repeated database requests.
+- Duplicate queries.
+- Unhandled promise rejections.
+- Console errors.
+- React warnings.
+- Broken imports.
+- Type errors.
+- Missing loading states.
+- Incorrect error handling.
+- Memory leaks.
+- Realtime subscription cleanup.
+- Unnecessary rendering.
+- Query inefficiencies.
+
+Only fix confirmed defects.
+
+Do not invent features or change existing product behavior without evidence.
+
+---
+
+# 13. SECURITY AND DATA INTEGRITY
+
+Audit the complete implementation for:
+
+- Supabase RLS.
+- User ownership.
+- Admin authorization.
+- Foreign-key integrity.
+- Unique constraints.
+- Duplicate submissions.
+- Duplicate pass redemption.
+- Concurrent redemption.
+- Unauthorized updates.
+- Sensitive information exposure.
+- RPC permission grants.
+- SQL injection risks.
+- Input validation.
+- Secure code generation.
+- Correct transaction boundaries.
+
+Never rely exclusively on frontend validation for security.
+
+Never expose Supabase service-role keys, passwords, private API keys, or secrets.
+
+Never place secrets in frontend code.
+
+Never weaken existing security protections to make a feature appear functional.
+
+---
+
+# 14. TESTING REQUIREMENTS
+
+The previous audit reported 297 passing tests, but established that these tests were primarily static, mock, in-memory, and router tests.
+
+They do not prove that production Supabase integration works.
+
+Run comprehensive local testing.
+
+### A. General checks
+
+Run:
+
+- TypeScript checks.
+- Production build.
+- Existing test suite.
+- New regression tests.
+- Route tests.
+- Database helper tests.
+- Authentication tests.
+- Admin authorization tests.
+- Presence tests.
+- Missing-schema tests.
+- Membership pass tests.
+- Café pass tests.
+- Experience application tests.
+- Responsive checks where available.
+
+### B. Experience application end-to-end test
+
+Verify the complete flow:
+
+1. User selects an experience.
+2. User selects a venue.
+3. User enters guest count and budget.
+4. User selects date and time.
+5. User adds a note.
+6. User submits.
+7. Application is stored in `public.date_applications`.
+8. Admin can see and search the application.
+9. Admin can filter and inspect its full information.
+10. Admin can add an internal note.
+11. Admin can update its status.
+12. Admin can confirm only after the required booking information is provided.
+13. The resulting booking is stored in `public.date_bookings`.
+14. Application and booking remain correctly associated.
+
+### C. Membership pass end-to-end test
+
+Verify:
+
+1. Admin opens `/admin/membership-passes`.
+2. Admin selects a plan.
+3. Admin selects a duration.
+4. Admin assigns a user or creates an open pass.
+5. Admin generates a code.
+6. Pass is stored in `public.membership_passes`.
+7. Ledger displays the record.
+8. Correct user redeems it.
+9. Membership entitlement is provisioned once.
+10. Wrong user is rejected.
+11. Expired, revoked, and redeemed passes are rejected.
+
+### D. Café pass end-to-end test
+
+Verify:
+
+1. Admin opens `/admin/passes`.
+2. Admin selects an existing café.
+3. Admin assigns a user or creates an open pass.
+4. Admin generates a code.
+5. Pass is stored in `public.complimentary_passes`.
+6. Ledger displays the record.
+7. Eligible user redeems it.
+8. Open pass is bound to the correct user.
+9. Duplicate redemption is rejected.
+10. Expired and revoked passes are rejected.
+11. Revocation is recorded in `public.activity_logs`.
+
+### E. Database testing
+
+Use actual database testing only where authorized and available.
+
+If live database testing is unavailable or prohibited, use controlled mocks and label the result accurately.
+
+Never claim a mock test proves production database compatibility.
+
+### F. Regression tests
+
+Verify that the previously completed interest-recording correction, compact discovery cards, and full-profile information remain intact.
+
+Do not unnecessarily modify them.
+
+---
+
+# 15. STRICT CHANGE CONTROL — MANDATORY
+
+These rules cannot be ignored.
+
+1. Work only inside the existing Google AI Studio local workspace.
+2. Inspect existing files before modifying them.
+3. Reuse existing architecture, components, helpers, and conventions.
+4. Do not rebuild the application.
+5. Do not redesign Datevra.
+6. Do not introduce unnecessary dependencies.
+7. Do not create duplicate functions, tables, migrations, or components.
+8. Do not replace real functionality with mock implementations.
+9. Do not silently swallow database errors.
+10. Do not hardcode administrator identities.
+11. Do not weaken authentication or RLS.
+12. Do not expose secrets.
+13. Do not modify `.env.local` or secret configuration.
+14. Do not execute SQL against production.
+15. Do not apply production migrations.
+16. Do not modify remote Supabase settings.
+17. Do not push to GitHub.
+18. Do not deploy to Vercel.
+19. Do not claim production changes are completed.
+20. Do not delete existing data.
+21. Do not remove existing working features.
+22. Do not mark an incomplete feature as complete.
+23. Do not invent missing user, café, experience, or membership data.
+24. Do not fabricate test results.
+
+If a correction cannot safely be implemented locally, explain the exact blocker and prepare the safest required next step.
+
+---
+
+# 16. IMPLEMENTATION ORDER
+
+Follow this order to minimize risk and prevent repeated work.
+
+**PHASE 1 — Baseline inspection**
+
+Inspect the complete current workspace, previous repairs, existing migration history, relevant screenshots and client requirements available in the workspace.
+
+Identify which issues remain unresolved.
+
+Do not repeat previously completed work.
+
+**PHASE 2 — Admin authorization**
+
+Inspect and repair admin routing, session handling, authorization, and the `/admin` redirect issue.
+
+Do not modify admin privileges.
+
+**PHASE 3 — Experience application system**
+
+Complete user submission, backend storage, Admin Date Applications, application statuses, internal notes, booking confirmation rules, and RLS.
+
+**PHASE 4 — Membership pass generator**
+
+Complete `/admin/membership-passes`, backend storage, generation, assignment, redemption, entitlement provisioning, revocation, ledger, and security.
+
+**PHASE 5 — Café pass generator**
+
+Complete `/admin/passes`, café selection, backend storage, generation, assignment, redemption, revocation, ledger, and security.
+
+**PHASE 6 — Online presence**
+
+Correct the inaccurate online-member count and implement reliable presence.
+
+**PHASE 7 — Verification**
+
+Correct verification RPC compatibility, verification status, badge lifecycle, and security.
+
+**PHASE 8 — Database migration and error handling**
+
+Review migrations 010, 011, 019, and 027. Prepare required missing-schema corrections and actionable warnings.
+
+**PHASE 9 — Complete Admin Panel audit**
+
+Verify all existing administrative functionality and the client's broader Admin Panel requirements.
+
+**PHASE 10 — Whole website audit**
+
+Inspect and correct all additional confirmed defects across authentication, profiles, discovery, matchmaking, messaging, cafés, experiences, and responsive behavior.
+
+**PHASE 11 — Regression and testing**
+
+Run the complete test suite, TypeScript checks, production build, and relevant end-to-end tests.
+
+**PHASE 12 — Final report**
+
+Report exact implementation results, production blockers, and remaining manual actions.
+
+Do not stop after producing recommendations. Implement every safe local correction that can be completed.
+
+---
+
+# 17. FINAL DELIVERY REPORT — REQUIRED
+
+At the end, provide a detailed and truthful report.
+
+## A. Issues fixed
+
+For every issue, provide:
+
+- Original issue.
+- Root cause.
+- Exact correction.
+- Files modified.
+- Tests performed.
+- Test results.
+
+## B. Previously completed work preserved
+
+Confirm that these were inspected and preserved without unnecessary rewrites:
+
+- Profile interest-recording correction.
+- Compact discovery profile cards.
+- Complete full-profile information.
+
+## C. Experience application system
+
+Report separately:
+
+- User-facing submission.
+- Backend storage.
+- `public.date_applications`.
+- Admin Date Applications.
+- Internal admin notes.
+- Status lifecycle.
+- Booking confirmation.
+- `public.date_bookings`.
+- RLS.
+- Tests.
+- Production blockers.
+
+## D. Membership pass generator
+
+Report separately:
+
+- `/admin/membership-passes`.
+- Generator.
+- Membership plans.
+- Duration and expiry.
+- User assignment.
+- `public.membership_passes`.
+- RPCs.
+- Redemption.
+- Entitlement provisioning.
+- Revocation.
+- Ledger.
+- Security.
+- Tests.
+- Production blockers.
+
+## E. Café pass generator
+
+Report separately:
+
+- `/admin/passes`.
+- Café selection.
+- Generator.
+- `public.complimentary_passes`.
+- RPCs.
+- Redemption.
+- Revocation.
+- Audit logs.
+- Ledger.
+- Security.
+- Tests.
+- Production blockers.
+
+## F. Admin Panel and website
+
+Report:
+
+- Founder admin authorization.
+- Online-member count.
+- Verification.
+- Missing-schema warnings.
+- Analytics.
+- Matchmaking.
+- Other confirmed issues fixed.
+- Any remaining defects.
+
+## G. Database migrations
+
+For every migration:
+
+- Existing or newly created.
+- Changes made.
+- Dependencies.
+- Preflight requirements.
+- Rollback considerations.
+- Whether production execution remains pending.
+
+## H. Testing results
+
+Provide exact results:
+
+- Build status.
+- TypeScript status.
+- Total tests.
+- Passed tests.
+- Failed tests.
+- Skipped tests.
+- Mock tests.
+- Live database tests.
+- Browser tests.
+- Any tests not performed.
+
+## I. Changed files
+
+Provide the complete list of modified and newly created files.
+
+## J. Remaining blockers
+
+List everything requiring:
+
+- Manual Supabase dashboard action.
+- Production SQL execution after approval.
+- Account/login testing.
+- Deployment.
+- External configuration.
+- Other manual intervention.
+
+## K. Final status
+
+Choose one honest status:
+
+1. All local implementation work completed; production verification and approved database actions pending.
+2. Partially completed; specific blockers remain.
+3. Implementation blocked; explain the exact reason.
+
+---
+
+# FINAL NON-NEGOTIABLE INSTRUCTION
+
+Your task is to finish ALL remaining Datevra repair and implementation work.
+
+The experience application system, backend application storage, Admin Date Applications, membership pass generator, and café pass generator are mandatory deliverables.
+
+They must work as complete connected features, not merely as frontend pages or buttons.
+
+Fix all confirmed remaining errors from the screenshots, client requirements, previous reports, and your own investigation.
+
+Exclude previously completed work.
+
+Preserve the existing design and working functionality.
+
+Do not create duplicate systems.
+
+Do not execute production SQL, modify production settings, push to GitHub, or deploy.
+
+Begin by inspecting the current workspace. Establish the exact remaining work, then implement the phases in order.
+
+Continue until all safe local implementation work is completed. Only then produce the final report.
+
+Do not claim success without evidence.

@@ -523,7 +523,11 @@ function typingChannel(conversationId: string): RealtimeChannel {
 }
 
 function setTyping(conversationId: string, userId: string, isTyping: boolean): void {
-  void typingChannel(conversationId)
+  const ch = isTyping
+    ? typingChannel(conversationId)
+    : typingChannels.get(conversationId);
+  if (!ch) return;
+  void ch
     .send({ type: "broadcast", event: "typing", payload: { userId, isTyping } })
     .catch(() => undefined);
 }
@@ -535,7 +539,19 @@ function subscribeTyping(
   typingChannel(conversationId);
   if (!typingCbs.has(conversationId)) typingCbs.set(conversationId, new Set());
   typingCbs.get(conversationId)!.add(cb);
-  return () => typingCbs.get(conversationId)?.delete(cb);
+  return () => {
+    const cbs = typingCbs.get(conversationId);
+    if (!cbs) return;
+    cbs.delete(cb);
+    if (cbs.size === 0) {
+      typingCbs.delete(conversationId);
+      const ch = typingChannels.get(conversationId);
+      if (ch) {
+        typingChannels.delete(conversationId);
+        void sb().removeChannel(ch);
+      }
+    }
+  };
 }
 
 function subscribeMessages(conversationId: string, cb: (m: Message) => void): () => void {
@@ -579,7 +595,9 @@ async function getDailyUsage(): Promise<DailyUsage> {
   };
 }
 
-async function recordProfileInterest(viewedUserId: string): Promise<{ used: number; limit: number }> {
+async function recordProfileInterest(viewerIdOrTarget: string, targetUserId?: string): Promise<{ used: number; limit: number }> {
+  // Support both (targetUserId) and (viewerId, targetUserId) call signatures
+  const viewedUserId = targetUserId ? targetUserId : viewerIdOrTarget;
   const res = await sb().rpc("record_profile_interest", { p_viewed_user_id: viewedUserId });
   if (res.error) {
     if (res.error.message.includes("DAILY_INTEREST_LIMIT_REACHED")) {
@@ -1028,7 +1046,12 @@ async function setUserVerified(id: string, verified: boolean, _actorId: string, 
     p_verified: verified,
     p_note: note ?? null,
   });
-  if (res.error) throw new Error(`Could not update verification: ${res.error.message}`);
+  if (res.error) {
+    if (res.error.code === "PGRST202" || res.error.code === "42883" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED: Database function public.set_user_verified is not installed. Please execute migration 019 in Supabase Dashboard.");
+    }
+    throw new Error(`Could not update verification: ${res.error.message}`);
+  }
 }
 
 /* ---------------- complimentary passes (Supabase) ---------------- */
@@ -1064,7 +1087,12 @@ async function listComplimentaryPasses(): Promise<ComplimentaryPass[]> {
     .from("complimentary_passes")
     .select("*, cafes(name), profiles:issued_to_user_id(first_name)")
     .order("created_at", { ascending: false });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:010:complimentary_passes:Table 'complimentary_passes' is not installed in your Supabase backend. Please execute db/migrations/010_passes_proposals.sql in the Supabase Dashboard SQL Editor.");
+    }
+    throw new Error(res.error.message);
+  }
   return (res.data as Row[]).map(mapComplimentaryPass);
 }
 
@@ -1074,7 +1102,12 @@ async function myComplimentaryPasses(userId: string): Promise<ComplimentaryPass[
     .select("*, cafes(name)")
     .eq("issued_to_user_id", userId)
     .order("created_at", { ascending: false });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      return [];
+    }
+    throw new Error(res.error.message);
+  }
   return (res.data as Row[]).map(mapComplimentaryPass);
 }
 
@@ -1103,6 +1136,11 @@ async function createComplimentaryPass(
     if (!res.error) {
       await logActivity(adminId, "pass.create", `Complimentary pass ${(res.data as Row).code} created`);
       return mapComplimentaryPass(res.data as Row);
+    }
+
+    // Inform user cleanly if migration is missing
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED: Database table public.complimentary_passes is not installed. Please execute migration 010 in Supabase Dashboard.");
     }
 
     // Only retry on code unique-constraint violations (PostgreSQL error 23505)
@@ -1195,7 +1233,12 @@ async function listMembershipPasses(): Promise<MembershipPass[]> {
     .from("membership_passes")
     .select("*, profiles:issued_to_user_id(first_name, email)")
     .order("created_at", { ascending: false });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:011:membership_passes:Table 'membership_passes' is not installed in your Supabase backend. Please execute db/migrations/011_membership_passes.sql in the Supabase Dashboard SQL Editor.");
+    }
+    throw new Error(res.error.message);
+  }
   return (res.data as Row[]).map(mapMembershipPass);
 }
 
@@ -1210,7 +1253,12 @@ async function createMembershipPass(
     p_issued_to_user_id: input.issuedToUserId ?? null,
     p_note: input.note ?? null,
   });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "PGRST202" || res.error.code === "42883" || res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED: Database function public.create_membership_pass is not installed. Please execute migration 011 in Supabase Dashboard.");
+    }
+    throw new Error(res.error.message);
+  }
   const row = res.data as Row;
   return mapMembershipPass(row);
 }
@@ -1224,7 +1272,12 @@ async function revokeMembershipPass(
     p_pass_id: passId,
     p_reason: reason ?? null,
   });
-  if (res.error) throw new Error(res.error.message);
+  if (res.error) {
+    if (res.error.code === "PGRST202" || res.error.code === "42883" || res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED: Database function public.revoke_membership_pass is not installed. Please execute migration 011 in Supabase Dashboard.");
+    }
+    throw new Error(res.error.message);
+  }
   const row = res.data as Row;
   return mapMembershipPass(row);
 }

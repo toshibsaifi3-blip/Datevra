@@ -15,19 +15,15 @@ import {
 } from "../../components/ui";
 import { useDbRefresh } from "./shared";
 import PhotoManager from "../../components/PhotoManager";
+import { profileCompleteness } from "../../lib/supabase/mappers";
+import {
+  GENDERS,
+  INTERESTED_OPTIONS,
+  addCustomTagItem,
+  toggleTag,
+  validateBasicIdentity,
+} from "../../lib/profileFields";
 import type { Gender, InterestedIn } from "../../lib/types";
-
-const GENDERS: { id: Gender; label: string }[] = [
-  { id: "woman", label: "Woman" },
-  { id: "man", label: "Man" },
-  { id: "nonbinary", label: "Non-binary" },
-];
-
-const INTERESTED: { id: InterestedIn; label: string }[] = [
-  { id: "women", label: "Women" },
-  { id: "men", label: "Men" },
-  { id: "everyone", label: "Everyone" },
-];
 
 const reduceMotion =
   typeof window !== "undefined" &&
@@ -205,8 +201,16 @@ export default function Profile() {
 
   if (!user) return null;
 
+  const liveCompleteness = profileCompleteness({
+    bio,
+    relationshipIntent,
+    city,
+    interests,
+    photos: user.photos ?? [],
+  });
+
   const toggle = (list: string[], set: (v: string[]) => void, item: string) =>
-    set(list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
+    set(toggleTag(list, item));
 
   const addFree = (
     list: string[],
@@ -214,11 +218,7 @@ export default function Profile() {
     raw: string,
     clear: () => void,
   ) => {
-    const v = raw.trim();
-    if (!v) return;
-    if (!list.some((x) => x.toLowerCase() === v.toLowerCase())) {
-      set([...list, v]);
-    }
+    set(addCustomTagItem(list, raw));
     clear();
   };
 
@@ -229,19 +229,16 @@ export default function Profile() {
   ).slice(0, 12);
 
   const save = async () => {
-    if (!firstName.trim()) {
-      toast("Please add your first name.", "rose");
-      return;
-    }
-    if (age < 18 || age > 100) {
-      toast("Age must be between 18 and 100.", "rose");
+    const errs = validateBasicIdentity(firstName, Number(age));
+    if (errs.firstName || errs.age) {
+      toast(errs.firstName || errs.age || "Please check your profile details.", "rose");
       return;
     }
     setSaving(true);
     try {
       await db.updateUser(user.id, {
         firstName: firstName.trim(),
-        age,
+        age: Number(age),
         city,
         bio: bio.trim(),
         relationshipIntent,
@@ -252,7 +249,7 @@ export default function Profile() {
         lifestyle,
         online,
       });
-      refresh();
+      await refresh();
       toast("Profile saved.");
     } catch (e) {
       toast(
@@ -307,10 +304,18 @@ export default function Profile() {
               <div className="mt-3 flex items-center gap-2 flex-wrap">
                 <PlanBadge plan={user.plan} />
                 {user.verified && <Badge tone="green">✓ Verified</Badge>}
+                {liveCompleteness < 100 && (
+                  <Link
+                    to="/onboarding?resume=1"
+                    className="text-xs text-champagne/90 hover:text-rosegold transition-colors ml-1"
+                  >
+                    Resume guided setup →
+                  </Link>
+                )}
               </div>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <svg width="100" height="100" viewBox="0 0 100 100" aria-label={`${user.profileComplete}% complete`}>
+              <svg width="100" height="100" viewBox="0 0 100 100" aria-label={`${liveCompleteness}% complete`}>
                 <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="7" />
                 <circle
                   cx="50"
@@ -321,7 +326,7 @@ export default function Profile() {
                   strokeWidth="7"
                   strokeLinecap="round"
                   strokeDasharray={circ}
-                  strokeDashoffset={circ * (1 - user.profileComplete / 100)}
+                  strokeDashoffset={circ * (1 - liveCompleteness / 100)}
                   transform="rotate(-90 50 50)"
                 />
                 <defs>
@@ -331,7 +336,7 @@ export default function Profile() {
                   </linearGradient>
                 </defs>
                 <text x="50" y="56" textAnchor="middle" fill="#C5A4FF" fontSize="19" fontWeight="600">
-                  {user.profileComplete}%
+                  {liveCompleteness}%
                 </text>
               </svg>
               <span className="text-[0.65rem] uppercase tracking-[0.25em] text-mist">Complete</span>
@@ -368,7 +373,7 @@ export default function Profile() {
             />
             <div className="grid md:grid-cols-3 gap-5">
               <Field label="First name">
-                <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={30} />
+                <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={40} />
               </Field>
               <Field label="Age (18+)">
                 <input
@@ -421,7 +426,7 @@ export default function Profile() {
               </Field>
               <Field label="Interested in">
                 <select className={inputCls} value={interestedIn} onChange={(e) => setInterestedIn(e.target.value as InterestedIn)}>
-                  {INTERESTED.map((g) => (
+                  {INTERESTED_OPTIONS.map((g) => (
                     <option key={g.id} value={g.id}>{g.label}</option>
                   ))}
                 </select>

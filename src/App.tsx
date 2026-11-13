@@ -33,6 +33,7 @@ const ExperiencesPage = lazy(() => import("./pages/ExperiencesPage"));
 const CafesPage = lazy(() => import("./pages/CafesPage"));
 
 const Dashboard = lazy(() => import("./pages/user/Dashboard"));
+const Onboarding = lazy(() => import("./pages/user/Onboarding"));
 const Profile = lazy(() => import("./pages/user/Profile"));
 const Likes = lazy(() => import("./pages/user/Likes"));
 const Matches = lazy(() => import("./pages/user/Matches"));
@@ -133,6 +134,7 @@ export default function App() {
 
               {/* member */}
               <Route element={<ProtectedRoute />}>
+                <Route path="onboarding" element={<Onboarding />} />
                 <Route element={<UserShell />}>
                   <Route path="app" element={<Dashboard />} />
                   <Route path="likes" element={<Likes />} />

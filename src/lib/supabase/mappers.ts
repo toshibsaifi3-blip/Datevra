@@ -71,6 +71,7 @@ export function mapProfile(r: Row): UserProfile {
     profileComplete: num(r.profile_complete),
     plan: (r.plan_id as PlanId | null) ?? null,
     planExpiresAt: (r.plan_expires_at as string | null) ?? null,
+    isAdmin: bool(r.is_admin),
     createdAt: iso(r.created_at),
   };
 }

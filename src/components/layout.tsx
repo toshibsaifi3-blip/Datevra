@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   LayoutDashboard,
   ScrollText,
@@ -36,6 +36,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { Logo, GlowOrbs, PetalField, Badge } from "./ui";
 import { useBackend, useAsync } from "../lib/data";
+import { partnerOf } from "../pages/user/shared";
 
 /* ============================== ScrollToTop ============================== */
 
@@ -296,7 +297,16 @@ export function PublicLayout() {
 
 export function ProtectedRoute({ admin = false }: { admin?: boolean }) {
   const { session, ready } = useAuth();
-  if (!ready) return null;
+  if (!ready) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+        <Logo size={48} withWordmark={false} />
+        <p className="text-xs font-mono uppercase tracking-widest text-champagne/70 animate-pulse">
+          Verifying authorization…
+        </p>
+      </div>
+    );
+  }
   if (!session) return <Navigate to="/login" replace />;
   if (admin && session.role !== "admin") return <Navigate to="/app" replace />;
   return <Outlet />;
@@ -319,20 +329,67 @@ const USER_LINKS = [
 ];
 
 const BOTTOM_TABS = [
-  { to: "/app", label: "Home", icon: "✦" },
   { to: "/discover", label: "Discover", icon: "◈" },
+  { to: "/likes", label: "Likes", icon: "♥" },
+  { to: "/matches", label: "Matches", icon: "✧" },
   { to: "/chat", label: "Chat", icon: "✉" },
-  { to: "/cafes", label: "Cafés", icon: "☕" },
   { to: "/profile", label: "Profile", icon: "❀" },
 ];
 
-function BottomNav() {
-  const { user } = useAuth();
-  const { data: unread } = useAsync(
-    (b) => (user ? b.unreadCount(user.id).catch(() => 0) : Promise.resolve(0)),
-    [user?.id],
-    0,
+interface MemberBadges {
+  unreadChats: number;
+  pendingLikes: number;
+}
+
+function useMemberNavBadges(userId?: string, enabled = true): MemberBadges {
+  const db = useBackend();
+  const [tick, setTick] = useState(0);
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !userId) return;
+    const bump = () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      timerRef.current = window.setTimeout(() => setTick((t) => t + 1), 200);
+    };
+    const offs = [
+      db.subscribe("likes", bump),
+      db.subscribe("matches", bump),
+      db.subscribe("conversations", bump),
+      db.subscribe("blocks", bump),
+    ];
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      offs.forEach((off) => off());
+    };
+  }, [db, userId, enabled]);
+
+  const { data } = useAsync(
+    async (b): Promise<MemberBadges> => {
+      if (!enabled || !userId) return { unreadChats: 0, pendingLikes: 0 };
+      const [convs, recLikes, matches] = await Promise.all([
+        b.conversationsFor(userId).catch(() => []),
+        b.likesReceived(userId).catch(() => []),
+        b.matchesFor(userId).catch(() => []),
+      ]);
+      const unreadChats = convs.reduce((n, c) => n + (c.unread[userId] ?? 0), 0);
+      const matchedPartners = new Set(matches.map((m) => partnerOf(m, userId)));
+      const pendingLikes = recLikes.filter((l) => !matchedPartners.has(l.fromUserId)).length;
+      return { unreadChats, pendingLikes };
+    },
+    [enabled, userId, tick],
+    { unreadChats: 0, pendingLikes: 0 } as MemberBadges,
   );
+
+  return data;
+}
+
+function BottomNav({ badges }: { badges?: MemberBadges }) {
+  const { user } = useAuth();
+  const reducedMotion = useReducedMotion();
+  const ownBadges = useMemberNavBadges(user?.id, badges === undefined);
+  const activeBadges = badges ?? ownBadges;
+
   return (
     <nav
       aria-label="Primary"
@@ -340,38 +397,53 @@ function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="grid grid-cols-5 h-[68px]">
-        {BOTTOM_TABS.map((t) => (
-          <NavLink
-            key={t.to}
-            to={t.to}
-            end={t.to === "/app"}
-            className={({ isActive }) =>
-              `relative flex flex-col items-center justify-center gap-1 text-[0.66rem] tracking-wide transition-colors ${
-                isActive ? "text-rosegold" : "text-mist hover:text-ivory-dim"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <span className={`text-[1.35rem] leading-none transition-all ${isActive ? "scale-110 drop-shadow-[0_0_10px_rgba(255,61,154,0.8)]" : ""}`}>
-                  {t.icon}
-                </span>
-                {t.label}
-                {t.to === "/chat" && unread > 0 && (
-                  <span className="absolute top-1.5 right-1/2 translate-x-4 min-w-[1.15rem] h-[1.15rem] px-1 rounded-full bg-rosegold text-white text-[0.62rem] font-semibold flex items-center justify-center shadow-[0_0_12px_rgba(255,61,154,0.9)]">
-                    {unread > 9 ? "9+" : unread}
+        {BOTTOM_TABS.map((t) => {
+          const badgeCount =
+            t.to === "/chat"
+              ? activeBadges.unreadChats
+              : t.to === "/likes"
+                ? activeBadges.pendingLikes
+                : 0;
+          return (
+            <NavLink
+              key={t.to}
+              to={t.to}
+              aria-label={badgeCount > 0 ? `${t.label}, ${badgeCount} new` : t.label}
+              className={({ isActive }) =>
+                `relative min-w-0 min-h-[44px] px-0.5 flex flex-col items-center justify-center gap-1 text-[0.62rem] sm:text-[0.66rem] tracking-wide transition-colors ${
+                  isActive ? "text-rosegold" : "text-mist hover:text-ivory-dim"
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <span
+                    className={`text-[1.25rem] sm:text-[1.35rem] leading-none transition-all ${
+                      isActive ? "scale-110 drop-shadow-[0_0_10px_rgba(255,61,154,0.8)]" : ""
+                    }`}
+                  >
+                    {t.icon}
                   </span>
-                )}
-                {isActive && (
-                  <motion.span
-                    layoutId="bottom-tab-glow"
-                    className="absolute -top-px left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full bg-gradient-to-r from-rosegold to-champagne shadow-[0_0_12px_rgba(255,61,154,0.9)]"
-                  />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
+                  <span className="truncate max-w-full">{t.label}</span>
+                  {badgeCount > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-1.5 right-1/2 translate-x-3.5 min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-rosegold text-white text-[0.6rem] font-semibold flex items-center justify-center shadow-[0_0_12px_rgba(255,61,154,0.9)]"
+                    >
+                      {badgeCount > 9 ? "9+" : badgeCount}
+                    </span>
+                  )}
+                  {isActive && (
+                    <motion.span
+                      layoutId={reducedMotion ? undefined : "bottom-tab-glow"}
+                      className="absolute -top-px left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full bg-gradient-to-r from-rosegold to-champagne shadow-[0_0_12px_rgba(255,61,154,0.9)]"
+                    />
+                  )}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </div>
     </nav>
   );
@@ -420,34 +492,61 @@ function Bell() {
 
 export function UserShell() {
   const { user, logout } = useAuth();
+  const db = useBackend();
+  const reducedMotion = useReducedMotion();
   const [mobileOpen, setMobileOpen] = useState(false);
   const loc = useLocation();
   useEffect(() => setMobileOpen(false), [loc.pathname]);
   const nav = useNavigate();
+  const badges = useMemberNavBadges(user?.id, true);
+
+  // Verifiable presence heartbeat (throttled every 5 minutes while member is active)
+  useEffect(() => {
+    if (!user) return;
+    const sendHeartbeat = () => {
+      db.updateUser(user.id, { lastActive: new Date().toISOString() }).catch(() => {});
+    };
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user?.id, db]);
 
   const sidebar = (
     <div className="flex flex-col h-full">
-      <Link to="/" className="px-6 pt-7 pb-5">
+      <Link to="/app" className="px-6 pt-7 pb-5">
         <Logo size={32} />
       </Link>
       <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-1" aria-label="Member">
-        {USER_LINKS.map((l) => (
-          <NavLink
-            key={l.to}
-            to={l.to}
-            end={l.to === "/app"}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl text-[0.93rem] transition-all ${
-                isActive
-                  ? "bg-gradient-to-r from-burgundy/70 to-burgundy-deep/40 text-ivory border border-rosegold/25"
-                  : "text-ivory-dim/80 hover:text-ivory hover:bg-white/5 border border-transparent"
-              }`
-            }
-          >
-            <span className="w-5 text-center text-rosegold/90">{l.icon}</span>
-            {l.label}
-          </NavLink>
-        ))}
+        {USER_LINKS.map((l) => {
+          const badgeCount =
+            l.to === "/likes"
+              ? badges.pendingLikes
+              : l.to === "/chat"
+                ? badges.unreadChats
+                : 0;
+          return (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to === "/app"}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-2.5 min-h-[44px] rounded-xl text-[0.93rem] transition-all ${
+                  isActive
+                    ? "bg-gradient-to-r from-burgundy/70 to-burgundy-deep/40 text-ivory border border-rosegold/25"
+                    : "text-ivory-dim/80 hover:text-ivory hover:bg-white/5 border border-transparent"
+                }`
+              }
+            >
+              <span className="w-5 text-center text-rosegold/90">{l.icon}</span>
+              <span className="flex-1 truncate">{l.label}</span>
+              {badgeCount > 0 && (
+                <span className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rosegold/90 text-white text-[0.68rem] font-semibold flex items-center justify-center">
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
       <div className="p-4 border-t hairline">
         <button
@@ -480,7 +579,14 @@ export function UserShell() {
               >
                 ☰
               </button>
-              <p className="font-display text-xl text-ivory hidden sm:block">
+              <Link
+                to="/app"
+                className="sm:hidden font-display text-lg tracking-[0.08em] text-gradient-dream min-h-[44px] flex items-center px-1"
+                aria-label="Member dashboard"
+              >
+                Datevra
+              </Link>
+              <p className="font-display text-xl text-ivory hidden sm:block truncate">
                 Welcome back, <span className="text-gradient-gold">{user?.firstName}</span>
               </p>
             </div>
@@ -494,11 +600,11 @@ export function UserShell() {
             </div>
           </div>
         </div>
-        <main className="flex-1 px-4 md:px-8 py-8 pb-28 lg:pb-8 max-w-6xl w-full mx-auto relative">
+        <main className="flex-1 px-4 md:px-8 py-8 pb-28 lg:pb-8 max-w-6xl w-full mx-auto relative min-w-0">
           <Outlet />
         </main>
       </div>
-      <BottomNav />
+      <BottomNav badges={badges} />
       <AnimatePresence>
         {mobileOpen && (
           <>
@@ -510,10 +616,10 @@ export function UserShell() {
               onClick={() => setMobileOpen(false)}
             />
             <motion.aside
-              initial={{ x: -300 }}
-              animate={{ x: 0 }}
-              exit={{ x: -300 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              initial={reducedMotion ? { opacity: 0 } : { x: -300 }}
+              animate={reducedMotion ? { opacity: 1 } : { x: 0 }}
+              exit={reducedMotion ? { opacity: 0 } : { x: -300 }}
+              transition={reducedMotion ? { duration: 0.12 } : { type: "spring", damping: 30, stiffness: 300 }}
               className="fixed left-0 top-0 bottom-0 w-[280px] z-[61] bg-onyx border-r hairline lg:hidden"
             >
               {sidebar}

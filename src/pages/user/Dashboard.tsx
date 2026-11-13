@@ -88,18 +88,18 @@ export default function Dashboard() {
       const me = user;
       const convs = await b.conversationsFor(me.id);
       const unreadMessages = convs.reduce((n, c) => n + (c.unread[me.id] ?? 0), 0);
-      const [sub, likesRec, matches, profiles, prefs, excluded, notifs, apps, bookings] =
+      const [sub, likesRec, matches, profiles, prefs, notifs, apps, bookings] =
         await Promise.all([
           b.activeSubscription(me.id),
           b.likesReceived(me.id),
           b.matchesFor(me.id),
           b.listProfiles(),
           b.getPrefs(me.id),
-          excludedIdsFor(b, me.id),
           b.notificationsFor(me.id),
           b.applicationsFor(me.id),
           b.bookingsFor(me.id),
         ]);
+      const excluded = await excludedIdsFor(b, me.id, profiles);
       const plan = sub ? PLANS.find((p) => p.id === sub.planId) : undefined;
       const recommended = rankCandidates(me, profiles, prefs, excluded).slice(0, 3);
       const recentSlice = likesRec.slice(0, 4);

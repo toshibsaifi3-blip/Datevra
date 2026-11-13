@@ -45,7 +45,7 @@ export default function Register() {
       return setError("Your password needs at least 8 characters.");
     const ageNum = Number(age);
     if (!age || Number.isNaN(ageNum)) return setError("Please enter your age.");
-    if (ageNum < 18) return setError("You must be at least 18 to join Datevra.");
+    if (ageNum < 18 || ageNum > 100) return setError("You must be between 18 and 100 to join Datevra.");
     if (!terms) return setError("Please accept the Terms of Service to continue.");
 
     setBusy(true);
@@ -73,7 +73,7 @@ export default function Register() {
         setResendCooldown(30);
         return;
       }
-      navigate("/app", { replace: true });
+      navigate("/onboarding", { replace: true });
     } finally {
       setBusy(false);
     }
@@ -89,7 +89,7 @@ export default function Register() {
     setOtpBusy(true);
     setOtpError("");
     try {
-      const r = await verifySignupOtp(email.trim(), token, {
+      const r = await verifySignupOtp(email.trim().toLowerCase(), token, {
         firstName: firstName.trim(),
         age: Number(age),
         gender,
@@ -100,7 +100,7 @@ export default function Register() {
         setOtpError(r.error);
         return;
       }
-      navigate("/app", { replace: true });
+      navigate("/onboarding", { replace: true });
     } finally {
       setOtpBusy(false);
     }
@@ -112,7 +112,7 @@ export default function Register() {
     setOtpError("");
     setResendNotice("");
     try {
-      const r = await resendSignupOtp(email.trim());
+      const r = await resendSignupOtp(email.trim().toLowerCase());
       if (!r.ok) {
         setOtpError(r.error);
         return;
@@ -218,7 +218,7 @@ export default function Register() {
                 className={inputCls}
                 type="number"
                 min={18}
-                max={120}
+                max={100}
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
                 placeholder="25"

@@ -13,6 +13,7 @@ import {
   inputCls,
   useToast,
 } from "../../components/ui";
+import { MigrationAlertBanner } from "../../components/MigrationAlertBanner";
 import { fmtDate, inr, rowCls, tdCls, thCls } from "./_util";
 
 const STATUS_TONES: Record<ApplicationStatus, "gold" | "rose" | "green" | "muted"> = {
@@ -249,7 +250,17 @@ export default function Applications() {
           sub="Review submitted partner café experience applications, verify preferred timing and budget ranges, and manage approval status."
           align="left"
         />
-        {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load applications: {error}</p>}
+        {error?.includes("MIGRATION_REQUIRED") ? (
+          <MigrationAlertBanner
+            migrationId="002"
+            migrationFile="db/migrations/002_client_parity.sql"
+            featureName="Experience Applications"
+            description="The database table public.date_applications is not installed in your Supabase backend. Please execute Migration 002 in your Supabase Dashboard SQL Editor."
+            onRefresh={refreshApps}
+          />
+        ) : error ? (
+          <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load applications: {error}</p>
+        ) : null}
 
         {/* Filter & Search Bar */}
         <div className="mt-8 glass rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">

@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:repairs": "npx tsx test_master_repairs_verification.ts && npx tsx test_ultimate_master_repairs.ts",
     "preview": "vite preview --host 0.0.0.0 --port 3000"
   },
   "dependencies": {

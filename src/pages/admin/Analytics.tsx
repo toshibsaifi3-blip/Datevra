@@ -13,6 +13,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import type { Payment, UserProfile, DateApplication, DateBooking } from "../../lib/types";
 import { Skeleton } from "../../components/ui";
 import { inr } from "./_util";
+import { countActiveOnlineUsers } from "../../lib/presence";
 
 const EMPTY_SUMMARY = {
   membership: 0,
@@ -374,9 +375,18 @@ export default function Analytics() {
               </div>
               <p className="text-xs text-mist mt-0.5">Profiles created per date bucket ({dateFilter})</p>
             </div>
-            <span className="text-xs font-mono font-medium text-champagne bg-champagne/10 px-2 py-0.5 rounded border border-champagne/20">
-              {users.length} Total Registered
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1.5"
+                title="Members with verifiable activity in the last 15 minutes"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {countActiveOnlineUsers(users)} Active Recently
+              </span>
+              <span className="text-xs font-mono font-medium text-champagne bg-champagne/10 px-2 py-0.5 rounded border border-champagne/20">
+                {users.length} Registered
+              </span>
+            </div>
           </div>
 
           {analytics.userRegistrationBars.length === 0 ? (
