@@ -196,7 +196,7 @@ export default function Overview() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
           <button
             onClick={() => {
               refreshSummary();
@@ -312,7 +312,7 @@ export default function Overview() {
       {/* Actionable Queues & Revenue Distribution Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Operational Action Queues */}
-        <div className="lg:col-span-2 glass rounded-2xl p-6 border hairline space-y-5">
+        <div className="lg:col-span-2 glass rounded-2xl p-4 sm:p-6 border hairline space-y-5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-display text-xl text-ivory">Actionable Attention Queues</h2>
@@ -474,7 +474,7 @@ export default function Overview() {
         </div>
 
         {/* Right Col: Revenue Breakdown Widget */}
-        <div className="glass rounded-2xl p-6 border hairline flex flex-col justify-between">
+        <div className="glass rounded-2xl p-4 sm:p-6 border hairline flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl text-ivory">Revenue Channels</h2>
@@ -527,8 +527,8 @@ export default function Overview() {
       {/* Tabs: Recent Operational Updates & Real Activity Log */}
       <div className="glass rounded-2xl border hairline overflow-hidden">
         {/* Tab Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b hairline bg-white/[0.01]">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b hairline bg-white/[0.01]">
+          <div className="flex flex-wrap items-center gap-4">
             <button
               onClick={() => setActiveTab("activity")}
               className={`text-sm font-medium pb-1 relative transition-colors ${

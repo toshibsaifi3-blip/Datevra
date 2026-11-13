@@ -118,6 +118,13 @@ function ProfileCard({
   const draggingRef = useRef(false);
 
   const currentPhoto = photos[photoIdx];
+  const nextPhoto = photos[photoIdx + 1];
+
+  useEffect(() => {
+    if (!nextPhoto) return;
+    const preloader = new Image();
+    preloader.src = nextPhoto;
+  }, [nextPhoto]);
 
   const handlePrevPhoto = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -173,7 +180,7 @@ function ProfileCard({
       </motion.div>
 
       {/* Classic Tinder-style full-card photograph with multi-photo tap navigation */}
-      <div className="relative h-[440px] sm:h-[530px] overflow-hidden">
+      <div className="relative h-[min(58dvh,450px)] min-h-[340px] sm:h-[530px] overflow-hidden">
         {/* Segmented photo indicators at top */}
         {photos.length > 1 && (
           <div
@@ -232,6 +239,8 @@ function ProfileCard({
               className={`absolute inset-0 h-full w-full object-cover pointer-events-none ${
                 reducedMotion ? "" : "transition-opacity duration-300"
               } ${imgLoading ? "opacity-0" : "opacity-100"}`}
+              decoding="async"
+              fetchPriority="high"
               draggable={false}
               onLoad={() => setImgLoading(false)}
               onError={() => {
@@ -662,12 +671,12 @@ export default function Discover() {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-5 py-10 overflow-x-hidden">
+    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
       <div className="sr-only" aria-live="polite">
         {liveStatus || (current ? `Showing ${current.profile.firstName}, ${current.profile.age}` : "")}
       </div>
 
-      <div className="flex items-center justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
         <div className="min-w-0">
           <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">
             Discover
@@ -717,7 +726,7 @@ export default function Discover() {
 
       {loading ? (
         <div className="max-w-md mx-auto">
-          <Skeleton className="h-[560px] rounded-[2rem]" />
+          <Skeleton className="h-[min(58dvh,450px)] min-h-[340px] sm:h-[560px] rounded-[2rem]" />
         </div>
       ) : error ? (
         <EmptyState
@@ -794,14 +803,14 @@ export default function Discover() {
           </div>
 
           {/* Stationary Pass / Save / Like controls below the card */}
-          <div className="flex items-center justify-center gap-6 mt-6">
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mt-4 sm:mt-6">
             <motion.button
               type="button"
               whileTap={reducedMotion ? undefined : { scale: 0.85 }}
               onClick={() => swipe(-1, current.profile.id, current.profile.firstName)}
               disabled={busyAction}
               aria-label={`Pass on ${current.profile.firstName}`}
-              className="h-16 w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+              className="h-14 w-14 sm:h-16 sm:w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
             >
               ✕
             </motion.button>
@@ -829,7 +838,7 @@ export default function Discover() {
               onClick={() => swipe(1, current.profile.id, current.profile.firstName)}
               disabled={busyAction}
               aria-label={`Like ${current.profile.firstName}`}
-              className="h-20 w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+              className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-2xl sm:text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
             >
               <motion.span
                 key={current.profile.id}
@@ -870,19 +879,20 @@ export default function Discover() {
       >
         {viewing && (
           <div className="space-y-5">
-            <div className="relative -mx-6 -mt-6 h-52 overflow-hidden rounded-t-[1.4rem]">
+            <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 md:-mx-8 md:-mt-8 h-52 overflow-hidden rounded-t-[1.4rem]">
               {viewing.photos[0] ? (
                 <img
                   src={viewing.photos[0]}
                   alt={`${viewing.firstName}'s photo`}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/30 to-transparent" />
-              <div className="absolute bottom-3 left-6 flex items-center gap-3">
+              <div className="absolute bottom-3 left-5 sm:left-6 flex items-center gap-3">
                 <Avatar name={viewing.firstName} photo={viewing.photos[0]} size={64} ring />
                 <div>
                   <p className="text-ivory font-display text-xl">
@@ -904,7 +914,7 @@ export default function Discover() {
                 <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">
                   Photos
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {viewing.photos.map((url, i) => (
                     <div
                       key={url}
@@ -915,6 +925,7 @@ export default function Discover() {
                         alt={`${viewing.firstName}'s photo ${i + 1}`}
                         className="h-full w-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ))}

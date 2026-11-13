@@ -224,7 +224,13 @@ function SuggestedCard({ profile }: { profile: UserProfile }) {
     <div className="glass rounded-3xl overflow-hidden card-hover flex flex-col min-w-0">
       <div className="relative h-44 bg-gradient-to-br from-burgundy via-coal to-midnight">
         {photo ? (
-          <img src={photo} alt={profile.firstName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+          <img
+            src={photo}
+            alt={profile.firstName}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center font-display text-6xl text-champagne/40">
             {profile.firstName.charAt(0)}
@@ -275,11 +281,11 @@ export default function Home() {
   return (
     <div className="relative">
       {/* ================= HERO ================= */}
-      <section className="relative px-5 pt-28 pb-10 max-w-6xl mx-auto">
+      <section className="relative px-4 sm:px-5 pt-24 sm:pt-28 pb-10 max-w-6xl mx-auto">
         <Reveal>
           <div className="relative rounded-[2rem] overflow-hidden glow-border">
             {/* illustration with slow cinematic zoom */}
-            <div className="relative h-[52svh] min-h-[380px] max-h-[560px] overflow-hidden">
+            <div className="relative h-[44svh] sm:h-[52svh] min-h-[300px] sm:min-h-[380px] max-h-[560px] overflow-hidden">
               <HeroScene />
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-transparent to-midnight/30" />
               {/* heartbeat glow over the heart-moon */}
@@ -305,7 +311,7 @@ export default function Home() {
         {/* headline below the illustration */}
         <div className="text-center mt-10 max-w-2xl mx-auto">
           <Reveal delay={0.1}>
-            <h1 className="font-display text-[2.6rem] leading-[1.12] md:text-6xl text-ivory">
+            <h1 className="font-display text-4xl sm:text-[2.6rem] leading-[1.12] md:text-6xl text-ivory">
               Some Moments
               <br />
               <span className="text-gradient-dream">Feel Like Magic</span>
@@ -347,23 +353,23 @@ export default function Home() {
       </section>
 
       {/* ================= SUGGESTED ================= */}
-      <section className="px-5 py-10 max-w-6xl mx-auto">
+      <section className="px-4 sm:px-5 py-10 max-w-6xl mx-auto">
         <Reveal>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="font-display text-3xl text-ivory">Suggested For You</h2>
-            <Link to="/discover" className="text-sm text-rosegold hover:text-blush transition-colors">
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <h2 className="font-display text-2xl sm:text-3xl text-ivory">Suggested For You</h2>
+            <Link to="/discover" className="text-sm text-rosegold hover:text-blush transition-colors shrink-0">
               See All →
             </Link>
           </div>
         </Reveal>
         {loading ? (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-64 rounded-3xl" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 min-[480px]:grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {suggested.map((p, i) => (
               <Reveal key={p.id} delay={i * 0.1}>
                 <SuggestedCard profile={p} />
@@ -374,12 +380,12 @@ export default function Home() {
       </section>
 
       {/* ================= CLOSING CTA ================= */}
-      <section className="px-5 py-16 max-w-6xl mx-auto text-center">
+      <section className="px-4 sm:px-5 py-12 sm:py-16 max-w-6xl mx-auto text-center">
         <Reveal>
-          <div className="relative glass-strong rounded-[2rem] px-8 py-14 overflow-hidden">
+          <div className="relative glass-strong rounded-[2rem] px-5 sm:px-8 py-10 sm:py-14 overflow-hidden">
             <DreamField count={16} seed={23} hearts sparkles={false} stars={false} className="opacity-60" />
             <p className="text-[0.7rem] uppercase tracking-[0.42em] text-rosegold/90">✦ Begin ✦</p>
-            <h2 className="font-display text-4xl text-ivory mt-4">
+            <h2 className="font-display text-3xl sm:text-4xl text-ivory mt-4">
               Your story starts <span className="text-gradient-dream">tonight</span>
             </h2>
             <p className="mt-4 text-ivory-dim/80 max-w-xl mx-auto">

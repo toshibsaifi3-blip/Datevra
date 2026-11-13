@@ -228,7 +228,7 @@ export default function Verification() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <SectionHead
@@ -483,18 +483,20 @@ export default function Verification() {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(idx * 0.04, 0.3) }}
-                    className="glass rounded-3xl p-6 flex flex-col justify-between space-y-4 hover:border-champagne/25 transition-colors"
+                    className="glass rounded-3xl p-4 sm:p-6 flex flex-col justify-between space-y-4 hover:border-champagne/25 transition-colors"
                   >
                     <div>
                       {/* Top Row: Portrait Photo & Header Info */}
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
                         {/* Portrait Photo with fallback */}
-                        <div className="relative shrink-0 w-20 h-20 rounded-2xl overflow-hidden bg-white/5 border border-white/10 group">
+                        <div className="relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white/5 border border-white/10 group">
                           {primaryPhoto ? (
                             <img
                               src={primaryPhoto}
                               alt={u.firstName}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                              decoding="async"
                               onError={(e) => {
                                 // Fallback on broken image link
                                 (e.target as HTMLElement).style.display = "none";
@@ -616,7 +618,7 @@ export default function Verification() {
                     </div>
 
                     {/* Action Buttons Toolbar */}
-                    <div className="pt-2 border-t border-white/5 flex items-center gap-2">
+                    <div className="pt-2 border-t border-white/5 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         onClick={() => openInspectModal(u)}
@@ -754,11 +756,12 @@ export default function Verification() {
             <div>
               {Array.isArray(inspectUser.photos) && inspectUser.photos.length > 0 ? (
                 <div className="space-y-3">
-                  <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
+                  <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden bg-black/40 border border-white/10 flex items-center justify-center">
                     <img
                       src={inspectUser.photos[activePhotoIdx] ?? inspectUser.photos[0]}
                       alt={`${inspectUser.firstName} portrait ${activePhotoIdx + 1}`}
                       className="w-full h-full object-cover"
+                      decoding="async"
                     />
 
                     {inspectUser.photos.length > 1 && (
@@ -924,7 +927,7 @@ export default function Verification() {
             </div>
 
             {/* Modal Action Buttons */}
-            <div className="pt-3 border-t border-white/10 flex items-center justify-end gap-3">
+            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setInspectUser(null)}

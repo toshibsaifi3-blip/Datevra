@@ -159,6 +159,7 @@ export function CafePhotoSlider({
             alt={`${cafeName} photo ${currentIndex + 1} of ${validImages.length}`}
             className="w-full h-full object-cover object-center pointer-events-none"
             loading="lazy"
+            decoding="async"
           />
         </motion.div>
       </AnimatePresence>

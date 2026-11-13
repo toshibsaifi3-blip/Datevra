@@ -64,7 +64,7 @@ export default function Applications() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-10">
+    <div className="max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-8">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Curated experiences</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">Your applications</h1>
@@ -114,9 +114,9 @@ export default function Applications() {
             const terminal = a.status === "declined" || a.status === "cancelled";
             return (
               <Reveal key={a.id}>
-                <div className="glass rounded-3xl p-6">
+                <div className="glass rounded-3xl p-4 sm:p-6">
                   <div className="flex flex-wrap items-start gap-4">
-                    <div className="flex-1 min-w-[200px]">
+                    <div className="flex-1 min-w-0 sm:min-w-[200px]">
                       <p className="font-display text-xl text-ivory">{exp?.title ?? "Experience"}</p>
                       <p className="text-sm text-mist mt-1">
                         {exp?.kind} · {exp?.city} · {a.slotDate} at {a.slotTime}
@@ -137,7 +137,7 @@ export default function Applications() {
                       {CANCELLABLE.includes(a.status) && (
                         <button
                           onClick={() => setCancelFor(a.id)}
-                          className="text-xs text-mist hover:text-ivory underline underline-offset-4"
+                          className="text-xs text-mist hover:text-ivory underline underline-offset-4 min-h-[44px] inline-flex items-center"
                         >
                           Withdraw application
                         </button>
@@ -147,38 +147,40 @@ export default function Applications() {
 
                   {/* Timeline */}
                   {!terminal ? (
-                    <div className="mt-6 flex items-center">
-                      {APP_TIMELINE.map((s, i) => {
-                        const done = i < stepIdx;
-                        const current = i === stepIdx;
-                        return (
-                          <div key={s} className="flex items-center flex-1 last:flex-none">
-                            <div className="flex flex-col items-center">
-                              <span
-                                className={`h-7 w-7 rounded-full border flex items-center justify-center text-[0.65rem] ${
-                                  done
-                                    ? "bg-champagne/20 border-champagne/60 text-champagne"
-                                    : current
-                                      ? "bg-rosegold/20 border-rosegold text-rosegold animate-pulse"
-                                      : "border-white/15 text-mist/50"
-                                }`}
-                              >
-                                {done ? "✓" : i + 1}
-                              </span>
-                              <span
-                                className={`text-[0.65rem] mt-1 whitespace-nowrap ${
-                                  current ? "text-champagne" : "text-mist/60"
-                                }`}
-                              >
-                                {APP_STATUS_META[s].label}
-                              </span>
+                    <div className="mt-6 overflow-x-auto pb-1 no-scrollbar">
+                      <div className="flex items-center min-w-[360px]">
+                        {APP_TIMELINE.map((s, i) => {
+                          const done = i < stepIdx;
+                          const current = i === stepIdx;
+                          return (
+                            <div key={s} className="flex items-center flex-1 last:flex-none">
+                              <div className="flex flex-col items-center">
+                                <span
+                                  className={`h-7 w-7 rounded-full border flex items-center justify-center text-[0.65rem] ${
+                                    done
+                                      ? "bg-champagne/20 border-champagne/60 text-champagne"
+                                      : current
+                                        ? "bg-rosegold/20 border-rosegold text-rosegold animate-pulse"
+                                        : "border-white/15 text-mist/50"
+                                  }`}
+                                >
+                                  {done ? "✓" : i + 1}
+                                </span>
+                                <span
+                                  className={`text-[0.65rem] mt-1 whitespace-nowrap ${
+                                    current ? "text-champagne" : "text-mist/60"
+                                  }`}
+                                >
+                                  {APP_STATUS_META[s].label}
+                                </span>
+                              </div>
+                              {i < APP_TIMELINE.length - 1 && (
+                                <div className={`h-px flex-1 mx-1 mb-5 ${done ? "bg-champagne/50" : "bg-white/10"}`} />
+                              )}
                             </div>
-                            {i < APP_TIMELINE.length - 1 && (
-                              <div className={`h-px flex-1 mx-1 mb-5 ${done ? "bg-champagne/50" : "bg-white/10"}`} />
-                            )}
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-mist mt-4">
@@ -197,11 +199,11 @@ export default function Applications() {
         <p className="text-sm text-ivory-dim">
           This will withdraw your application. You can apply again for another slot if you change your mind.
         </p>
-        <div className="flex justify-end gap-3 mt-6">
-          <button onClick={() => setCancelFor(null)} className="btn-ghost rounded-full px-5 py-2 text-sm">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
+          <button onClick={() => setCancelFor(null)} className="btn-ghost rounded-full px-5 min-h-[44px] text-sm">
             Keep it
           </button>
-          <button onClick={doCancel} className="rounded-full px-5 py-2 text-sm bg-burgundy text-ivory hover:bg-burgundy-soft transition-colors">
+          <button onClick={doCancel} className="rounded-full px-5 min-h-[44px] text-sm bg-burgundy text-ivory hover:bg-burgundy-soft transition-colors">
             Withdraw
           </button>
         </div>

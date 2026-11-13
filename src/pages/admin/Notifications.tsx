@@ -69,7 +69,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Member communication"
@@ -79,8 +79,8 @@ export default function Notifications() {
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load inbox: {error}</p>}
 
-        <div className="grid lg:grid-cols-2 gap-6 mt-10">
-          <div className="glass rounded-3xl p-6">
+        <div className="grid lg:grid-cols-2 gap-6 mt-8 sm:mt-10">
+          <div className="glass rounded-3xl p-4 sm:p-6">
             <h3 className="font-display text-xl text-ivory">Broadcast announcement</h3>
             <p className="text-xs text-mist mt-1">Pushes an in-app notification to all members</p>
             <div className="space-y-4 mt-5">
@@ -99,7 +99,7 @@ export default function Notifications() {
             </div>
           </div>
 
-          <div className="glass rounded-3xl p-6">
+          <div className="glass rounded-3xl p-4 sm:p-6">
             <h3 className="font-display text-xl text-ivory">Recent broadcasts</h3>
             <p className="text-xs text-mist mt-1">sent this session</p>
             <div className="mt-5 space-y-3">
@@ -119,8 +119,8 @@ export default function Notifications() {
         </div>
 
         <div className="glass rounded-3xl mt-8 overflow-hidden">
-          <h3 className="font-display text-xl text-ivory px-6 pt-6">Admin inbox</h3>
-          <p className="text-xs text-mist px-6 mt-1">system alerts routed to the Datevra team</p>
+          <h3 className="font-display text-xl text-ivory px-4 sm:px-6 pt-5 sm:pt-6">Admin inbox</h3>
+          <p className="text-xs text-mist px-4 sm:px-6 mt-1">system alerts routed to the Datevra team</p>
           {loading ? (
             <div className="p-6 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (

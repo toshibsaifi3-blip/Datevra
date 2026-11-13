@@ -200,7 +200,7 @@ export default function Activity() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Page Header */}
         <SectionHead
@@ -211,7 +211,7 @@ export default function Activity() {
         />
 
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-center justify-between">
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex flex-wrap items-center justify-between gap-2">
             <span>Failed to load activity history: {error}</span>
             <button
               onClick={refresh}
@@ -223,7 +223,7 @@ export default function Activity() {
         )}
 
         {/* Audit Metrics Stat Tiles */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div className="glass rounded-2xl p-4 space-y-1">
             <p className="text-xs uppercase tracking-wider text-mist">Total Records</p>
             <p className="font-display text-2xl text-ivory">{stats.total}</p>
@@ -247,7 +247,7 @@ export default function Activity() {
         </div>
 
         {/* Search & Comprehensive Filters Panel */}
-        <div className="glass rounded-3xl p-5 space-y-4">
+        <div className="glass rounded-3xl p-4 sm:p-5 space-y-4">
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             {/* Search Input */}
             <div className="relative flex-1">
@@ -387,7 +387,7 @@ export default function Activity() {
 
         {/* Results Counter & Table */}
         <div className="glass rounded-3xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/5 flex items-center justify-between flex-wrap gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ivory">
               Recorded Entries ({filteredLogs.length})
             </span>
@@ -509,12 +509,12 @@ export default function Activity() {
 
           {/* Bounded Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between flex-wrap gap-3">
+            <div className="px-4 sm:px-6 py-4 border-t border-white/5 flex items-center justify-between flex-wrap gap-3">
               <span className="text-xs text-mist">
                 Showing {(currentPage - 1) * PAGE_SIZE + 1}–
                 {Math.min(currentPage * PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length} entries
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
@@ -583,7 +583,7 @@ export default function Activity() {
               </div>
 
               {/* Key Audit Attributes */}
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 space-y-1">
                   <p className="uppercase tracking-wider text-mist">Actor Role</p>
                   <p className="font-semibold text-ivory capitalize">{inspectLog.actorRole}</p>

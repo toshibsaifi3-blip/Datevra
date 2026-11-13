@@ -33,9 +33,9 @@ export default function About() {
         sub="We started Datevra with a simple frustration — dating apps had become slot machines. We wanted an atelier instead: slower, more beautiful, and honest about what love actually needs."
       />
 
-      <section className="max-w-4xl mx-auto px-5 py-16">
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-12 sm:py-16">
         <Reveal>
-          <div className="glass rounded-[2rem] p-8 md:p-12">
+          <div className="glass rounded-[2rem] p-6 sm:p-8 md:p-12">
             <p className="text-lg md:text-xl text-ivory/95 leading-relaxed font-light">
               "Datevra" grew from the idea that a first meeting deserves the
               same care as a first edition — chosen paper, honest ink, nothing
@@ -66,15 +66,15 @@ export default function About() {
         </Reveal>
       </section>
 
-      <section className="max-w-6xl mx-auto px-5 py-14">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <SectionHead
           kicker="What we believe"
           title="Four promises we keep"
         />
-        <div className="mt-12 grid sm:grid-cols-2 gap-5">
+        <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 gap-5">
           {VALUES.map((v, i) => (
             <Reveal key={v.title} delay={i * 0.08}>
-              <div className="glass rounded-3xl p-8 h-full card-hover">
+              <div className="glass rounded-3xl p-6 sm:p-8 h-full card-hover">
                 <p className="font-display text-3xl text-rosegold">{v.icon}</p>
                 <h3 className="font-display text-2xl text-ivory mt-4">{v.title}</h3>
                 <p className="mt-3 text-ivory-dim/85 leading-relaxed text-[0.95rem]">{v.body}</p>
@@ -84,8 +84,8 @@ export default function About() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-5 py-14">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4">
           <Reveal><Stat label="Cities" value="6" sub="Mumbai · Delhi · Bengaluru · Pune · Jaipur · Hyderabad" /></Reveal>
           <Reveal delay={0.08}><Stat label="Partner cafés" value="180+" sub="held tables & concierge booking" /></Reveal>
           <Reveal delay={0.16}><Stat label="Evenings curated" value="3,200+" sub="each arranged by a human" /></Reveal>
@@ -93,7 +93,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-5 py-20 text-center">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-14 sm:py-20 text-center">
         <Reveal>
           <h2 className="font-display text-3xl md:text-4xl text-ivory">
             Come as you are. <span className="text-gradient-gold">Leave with a story.</span>

@@ -157,20 +157,23 @@ export default function Chat() {
     new Map<string, UserProfile>(),
   );
 
-  // Last-message previews for the conversation list.
+  // Last-message previews for the conversation list (loaded in parallel).
   const { data: previews } = useAsync(
     async (b) => {
       const map = new Map<string, string>();
-      for (const c of convs) {
-        const ms = await b.messagesFor(c.id);
-        const last = ms[ms.length - 1];
-        map.set(
-          c.id,
-          last
-            ? `${last.senderId === meId ? "You: " : ""}${last.text}`
-            : "Say hello — be kind, be yourself.",
-        );
-      }
+      const entries = await Promise.all(
+        convs.map(async (c) => {
+          const ms = await b.messagesFor(c.id);
+          const last = ms[ms.length - 1];
+          return [
+            c.id,
+            last
+              ? `${last.senderId === meId ? "You: " : ""}${last.text}`
+              : "Say hello — be kind, be yourself.",
+          ] as const;
+        }),
+      );
+      entries.forEach(([id, text]) => map.set(id, text));
       return map;
     },
     [convIdsKey, meId],
@@ -399,14 +402,16 @@ export default function Chat() {
       <div aria-hidden className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-rosegold/15 blur-[120px]" />
 
       <div className="relative">
-        <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Chat</p>
-        <h1 className="font-display text-3xl mt-1 mb-6">
-          <span className="text-gradient-dream">Conversations</span>
-          <span aria-hidden className="animate-twinkle inline-block ml-2 text-rosegold">✦</span>
-        </h1>
+        <div className={active ? "hidden md:block" : ""}>
+          <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Chat</p>
+          <h1 className="font-display text-3xl mt-1 mb-5">
+            <span className="text-gradient-dream">Conversations</span>
+            <span aria-hidden className="animate-twinkle inline-block ml-2 text-rosegold">✦</span>
+          </h1>
+        </div>
 
         {convsLoading ? (
-          <div className="flex gap-4 h-[calc(100dvh-340px)] min-h-[480px]">
+          <div className="flex gap-4 h-[calc(100dvh-16rem)] min-h-[340px] md:h-[calc(100dvh-260px)] md:min-h-[460px]">
             <Skeleton className="w-full md:w-[340px] shrink-0" />
             <Skeleton className="hidden md:block flex-1" />
           </div>
@@ -435,7 +440,13 @@ export default function Chat() {
             }
           />
         ) : (
-          <div className="flex gap-4 h-[calc(100dvh-340px)] min-h-[480px]">
+          <div
+            className={`flex gap-4 ${
+              active
+                ? "h-[calc(100dvh-13rem)] min-h-[320px] md:h-[calc(100dvh-250px)] md:min-h-[460px]"
+                : "h-[calc(100dvh-17rem)] min-h-[340px] md:h-[calc(100dvh-250px)] md:min-h-[460px]"
+            }`}
+          >
             {/* ── Conversation list ─────────────────────────────── */}
             <div
               className={`${active ? "hidden md:flex" : "flex"} flex-col w-full md:w-[340px] shrink-0 glass rounded-3xl overflow-hidden`}
@@ -874,7 +885,7 @@ export default function Chat() {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute bottom-12 left-0 z-20 glass-strong rounded-2xl p-3 w-[248px] shadow-2xl"
+                                className="absolute bottom-12 left-0 z-20 glass-strong rounded-2xl p-3 w-[248px] max-w-[calc(100vw-2.5rem)] shadow-2xl"
                                 role="dialog"
                                 aria-label="Emoji picker"
                               >
@@ -965,7 +976,7 @@ export default function Chat() {
               <p className="text-ivory-dim text-sm leading-relaxed">{partner.bio}</p>
             )}
             {partner.photos.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {partner.photos.map((url, i) => (
                   <div
                     key={url}
@@ -976,6 +987,7 @@ export default function Chat() {
                       alt={`${partner.firstName}'s photo ${i + 1}`}
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 ))}
@@ -1025,16 +1037,16 @@ export default function Chat() {
             />
           </Field>
         </div>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
           <button
             onClick={() => setShowReport(false)}
-            className="btn-ghost rounded-full px-5 py-2 text-sm"
+            className="btn-ghost rounded-full px-5 min-h-[44px] text-sm"
           >
             Cancel
           </button>
           <button
             onClick={submitReport}
-            className="btn-gold rounded-full px-5 py-2 text-sm"
+            className="btn-gold rounded-full px-5 min-h-[44px] text-sm"
           >
             Submit report
           </button>
@@ -1047,16 +1059,16 @@ export default function Chat() {
           This will permanently close the conversation and remove the match for both of you. This
           can't be undone.
         </p>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
           <button
             onClick={() => setConfirmUnmatch(false)}
-            className="btn-ghost rounded-full px-5 py-2 text-sm"
+            className="btn-ghost rounded-full px-5 min-h-[44px] text-sm"
           >
             Keep chatting
           </button>
           <button
             onClick={doUnmatch}
-            className="rounded-full px-5 py-2 text-sm bg-burgundy text-ivory hover:bg-burgundy-deep transition-colors"
+            className="rounded-full px-5 min-h-[44px] text-sm bg-burgundy text-ivory hover:bg-burgundy-deep transition-colors"
           >
             Yes, unmatch
           </button>
@@ -1072,16 +1084,16 @@ export default function Chat() {
         <p className="text-sm text-ivory-dim leading-relaxed">
           They won't be able to message you or see your profile, and the conversation will close.
         </p>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
           <button
             onClick={() => setConfirmBlock(false)}
-            className="btn-ghost rounded-full px-5 py-2 text-sm"
+            className="btn-ghost rounded-full px-5 min-h-[44px] text-sm"
           >
             Cancel
           </button>
           <button
             onClick={doBlock}
-            className="rounded-full px-5 py-2 text-sm bg-burgundy text-ivory hover:bg-burgundy-deep transition-colors"
+            className="rounded-full px-5 min-h-[44px] text-sm bg-burgundy text-ivory hover:bg-burgundy-deep transition-colors"
           >
             Block
           </button>

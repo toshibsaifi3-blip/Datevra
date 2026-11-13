@@ -541,7 +541,7 @@ export default function Users() {
 
         {/* Pagination Toolbar */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-3.5 border-t border-white/5 bg-white/[0.01] text-xs text-mist">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-4 sm:px-6 py-3.5 border-t border-white/5 bg-white/[0.01] text-xs text-mist">
             <span>
               Page <strong className="text-ivory font-mono">{currentPage}</strong> of{" "}
               <strong className="text-ivory font-mono">{totalPages}</strong>
@@ -676,7 +676,7 @@ export default function Users() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-2 border-t hairline text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t hairline text-xs">
                     <div>
                       <span className="text-mist">Relationship Intent:</span>
                       <p className="text-ivory font-medium mt-0.5">
@@ -746,7 +746,7 @@ export default function Users() {
                   <p className="text-[0.68rem] uppercase tracking-wider text-mist font-semibold mb-3">
                     Uploaded Photos ({detailUser.photos.length})
                   </p>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                     {detailUser.photos.map((url, idx) => (
                       <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border hairline bg-black/40">
                         <img
@@ -754,6 +754,7 @@ export default function Users() {
                           alt={`${detailUser.firstName} photo ${idx + 1}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     ))}
@@ -880,7 +881,7 @@ export default function Users() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3">
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-3">
                 <button
                   type="button"
                   disabled={submitting}

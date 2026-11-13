@@ -311,7 +311,7 @@ export default function Memberships() {
   const loading = pLoading || uLoading || sLoading;
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Section Header with AUTHORITATIVE PRICING COPY (Privé ₹1,199) */}
         <SectionHead
@@ -394,7 +394,7 @@ export default function Memberships() {
         </div>
 
         {/* High-Level Financial & Subscription Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Stat
             label="Active subscriptions"
             value={metrics.activeCount}
@@ -483,7 +483,7 @@ export default function Memberships() {
         {/* Filter, Search & Sort Control Bar */}
         <div className="glass rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
           {/* Multi-field search */}
-          <div className="relative flex-1 min-w-[260px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[260px]">
             <Search className="w-4 h-4 text-mist absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -517,7 +517,7 @@ export default function Memberships() {
             </select>
 
             {/* Sort Toggle Controls */}
-            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border hairline">
+            <div className="flex flex-wrap items-center gap-1 bg-white/5 p-1 rounded-xl border hairline">
               <button
                 type="button"
                 onClick={() => handleSortToggle("startedAt")}
@@ -567,7 +567,7 @@ export default function Memberships() {
         </div>
 
         {/* Results summary label */}
-        <div className="flex items-center justify-between text-xs text-mist px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-mist px-1">
           <span>
             Showing {filteredSubs.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}–
             {Math.min(currentPage * ITEMS_PER_PAGE, filteredSubs.length)} of {filteredSubs.length}{" "}
@@ -746,12 +746,12 @@ export default function Memberships() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t hairline">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t hairline">
               <span className="text-xs text-mist">
                 Page {currentPage} of {totalPages}
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
@@ -843,26 +843,26 @@ export default function Memberships() {
                   </div>
 
                   <div className="glass rounded-2xl p-4 text-xs space-y-2 border hairline">
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Member:</span>
-                      <span className="text-ivory font-medium">
+                      <span className="text-ivory font-medium break-all">
                         {u?.firstName ?? "Unknown"} ({u?.email ?? cancelTarget.userId})
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Plan:</span>
                       <span className="text-champagne font-medium uppercase">
                         {cancelTarget.planId}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Expiration:</span>
                       <span className="text-ivory">{fmtDate(cancelTarget.expiresAt)}</span>
                     </div>
                     {cancelTarget.paymentId && (
-                      <div className="flex justify-between">
+                      <div className="flex flex-wrap justify-between gap-2">
                         <span className="text-mist">Associated Payment:</span>
-                        <span className="font-mono text-ivory-dim">
+                        <span className="font-mono text-ivory-dim break-all">
                           {cancelTarget.paymentId}
                         </span>
                       </div>
@@ -882,12 +882,12 @@ export default function Memberships() {
                     />
                   </Field>
 
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                     <button
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => setCancelTarget(null)}
-                      className="btn-ghost px-4 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                      className="btn-ghost px-4 py-2.5 rounded-xl text-xs text-mist hover:text-ivory min-h-[44px]"
                     >
                       Keep Subscription
                     </button>
@@ -895,7 +895,7 @@ export default function Memberships() {
                       type="button"
                       disabled={isSubmitting}
                       onClick={handleExecuteCancel}
-                      className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl px-5 py-2 text-xs font-medium transition-all"
+                      className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-xl px-5 py-2.5 text-xs font-medium transition-all min-h-[44px]"
                     >
                       {isSubmitting ? "Cancelling…" : "Confirm Cancellation"}
                     </button>
@@ -935,29 +935,29 @@ export default function Memberships() {
               return (
                 <div className="space-y-5">
                   <div className="glass rounded-2xl p-4 text-xs space-y-2 border hairline">
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Member:</span>
-                      <span className="text-ivory font-medium">
+                      <span className="text-ivory font-medium break-all">
                         {u?.firstName ?? "Unknown"} ({u?.email ?? extendTarget.userId})
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Tier:</span>
                       <span className="text-champagne font-medium uppercase">
                         {extendTarget.planId}
                       </span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Current Status:</span>
                       <span className="capitalize text-ivory">{extendTarget.status}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex flex-wrap justify-between gap-2">
                       <span className="text-mist">Current Expiry:</span>
                       <span className="text-ivory font-mono">
                         {fmtDate(extendTarget.expiresAt)}
                       </span>
                     </div>
-                    <div className="flex justify-between border-t hairline pt-2">
+                    <div className="flex flex-wrap justify-between gap-2 border-t hairline pt-2">
                       <span className="text-champagne font-medium">New Expiration:</span>
                       <span className="text-emerald-300 font-mono font-medium">
                         {effectiveDays > 0 ? fmtDate(projectedExpiry.toISOString()) : "—"}
@@ -1015,12 +1015,12 @@ export default function Memberships() {
                     />
                   </Field>
 
-                  <div className="flex items-center justify-end gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                     <button
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => setExtendTarget(null)}
-                      className="btn-ghost px-4 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                      className="btn-ghost px-4 py-2.5 rounded-xl text-xs text-mist hover:text-ivory min-h-[44px]"
                     >
                       Cancel
                     </button>
@@ -1028,7 +1028,7 @@ export default function Memberships() {
                       type="button"
                       disabled={isSubmitting || effectiveDays <= 0}
                       onClick={handleExecuteExtend}
-                      className="btn-gold rounded-xl px-5 py-2 text-xs font-medium disabled:opacity-40"
+                      className="btn-gold rounded-xl px-5 py-2.5 text-xs font-medium disabled:opacity-40 min-h-[44px]"
                     >
                       {isSubmitting ? "Extending…" : `Extend (+${effectiveDays} Days)`}
                     </button>

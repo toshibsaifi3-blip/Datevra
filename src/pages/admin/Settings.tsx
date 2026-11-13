@@ -8,7 +8,7 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+      className={`relative inline-flex shrink-0 h-7 w-12 items-center rounded-full transition-colors ${
         on ? "bg-rosegold/60" : "bg-white/10"
       }`}
     >
@@ -67,7 +67,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-3xl mx-auto">
         <SectionHead
           kicker="Platform"
@@ -78,15 +78,15 @@ export default function Settings() {
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load settings: {error}</p>}
 
         {loading || form === null ? (
-          <div className="glass rounded-3xl p-6 mt-10 space-y-6">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-8 sm:mt-10 space-y-6">
             <Skeleton className="h-14" />
             <Skeleton className="h-14" />
             <Skeleton className="h-14" />
             <Skeleton className="h-24" />
           </div>
         ) : (
-          <div className="glass rounded-3xl p-6 mt-10 space-y-6">
-            <div className="flex items-center justify-between gap-4">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-8 sm:mt-10 space-y-6">
+            <div className="flex items-start sm:items-center justify-between gap-4">
               <div>
                 <p className="text-ivory font-medium">Maintenance mode</p>
                 <p className="text-xs text-mist mt-1">Show a holding page to members while work happens.</p>
@@ -104,7 +104,7 @@ export default function Settings() {
               />
             </Field>
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center justify-between gap-4">
               <div>
                 <p className="text-ivory font-medium">Razorpay test mode</p>
                 <p className="text-xs text-mist mt-1">

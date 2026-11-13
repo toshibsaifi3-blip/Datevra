@@ -123,7 +123,7 @@ export default function Passes() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <SectionHead
         kicker="Complimentary passes"
         title="Passes"
@@ -145,12 +145,12 @@ export default function Passes() {
       ) : null}
 
       <div className="flex justify-end mb-4">
-        <button className="btn-gold" onClick={() => setShowCreate(true)}>Generate pass</button>
+        <button className="btn-gold w-full sm:w-auto min-h-[44px]" onClick={() => setShowCreate(true)}>Generate pass</button>
       </div>
 
       <div className="glass-panel p-4 rounded-2xl border border-white/10 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 min-w-0 lg:max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-mist" />
           <input
             type="text"
@@ -173,12 +173,12 @@ export default function Passes() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Café Filter Dropdown */}
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex flex-wrap items-center gap-2 text-xs w-full sm:w-auto">
             <span className="text-mist">Café:</span>
             <select
               value={cafeFilter}
               onChange={(e) => setCafeFilter(e.target.value)}
-              className={`${inputCls} py-1.5 px-3 text-xs rounded-full w-auto max-w-[200px] truncate`}
+              className={`${inputCls} py-1.5 px-3 text-xs rounded-full w-full sm:w-auto sm:max-w-[200px] truncate`}
             >
               <option value="all">All cafés ({cafes.length})</option>
               {cafes.map((c) => (
@@ -318,25 +318,25 @@ export default function Passes() {
               </span>
             </div>
 
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-xs space-y-1">
-              <div className="flex justify-between">
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-xs space-y-1.5">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Code:</span>
-                <span className="font-mono text-champagne font-semibold">
+                <span className="font-mono text-champagne font-semibold break-all">
                   {passToRevoke.code}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Café:</span>
                 <span className="text-ivory">{passToRevoke.cafeName}</span>
               </div>
               {passToRevoke.issuedToName && (
-                <div className="flex justify-between">
+                <div className="flex flex-wrap justify-between gap-2">
                   <span className="text-mist">Issued To:</span>
                   <span className="text-ivory">{passToRevoke.issuedToName}</span>
                 </div>
               )}
               {passToRevoke.note && (
-                <div className="flex justify-between">
+                <div className="flex flex-wrap justify-between gap-2">
                   <span className="text-mist">Current Note:</span>
                   <span className="text-ivory/80 max-w-xs truncate">{passToRevoke.note}</span>
                 </div>
@@ -354,12 +354,12 @@ export default function Passes() {
               />
             </Field>
 
-            <div className="flex justify-end gap-3 pt-3">
+            <div className="flex flex-wrap justify-end gap-3 pt-3">
               <button
                 type="button"
                 disabled={isRevoking}
                 onClick={() => setPassToRevoke(null)}
-                className="px-4 py-2 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-xs transition-colors"
+                className="px-4 py-2.5 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-xs transition-colors min-h-[44px]"
               >
                 Cancel
               </button>
@@ -367,7 +367,7 @@ export default function Passes() {
                 type="button"
                 disabled={isRevoking}
                 onClick={handleRevoke}
-                className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors disabled:opacity-50"
+                className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors disabled:opacity-50 min-h-[44px]"
               >
                 {isRevoking ? "Revoking…" : "Confirm Revoke"}
               </button>

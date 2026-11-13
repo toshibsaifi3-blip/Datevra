@@ -19,12 +19,12 @@ interface BookingRow {
 
 function BookingCard({ booking, exp, partner }: BookingRow) {
   return (
-    <div className="glass rounded-3xl p-6 card-hover">
+    <div className="glass rounded-3xl p-4 sm:p-6 card-hover">
       <div className="flex flex-wrap items-start gap-4">
         <span className="h-12 w-12 rounded-2xl bg-gradient-to-br from-burgundy to-burgundy-deep border border-rosegold/30 flex items-center justify-center text-xl text-champagne shrink-0">
           ◈
         </span>
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-0 sm:min-w-[200px]">
           <p className="font-display text-xl text-ivory">{exp?.title ?? "Curated date"}</p>
           <p className="text-sm text-mist mt-1">
             {booking.venue}
@@ -38,7 +38,7 @@ function BookingCard({ booking, exp, partner }: BookingRow) {
             <p className="text-sm text-champagne mt-2">{inr(booking.amount)}</p>
           )}
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2">
           <Badge tone={booking.status === "upcoming" ? "gold" : booking.status === "completed" ? "green" : "muted"}>
             {booking.status}
           </Badge>
@@ -87,7 +87,7 @@ export default function Bookings() {
   const { upcoming, past } = data;
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-10">
+    <div className="max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-8">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">My bookings</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-8">Dates on the calendar</h1>

@@ -107,7 +107,7 @@ export default function Cafes() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Venue network"
@@ -124,7 +124,7 @@ export default function Cafes() {
             placeholder="Search name, city or address…"
             className={inputCls}
           />
-          <button onClick={openNew} className="btn-gold rounded-xl px-5 py-3 text-sm sm:ml-auto whitespace-nowrap">
+          <button onClick={openNew} className="btn-gold rounded-xl px-5 py-3 text-sm w-full sm:w-auto sm:ml-auto whitespace-nowrap min-h-[44px]">
             + Add café
           </button>
         </div>
@@ -237,7 +237,7 @@ export default function Cafes() {
                         .slice(0, 4)
                         .map((img, idx) => (
                           <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-gold/20">
-                            <img src={img} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img src={img} alt={`Preview ${idx + 1}`} decoding="async" className="w-full h-full object-cover" />
                           </div>
                         ))}
                     </div>

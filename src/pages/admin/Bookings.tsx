@@ -76,7 +76,7 @@ export default function Bookings() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Curated dates"
@@ -86,11 +86,11 @@ export default function Bookings() {
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load bookings: {error}</p>}
 
-        <div className="mt-8 glass rounded-2xl p-4 flex items-center gap-3">
+        <div className="mt-8 glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className={`${inputCls} max-w-xs`}
+            className={`${inputCls} w-full sm:w-auto sm:max-w-xs`}
           >
             <option value="all">All statuses</option>
             <option value="upcoming">Upcoming</option>
@@ -196,12 +196,12 @@ export default function Bookings() {
               <p className="text-xs text-mist">
                 Both participants will be notified in-app immediately.
               </p>
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex flex-wrap justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setCancelTarget(null)}
                   disabled={inFlight}
-                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm"
+                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm min-h-[44px]"
                 >
                   Keep Booking
                 </button>
@@ -209,7 +209,7 @@ export default function Bookings() {
                   type="button"
                   onClick={confirmCancel}
                   disabled={inFlight}
-                  className="rounded-xl px-5 py-2.5 text-sm font-medium bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/30 transition-colors disabled:opacity-50"
+                  className="rounded-xl px-5 py-2.5 text-sm font-medium bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/30 transition-colors disabled:opacity-50 min-h-[44px]"
                 >
                   {inFlight ? "Cancelling..." : "Confirm Cancellation"}
                 </button>

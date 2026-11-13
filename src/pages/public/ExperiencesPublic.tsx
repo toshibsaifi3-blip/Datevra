@@ -262,7 +262,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         />
       )}
 
-      <section className="relative max-w-6xl mx-auto px-5 py-10 md:py-14">
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-10 md:py-14">
         {/* ============================================================== */}
         {/* CAFÉ EXPERIENCE CARDS (Café Hot Stag & Karma La Cafe only)      */}
         {/* ============================================================== */}
@@ -300,12 +300,12 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                   </div>
 
                   {/* Card Content */}
-                  <div className="p-7 flex-1 flex flex-col">
-                    <div className="flex items-start justify-between gap-3">
+                  <div className="p-5 sm:p-7 flex-1 flex flex-col">
+                    <div className="flex flex-wrap items-start justify-between gap-2 sm:gap-3">
                       <h3 className="font-display text-2xl md:text-3xl text-ivory">
                         {cfg.displayName}
                       </h3>
-                      <div className="text-right shrink-0">
+                      <div className="sm:text-right shrink-0">
                         <span className="text-[0.65rem] uppercase tracking-widest text-mist block">
                           Indicative budget
                         </span>
@@ -365,7 +365,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
 
         {/* Informational reassurance section */}
         <Reveal className="mt-16">
-          <div className="glass-strong glow-border rounded-[2rem] p-8 text-center max-w-3xl mx-auto relative overflow-hidden">
+          <div className="glass-strong glow-border rounded-[2rem] p-6 sm:p-8 text-center max-w-3xl mx-auto relative overflow-hidden">
             <div className="absolute -top-16 left-1/2 -translate-x-1/2 h-40 w-72 rounded-full bg-rosegold/15 blur-[80px]" />
             <p className="text-[0.7rem] uppercase tracking-[0.3em] text-rosegold relative">Honest by design</p>
             <h3 className="font-display text-2xl text-ivory mt-2 relative">How experience applications work</h3>
@@ -404,26 +404,26 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               </p>
             </div>
 
-            <div className="glass rounded-2xl p-4 text-left max-w-md mx-auto space-y-2 text-sm border border-white/10">
-              <div className="flex justify-between">
+            <div className="glass rounded-2xl p-4 text-left max-w-md mx-auto space-y-2.5 text-sm border border-white/10">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Reservation Date:</span>
                 <span className="text-ivory font-medium">{submittedApp.date}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Preferred Timing:</span>
                 <span className="text-ivory font-medium">{submittedApp.time} (Subject to confirmation)</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Party Size:</span>
                 <span className="text-ivory font-medium">{submittedApp.guests} guests</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Budget Preference:</span>
                 <span className="text-champagne font-medium">
                   ₹{submittedApp.budgetRange[0].toLocaleString("en-IN")} – ₹{submittedApp.budgetRange[1].toLocaleString("en-IN")}
                 </span>
               </div>
-              <div className="flex justify-between pt-1 border-t border-white/5">
+              <div className="flex flex-wrap justify-between items-center gap-2 pt-1.5 border-t border-white/5">
                 <span className="text-mist">Status:</span>
                 <Badge tone="gold">Pending Admin Review</Badge>
               </div>
@@ -497,11 +497,11 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               )}
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-wrap gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setIsReviewStep(false)}
-                className="btn-ghost rounded-full px-6 py-3 text-sm flex-1 touch-manipulation"
+                className="btn-ghost rounded-full px-6 py-3 min-h-[44px] text-sm flex-1 min-w-[140px] touch-manipulation"
               >
                 ← Edit details
               </button>
@@ -509,7 +509,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                 type="button"
                 onClick={submitApplication}
                 disabled={busy}
-                className="btn-gold rounded-full px-6 py-3 text-sm font-semibold flex-1 disabled:opacity-60 touch-manipulation"
+                className="btn-gold rounded-full px-6 py-3 min-h-[44px] text-sm font-semibold flex-1 min-w-[160px] disabled:opacity-60 touch-manipulation"
               >
                 {busy ? "Submitting…" : "Confirm & Submit Application"}
               </button>
@@ -519,8 +519,8 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
           /* Step 1: Application Form Input */
           <div className="space-y-5">
             {/* Field A: Selected Café (Read-only banner) */}
-            <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
-              <div>
+            <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <span className="text-[0.68rem] uppercase tracking-wider text-mist block">
                   Selected Venue
                 </span>
@@ -708,11 +708,11 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
             </Field>
 
             {/* Form Actions */}
-            <div className="flex gap-3 pt-3">
+            <div className="flex flex-wrap gap-3 pt-3">
               <button
                 type="button"
                 onClick={closeApplication}
-                className="btn-ghost rounded-full px-6 py-3 text-sm flex-1 touch-manipulation"
+                className="btn-ghost rounded-full px-6 py-3 min-h-[44px] text-sm flex-1 min-w-[120px] touch-manipulation"
               >
                 Cancel
               </button>
@@ -729,7 +729,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                   }
                   setIsReviewStep(true);
                 }}
-                className="btn-gold rounded-full px-6 py-3 text-sm font-semibold flex-1 touch-manipulation"
+                className="btn-gold rounded-full px-6 py-3 min-h-[44px] text-sm font-semibold flex-1 min-w-[160px] touch-manipulation"
               >
                 Review Application →
               </button>

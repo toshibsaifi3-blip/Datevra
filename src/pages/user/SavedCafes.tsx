@@ -46,7 +46,7 @@ export default function SavedCafes() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-5 py-10">
+    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-4 sm:py-8">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Saved cafés</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-8">Your shortlist of lovely places</h1>
@@ -97,16 +97,16 @@ export default function SavedCafes() {
                   ) : (
                     <div className="flex-1" />
                   )}
-                  <div className="flex gap-2 mt-4 pt-2">
+                  <div className="flex flex-wrap gap-2 mt-4 pt-2">
                     <Link
                       to={`/cafes/${c.id}`}
-                      className="btn-ghost rounded-full px-4 py-2 text-xs flex-1 text-center"
+                      className="btn-ghost rounded-full px-4 min-h-[44px] inline-flex items-center justify-center text-xs flex-1 text-center"
                     >
                       View details
                     </Link>
                     <button
                       onClick={() => unsave(c.id, c.name)}
-                      className="btn-ghost rounded-full px-4 py-2 text-xs"
+                      className="btn-ghost rounded-full px-4 min-h-[44px] text-xs"
                     >
                       ★ Saved
                     </button>

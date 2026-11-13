@@ -134,7 +134,7 @@ export function SectionHead({
       className={`max-w-2xl ${alignCls}`}
     >
       <p className="text-[0.72rem] uppercase tracking-[0.32em] text-rosegold/90">{kicker}</p>
-      <h2 className="font-display text-4xl md:text-5xl mt-3 text-ivory leading-tight">{title}</h2>
+      <h2 className="font-display text-3xl sm:text-4xl md:text-5xl mt-3 text-ivory leading-tight">{title}</h2>
       {sub && <p className="mt-4 text-ivory-dim/90 leading-relaxed">{sub}</p>}
       <div className={`ornament-divider mt-6 ${align === "center" ? "max-w-xs mx-auto" : "max-w-xs"}`}>
         <span className="text-lg">✦</span>
@@ -157,7 +157,7 @@ export function PageHero({
   return (
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-burgundy-deep/50 via-transparent to-transparent" />
-      <div className="relative max-w-6xl mx-auto px-5 pt-28 pb-14 md:pt-36 md:pb-20 text-center">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-5 pt-24 pb-10 md:pt-36 md:pb-20 text-center">
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -169,7 +169,7 @@ export function PageHero({
           initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-          className="font-display text-5xl md:text-6xl mt-4 text-ivory leading-tight"
+          className="font-display text-3xl sm:text-5xl md:text-6xl mt-4 text-ivory leading-tight"
         >
           {title}
         </motion.h1>
@@ -235,8 +235,11 @@ export function Avatar({
         <img
           src={photo}
           alt=""
+          width={size}
+          height={size}
           className="h-full w-full rounded-full object-cover"
           loading="lazy"
+          decoding="async"
           onError={() => setImgOk(false)}
         />
       ) : (
@@ -292,7 +295,7 @@ export function EmptyState({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass rounded-3xl px-8 py-14 text-center max-w-md mx-auto"
+      className="glass rounded-3xl px-5 sm:px-8 py-10 sm:py-14 text-center max-w-md mx-auto"
     >
       <div className="mx-auto mb-5 h-16 w-16 rounded-full bg-gradient-to-br from-burgundy to-burgundy-deep flex items-center justify-center border border-rosegold/30">
         <span className="font-display text-3xl text-champagne">✦</span>
@@ -318,9 +321,9 @@ export function Stat({
   sub?: string;
 }) {
   return (
-    <div className="glass rounded-2xl p-5 card-hover">
+    <div className="glass rounded-2xl p-4 sm:p-5 card-hover min-w-0">
       <p className="text-[0.7rem] uppercase tracking-[0.24em] text-mist">{label}</p>
-      <p className="font-display text-4xl mt-2 text-gradient-gold font-semibold">{value}</p>
+      <p className="font-display text-2xl sm:text-4xl mt-2 text-gradient-gold font-semibold break-words">{value}</p>
       {sub && <p className="text-xs text-ivory-dim/80 mt-1">{sub}</p>}
     </div>
   );
@@ -374,7 +377,7 @@ export function Modal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-sm"
           onClick={onClose}
           role="dialog"
           aria-modal="true"
@@ -387,7 +390,7 @@ export function Modal({
             animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: 12 }}
             transition={reducedMotion ? { duration: 0.1 } : { type: "spring", damping: 26, stiffness: 300 }}
-            className={`glass-strong rounded-3xl p-6 md:p-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[90vh] overflow-y-auto focus:outline-none`}
+            className={`glass-strong rounded-3xl p-5 sm:p-6 md:p-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} max-h-[90dvh] overflow-y-auto focus:outline-none`}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
@@ -442,7 +445,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none px-4 w-full max-w-md">
+      <div className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] lg:bottom-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center gap-2 pointer-events-none px-4 w-full max-w-md">
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div

@@ -66,6 +66,7 @@ function PhotoShowcase({ photos, name }: { photos: string[]; name: string }) {
           src={photos[idx]}
           alt={`${name}'s photo ${idx + 1}`}
           className="absolute inset-0 h-full w-full object-cover"
+          decoding="async"
           initial={{ opacity: 0, scale: 1.04 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.99 }}
@@ -94,7 +95,7 @@ function PhotoShowcase({ photos, name }: { photos: string[]; name: string }) {
             type="button"
             aria-label="Previous photo"
             onClick={() => setIdx((i) => (i - 1 + photos.length) % photos.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full glass-strong w-10 h-10 flex items-center justify-center text-ivory hover:text-rosegold transition-colors"
+            className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 rounded-full glass-strong min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center text-ivory hover:text-rosegold transition-colors touch-manipulation"
           >
             ‹
           </button>
@@ -102,7 +103,7 @@ function PhotoShowcase({ photos, name }: { photos: string[]; name: string }) {
             type="button"
             aria-label="Next photo"
             onClick={() => setIdx((i) => (i + 1) % photos.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full glass-strong w-10 h-10 flex items-center justify-center text-ivory hover:text-rosegold transition-colors"
+            className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 rounded-full glass-strong min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center text-ivory hover:text-rosegold transition-colors touch-manipulation"
           >
             ›
           </button>
@@ -265,7 +266,7 @@ export default function Profile() {
   const circ = 2 * Math.PI * radius;
 
   return (
-    <div className="relative max-w-4xl mx-auto px-5 py-10">
+    <div className="relative max-w-4xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-burgundy/30 blur-[120px] animate-aura-shift" />
       <div className="pointer-events-none absolute top-1/3 -right-32 h-80 w-80 rounded-full bg-rosegold/10 blur-[120px]" />
@@ -282,16 +283,16 @@ export default function Profile() {
 
       {/* header */}
       <Reveal>
-        <div className="glass-strong glow-border rounded-[2rem] p-6 md:p-8 mb-8 relative overflow-hidden">
+        <div className="glass-strong glow-border rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8 relative overflow-hidden">
           <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-rosegold/15 blur-[90px]" />
-          <div className="relative flex flex-wrap items-center gap-6">
+          <div className="relative flex flex-wrap items-center gap-5 sm:gap-6">
             <div className="relative">
               <Avatar name={firstName || user.firstName} photo={user.photos[0]} size={96} ring />
               <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-gradient-to-br from-champagne to-rosegold flex items-center justify-center text-midnight text-sm shadow-lg">
                 ✦
               </span>
             </div>
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-0 sm:min-w-[200px]">
               <p className="text-[0.7rem] uppercase tracking-[0.3em] text-rosegold mb-1">
                 Your constellation
               </p>
@@ -353,7 +354,7 @@ export default function Profile() {
       </Reveal>
 
       <Reveal delay={0.08}>
-        <div className="glass rounded-[2rem] p-6 md:p-8 mb-8 relative overflow-hidden">
+        <div className="glass rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8 relative overflow-hidden">
           <div className="absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-burgundy/25 blur-[90px]" />
           <div className="relative">
             <PhotoManager />
@@ -363,7 +364,7 @@ export default function Profile() {
 
       {/* about */}
       <Reveal>
-        <section className="glass rounded-[2rem] p-6 md:p-8 mb-8 relative overflow-hidden">
+        <section className="glass rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8 relative overflow-hidden">
           <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-champagne/10 blur-[80px]" />
           <div className="relative">
             <SectionTitle
@@ -408,7 +409,7 @@ export default function Profile() {
 
       {/* matching preferences */}
       <Reveal>
-        <section className="glass rounded-[2rem] p-6 md:p-8 mb-8 relative overflow-hidden">
+        <section className="glass rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8 relative overflow-hidden">
           <div className="absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-rosegold/10 blur-[80px]" />
           <div className="relative">
             <SectionTitle
@@ -446,7 +447,7 @@ export default function Profile() {
 
       {/* interests, hobbies, lifestyle */}
       <Reveal>
-        <section className="glass rounded-[2rem] p-6 md:p-8 mb-8 relative overflow-hidden">
+        <section className="glass rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8 relative overflow-hidden">
           <div className="absolute top-0 left-1/3 h-40 w-40 rounded-full bg-celestial/10 blur-[80px]" />
           <div className="relative space-y-8">
             <SectionTitle
@@ -477,7 +478,7 @@ export default function Profile() {
               </div>
               <div className="flex gap-2 mt-3">
                 <input
-                  className={inputCls}
+                  className={`${inputCls} min-w-0 flex-1`}
                   placeholder="Or add your own…"
                   value={customInterest}
                   onChange={(e) => setCustomInterest(e.target.value)}
@@ -490,7 +491,7 @@ export default function Profile() {
                 />
                 <button
                   type="button"
-                  className="btn-ghost rounded-xl px-4 text-sm shrink-0"
+                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
                   onClick={() => addFree(interests, setInterests, customInterest, () => setCustomInterest(""))}
                 >
                   Add
@@ -504,7 +505,7 @@ export default function Profile() {
               <ChipList items={hobbies} onRemove={(h) => toggle(hobbies, setHobbies, h)} empty="None yet." tone="rosegold" />
               <div className="flex gap-2">
                 <input
-                  className={inputCls}
+                  className={`${inputCls} min-w-0 flex-1`}
                   placeholder="e.g. Weekend cycling, film photography…"
                   value={hobbyInput}
                   onChange={(e) => setHobbyInput(e.target.value)}
@@ -517,7 +518,7 @@ export default function Profile() {
                 />
                 <button
                   type="button"
-                  className="btn-ghost rounded-xl px-4 text-sm shrink-0"
+                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
                   onClick={() => addFree(hobbies, setHobbies, hobbyInput, () => setHobbyInput(""))}
                 >
                   Add
@@ -531,7 +532,7 @@ export default function Profile() {
               <ChipList items={lifestyle} onRemove={(l) => toggle(lifestyle, setLifestyle, l)} empty="None added." tone="mist" />
               <div className="flex gap-2">
                 <input
-                  className={inputCls}
+                  className={`${inputCls} min-w-0 flex-1`}
                   placeholder="Add a lifestyle note…"
                   value={lifestyleInput}
                   onChange={(e) => setLifestyleInput(e.target.value)}
@@ -544,7 +545,7 @@ export default function Profile() {
                 />
                 <button
                   type="button"
-                  className="btn-ghost rounded-xl px-4 text-sm shrink-0"
+                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
                   onClick={() => addFree(lifestyle, setLifestyle, lifestyleInput, () => setLifestyleInput(""))}
                 >
                   Add
@@ -557,7 +558,7 @@ export default function Profile() {
 
       {/* privacy */}
       <Reveal>
-        <section className="glass rounded-[2rem] p-6 md:p-8 mb-8">
+        <section className="glass rounded-[2rem] p-5 sm:p-6 md:p-8 mb-8">
           <SectionTitle
             kicker="Privacy"
             title="Your presence"

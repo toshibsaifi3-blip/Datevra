@@ -528,7 +528,7 @@ export default function Onboarding() {
 
                     <div className="flex gap-2 mt-3">
                       <input
-                        className={inputCls}
+                        className={`${inputCls} min-w-0 flex-1`}
                         placeholder="Add custom interest (e.g. Scuba diving)…"
                         aria-label="Custom interest"
                         value={customTag}
@@ -574,7 +574,7 @@ export default function Onboarding() {
                     )}
                     <div className="flex gap-2">
                       <input
-                        className={inputCls}
+                        className={`${inputCls} min-w-0 flex-1`}
                         placeholder="e.g. Weekend cycling, film photography…"
                         value={hobbyInput}
                         onChange={(e) => setHobbyInput(e.target.value)}
@@ -617,7 +617,7 @@ export default function Onboarding() {
                     )}
                     <div className="flex gap-2">
                       <input
-                        className={inputCls}
+                        className={`${inputCls} min-w-0 flex-1`}
                         placeholder="Add a lifestyle note…"
                         value={lifestyleInput}
                         onChange={(e) => setLifestyleInput(e.target.value)}
@@ -678,6 +678,7 @@ export default function Onboarding() {
                           src={user.photos[0]}
                           alt={`${firstName || user.firstName}'s primary photo`}
                           className="h-full w-full object-cover"
+                          decoding="async"
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-coal via-burgundy-deep to-midnight">
@@ -757,7 +758,7 @@ export default function Onboarding() {
               )}
 
               {/* Navigation controls */}
-              <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t hairline">
+              <div className="flex flex-wrap items-center justify-between gap-3 mt-8 pt-6 border-t hairline">
                 <button
                   type="button"
                   onClick={handleBack}

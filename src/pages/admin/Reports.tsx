@@ -282,7 +282,7 @@ export default function Reports() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div>
@@ -365,7 +365,7 @@ export default function Reports() {
 
         {/* Filter and Search Bar */}
         <div className="glass rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[260px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[260px]">
             <Search className="w-4 h-4 text-mist absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -432,7 +432,7 @@ export default function Reports() {
         </div>
 
         {/* Results summary */}
-        <div className="flex items-center justify-between text-xs text-mist px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-mist px-1">
           <span>
             Showing {filteredReports.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}–
             {Math.min(currentPage * ITEMS_PER_PAGE, filteredReports.length)} of {filteredReports.length}{" "}
@@ -625,7 +625,7 @@ export default function Reports() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t hairline">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t hairline">
               <span className="text-xs text-mist">
                 Page {currentPage} of {totalPages}
               </span>
@@ -957,7 +957,7 @@ export default function Reports() {
                     Audit log actor: <span className="font-mono text-champagne">{actor}</span>
                   </span>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {inspectReport.status === "open" && (
                       <button
                         type="button"

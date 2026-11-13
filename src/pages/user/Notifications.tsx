@@ -67,8 +67,8 @@ export default function Notifications() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-5 py-10">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Notifications</p>
           <h1 className="font-display text-3xl text-ivory mt-1">
@@ -76,7 +76,7 @@ export default function Notifications() {
           </h1>
         </div>
         {unread > 0 && (
-          <button onClick={markAll} className="btn-ghost rounded-full px-5 py-2.5 text-sm">
+          <button onClick={markAll} className="btn-ghost rounded-full px-5 min-h-[44px] text-sm shrink-0">
             Mark all read
           </button>
         )}

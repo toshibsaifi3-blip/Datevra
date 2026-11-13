@@ -125,7 +125,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(110,27,46,0.35),transparent_65%)]" />
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -146,10 +146,10 @@ export default function Register() {
         </div>
 
         {step === "otp" ? (
-          <form onSubmit={submitOtp} className="glass-strong rounded-[1.75rem] p-8 space-y-5">
+          <form onSubmit={submitOtp} className="glass-strong rounded-[1.75rem] p-5 sm:p-8 space-y-5">
             <Field label="Verification code" hint="6 digits">
               <input
-                className={`${inputCls} text-center text-2xl tracking-[0.5em] font-mono`}
+                className={`${inputCls} text-center text-xl sm:text-2xl tracking-[0.28em] sm:tracking-[0.5em] font-mono`}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="••••••"
@@ -179,11 +179,11 @@ export default function Register() {
               {otpBusy ? "Verifying…" : "Verify & continue"}
             </button>
 
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <button
                 type="button"
                 onClick={() => setStep("details")}
-                className="text-mist hover:text-ivory transition-colors"
+                className="text-mist hover:text-ivory transition-colors py-1"
               >
                 ← Wrong email? Go back
               </button>
@@ -191,7 +191,7 @@ export default function Register() {
                 type="button"
                 onClick={resend}
                 disabled={resendCooldown > 0 || resendBusy}
-                className="text-champagne hover:text-rosegold transition-colors disabled:opacity-50"
+                className="text-champagne hover:text-rosegold transition-colors disabled:opacity-50 py-1"
               >
                 {resendBusy
                   ? "Sending…"
@@ -202,7 +202,7 @@ export default function Register() {
             </div>
           </form>
         ) : (
-        <form onSubmit={submit} className="glass-strong rounded-[1.75rem] p-8 space-y-5">
+        <form onSubmit={submit} className="glass-strong rounded-[1.75rem] p-5 sm:p-8 space-y-5">
           <div className="grid sm:grid-cols-2 gap-5">
             <Field label="First name">
               <input
@@ -287,7 +287,7 @@ export default function Register() {
               type="checkbox"
               checked={terms}
               onChange={(e) => setTerms(e.target.checked)}
-              className="mt-1 accent-[#c97e5f]"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[#c97e5f]"
             />
             <span>
               I confirm I am 18 or older and I accept the{" "}

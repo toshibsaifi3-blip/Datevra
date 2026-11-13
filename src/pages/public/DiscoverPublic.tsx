@@ -49,8 +49,8 @@ export default function DiscoverPublic() {
       </PageHero>
 
       {/* Blurred teaser cards */}
-      <section className="max-w-6xl mx-auto px-5 pb-8">
-        <div className="grid md:grid-cols-3 gap-5">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {TEASERS.map((t, i) => (
             <Reveal key={t.name} delay={i * 0.1}>
               <div className="relative glass rounded-3xl overflow-hidden card-hover">
@@ -97,16 +97,16 @@ export default function DiscoverPublic() {
       </section>
 
       {/* Matching explained */}
-      <section className="max-w-6xl mx-auto px-5 py-20">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-14 sm:py-20">
         <SectionHead
           kicker="How matching works"
           title="Compatibility, honestly computed"
           sub="No mystery algorithms promising destiny. Just your stated preferences, compared transparently."
         />
-        <div className="mt-12 grid sm:grid-cols-2 gap-5">
+        <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 gap-4 sm:gap-5">
           {FACTORS.map((f, i) => (
             <Reveal key={f.title} delay={i * 0.08}>
-              <div className="glass rounded-3xl p-7 h-full card-hover">
+              <div className="glass rounded-3xl p-5 sm:p-7 h-full card-hover">
                 <p className="text-rosegold">✦</p>
                 <h3 className="font-display text-xl text-ivory mt-3">{f.title}</h3>
                 <p className="mt-2 text-sm text-ivory-dim/85 leading-relaxed">{f.body}</p>
@@ -115,7 +115,7 @@ export default function DiscoverPublic() {
           ))}
         </div>
         <Reveal className="text-center mt-12">
-          <Link to="/register" className="btn-gold rounded-full px-10 py-4 text-base font-semibold">
+          <Link to="/register" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base font-semibold inline-flex items-center justify-center min-h-[44px]">
             Start discovering
           </Link>
           <p className="mt-4 text-xs text-mist/70">

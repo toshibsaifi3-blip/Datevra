@@ -74,7 +74,7 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(110,27,46,0.35),transparent_65%)]" />
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -92,7 +92,7 @@ export default function ResetPassword() {
           </p>
         </div>
 
-        <div className="glass-strong rounded-[1.75rem] p-8">
+        <div className="glass-strong rounded-[1.75rem] p-5 sm:p-8">
           {checking || !ready ? (
             <p className="text-sm text-mist text-center py-6">Verifying your reset link…</p>
           ) : done ? (

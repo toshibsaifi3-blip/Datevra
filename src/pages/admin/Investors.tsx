@@ -74,7 +74,7 @@ export default function Investors() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Capital ledger"
@@ -84,8 +84,8 @@ export default function Investors() {
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load investors: {error}</p>}
 
-        <div className="glass rounded-2xl p-5 mt-8 flex gap-4 items-start">
-          <span className="text-2xl">⚖️</span>
+        <div className="glass rounded-2xl p-4 sm:p-5 mt-8 flex gap-3 sm:gap-4 items-start">
+          <span className="text-2xl shrink-0">⚖️</span>
           <p className="text-sm text-ivory-dim leading-relaxed">
             Investor entries record revenue-share agreements, schedules and actual payouts. Datevra
             does not guarantee investment returns; amounts shown are ledger history only.
@@ -93,7 +93,7 @@ export default function Investors() {
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button onClick={openNew} className="btn-gold rounded-xl px-5 py-3 text-sm">
+          <button onClick={openNew} className="btn-gold rounded-xl px-5 py-3 text-sm w-full sm:w-auto min-h-[44px]">
             + Add investor
           </button>
         </div>
@@ -172,7 +172,7 @@ export default function Investors() {
               <Field label="Agreement reference">
                 <input value={form.agreementRef} onChange={(e) => setForm({ ...form, agreementRef: e.target.value })} className={inputCls} placeholder="INV-2026-001" />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Revenue share %">
                   <input value={String(form.sharePct)} onChange={(e) => setForm({ ...form, sharePct: Number(e.target.value) })} inputMode="decimal" className={inputCls} />
                 </Field>
@@ -180,7 +180,7 @@ export default function Investors() {
                   <input value={form.schedule} onChange={(e) => setForm({ ...form, schedule: e.target.value })} className={inputCls} placeholder="Quarterly" />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Paid out (₹)">
                   <input value={String(form.paidOut)} onChange={(e) => setForm({ ...form, paidOut: Number(e.target.value) })} inputMode="numeric" className={inputCls} />
                 </Field>

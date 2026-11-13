@@ -287,7 +287,7 @@ export default function Payments() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -438,7 +438,7 @@ export default function Payments() {
 
         {/* Filter, Search & Sort Control Bar */}
         <div className="glass rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[260px]">
+          <div className="relative flex-1 min-w-0 sm:min-w-[260px]">
             <Search className="w-4 h-4 text-mist absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -503,7 +503,7 @@ export default function Payments() {
         </div>
 
         {/* Results summary label */}
-        <div className="flex items-center justify-between text-xs text-mist px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-mist px-1">
           <span>
             Showing {filteredPayments.length === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}–
             {Math.min(currentPage * ITEMS_PER_PAGE, filteredPayments.length)} of {filteredPayments.length}{" "}
@@ -693,12 +693,12 @@ export default function Payments() {
 
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t hairline">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-4 border-t hairline">
               <span className="text-xs text-mist">
                 Page {currentPage} of {totalPages}
               </span>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
@@ -788,11 +788,11 @@ export default function Payments() {
                   className={inputCls}
                 />
               </Field>
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setCashOpen(false)}
-                  className="btn-ghost px-4 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                  className="btn-ghost px-4 py-2.5 rounded-xl text-xs text-mist hover:text-ivory min-h-[44px]"
                 >
                   Cancel
                 </button>
@@ -800,7 +800,7 @@ export default function Payments() {
                   type="button"
                   disabled={cashSubmitting}
                   onClick={submitCash}
-                  className="btn-gold rounded-xl px-5 py-2 text-xs font-medium"
+                  className="btn-gold rounded-xl px-5 py-2.5 text-xs font-medium min-h-[44px]"
                 >
                   {cashSubmitting ? "Recording…" : "Record Payment"}
                 </button>
@@ -832,24 +832,24 @@ export default function Payments() {
 
                 {/* Transaction details card */}
                 <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-mist">Transaction ID:</span>
-                    <span className="text-ivory font-mono text-[0.72rem]">{refundTarget.id}</span>
+                    <span className="text-ivory font-mono text-[0.72rem] break-all">{refundTarget.id}</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-mist">Kind:</span>
                     <span className="text-ivory capitalize font-medium">{refundTarget.kind}</span>
                   </div>
                   {refundTarget.planId && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-mist">Associated Tier:</span>
                       <span className="text-champagne capitalize">✦ {refundTarget.planId}</span>
                     </div>
                   )}
                   {refundTarget.razorpayPaymentId && (
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="text-mist">Gateway Payment Ref:</span>
-                      <span className="text-ivory font-mono text-[0.72rem]">
+                      <span className="text-ivory font-mono text-[0.72rem] break-all">
                         {refundTarget.razorpayPaymentId}
                       </span>
                     </div>
@@ -890,11 +890,11 @@ export default function Payments() {
                 </Field>
 
                 {/* Modal Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setRefundTarget(null)}
-                    className="btn-ghost px-4 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                    className="btn-ghost px-4 py-2.5 rounded-xl text-xs text-mist hover:text-ivory min-h-[44px]"
                   >
                     Cancel
                   </button>
@@ -902,7 +902,7 @@ export default function Payments() {
                     type="button"
                     disabled={isSubmitting}
                     onClick={handleExecuteRefund}
-                    className="btn-ghost rounded-xl px-4 py-2 text-xs font-medium text-rose-300 hover:text-rose-200 border-rose-500/40 hover:bg-rose-500/20 disabled:opacity-40"
+                    className="btn-ghost rounded-xl px-4 py-2.5 text-xs font-medium text-rose-300 hover:text-rose-200 border-rose-500/40 hover:bg-rose-500/20 disabled:opacity-40 min-h-[44px]"
                   >
                     {isSubmitting ? "Recording Refund…" : "Record Refund in Ledger"}
                   </button>
@@ -948,15 +948,15 @@ export default function Payments() {
                   <p className="text-[0.68rem] uppercase tracking-wider text-mist font-semibold">
                     Customer Account
                   </p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-ivory font-medium text-sm">
                       {u?.firstName ?? "Unknown Member"}
                     </span>
-                    <span className="text-mist font-mono">{u?.email ?? "—"}</span>
+                    <span className="text-mist font-mono break-all">{u?.email ?? "—"}</span>
                   </div>
-                  <div className="flex items-center justify-between text-mist pt-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-mist pt-1">
                     <span>User UUID:</span>
-                    <span className="font-mono">{inspectPayment.userId}</span>
+                    <span className="font-mono break-all">{inspectPayment.userId}</span>
                   </div>
                 </div>
 
@@ -967,31 +967,31 @@ export default function Payments() {
                   </p>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-white/5">
                       <span className="text-mist">Internal Payment ID:</span>
-                      <div className="flex items-center gap-2 font-mono text-ivory">
-                        <span>{inspectPayment.id}</span>
+                      <div className="flex items-center gap-2 font-mono text-ivory min-w-0">
+                        <span className="break-all">{inspectPayment.id}</span>
                         <button
                           type="button"
                           onClick={() => copyToClipboard(inspectPayment.id, "Payment ID")}
-                          className="text-mist hover:text-champagne"
+                          className="text-mist hover:text-champagne shrink-0"
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-white/5">
                       <span className="text-mist">Razorpay Order ID:</span>
-                      <div className="flex items-center gap-2 font-mono text-ivory">
-                        <span>{inspectPayment.razorpayOrderId ?? "None / Offline"}</span>
+                      <div className="flex items-center gap-2 font-mono text-ivory min-w-0">
+                        <span className="break-all">{inspectPayment.razorpayOrderId ?? "None / Offline"}</span>
                         {inspectPayment.razorpayOrderId && (
                           <button
                             type="button"
                             onClick={() =>
                               copyToClipboard(inspectPayment.razorpayOrderId!, "Order ID")
                             }
-                            className="text-mist hover:text-champagne"
+                            className="text-mist hover:text-champagne shrink-0"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
@@ -999,17 +999,17 @@ export default function Payments() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-white/5">
                       <span className="text-mist">Razorpay Payment ID:</span>
-                      <div className="flex items-center gap-2 font-mono text-ivory">
-                        <span>{inspectPayment.razorpayPaymentId ?? "None / Pending"}</span>
+                      <div className="flex items-center gap-2 font-mono text-ivory min-w-0">
+                        <span className="break-all">{inspectPayment.razorpayPaymentId ?? "None / Pending"}</span>
                         {inspectPayment.razorpayPaymentId && (
                           <button
                             type="button"
                             onClick={() =>
                               copyToClipboard(inspectPayment.razorpayPaymentId!, "Payment ID")
                             }
-                            className="text-mist hover:text-champagne"
+                            className="text-mist hover:text-champagne shrink-0"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
@@ -1017,9 +1017,9 @@ export default function Payments() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-black/40 border border-white/5">
                       <span className="text-mist">Payment Method Description:</span>
-                      <span className="text-ivory font-mono">{inspectPayment.method}</span>
+                      <span className="text-ivory font-mono break-all">{inspectPayment.method}</span>
                     </div>
                   </div>
                 </div>
@@ -1041,7 +1041,7 @@ export default function Payments() {
                   <button
                     type="button"
                     onClick={() => setInspectPayment(null)}
-                    className="btn-ghost px-5 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                    className="btn-ghost px-5 py-2.5 rounded-xl text-xs text-mist hover:text-ivory min-h-[44px]"
                   >
                     Close Inspection
                   </button>

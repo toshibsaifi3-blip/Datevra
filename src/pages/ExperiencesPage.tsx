@@ -34,9 +34,9 @@ function MemberExperiences() {
         title="Dates, arranged like art"
         sub="Golden-hour tastings, candlelit courtyards, chef's tables for two — explore, apply, and track your evenings."
       />
-      <div className="max-w-6xl mx-auto px-5">
+      <div className="max-w-6xl mx-auto px-4 sm:px-5">
         <div
-          className="flex gap-2 p-1.5 rounded-full glass border border-white/10 w-fit mx-auto"
+          className="flex gap-1.5 sm:gap-2 p-1.5 rounded-full glass border border-white/10 w-fit max-w-full overflow-x-auto no-scrollbar mx-auto"
           role="tablist"
           aria-label="Experiences sections"
         >
@@ -46,7 +46,7 @@ function MemberExperiences() {
               role="tab"
               aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
-              className={`relative rounded-full px-6 py-2.5 text-sm transition-colors ${
+              className={`relative rounded-full px-3.5 sm:px-6 min-h-[40px] py-2 text-xs sm:text-sm whitespace-nowrap transition-colors ${
                 tab === t.id ? "text-onyx font-semibold" : "text-ivory-dim/80 hover:text-ivory"
               }`}
             >
@@ -65,12 +65,12 @@ function MemberExperiences() {
       <div className="pt-2">
         {tab === "explore" && <ExperiencesPublic hideHero />}
         {tab === "applications" && (
-          <div className="max-w-6xl mx-auto px-5 pb-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-16 sm:pb-20">
             <Applications />
           </div>
         )}
         {tab === "bookings" && (
-          <div className="max-w-6xl mx-auto px-5 pb-20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-16 sm:pb-20">
             <Bookings />
           </div>
         )}

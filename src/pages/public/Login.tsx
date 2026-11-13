@@ -39,7 +39,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-5 py-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(110,27,46,0.35),transparent_65%)]" />
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -53,7 +53,7 @@ export default function Login() {
           <p className="text-sm text-ivory-dim/80 mt-2">Your story was waiting for you.</p>
         </div>
 
-        <form onSubmit={submit} className="glass-strong rounded-[1.75rem] p-8 space-y-5">
+        <form onSubmit={submit} className="glass-strong rounded-[1.75rem] p-5 sm:p-8 space-y-5">
           <Field label="Email address">
             <input
               className={inputCls}
@@ -89,7 +89,7 @@ export default function Login() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
 
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <Link to="/forgot" className="text-mist hover:text-champagne transition-colors">
               Forgot password?
             </Link>

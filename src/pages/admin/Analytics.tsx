@@ -241,8 +241,8 @@ export default function Analytics() {
         </div>
 
         {/* Filter Pills */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center p-1 rounded-xl glass border hairline text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center p-1 rounded-xl glass border hairline text-xs">
             <button
               onClick={() => setDateFilter("all")}
               className={`px-3 py-1 rounded-lg transition-colors font-medium ${
@@ -366,8 +366,8 @@ export default function Analytics() {
       {/* Chart Section 1: User Growth Timeline & Membership Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Registration Activity Chart */}
-        <div className="glass rounded-2xl p-6 border hairline space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="glass rounded-2xl p-4 sm:p-6 border hairline space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <BarChart2 size={16} className="text-rosegold" />
@@ -375,7 +375,7 @@ export default function Analytics() {
               </div>
               <p className="text-xs text-mist mt-0.5">Profiles created per date bucket ({dateFilter})</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span
                 className="text-xs font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1.5"
                 title="Members with verifiable activity in the last 15 minutes"
@@ -428,8 +428,8 @@ export default function Analytics() {
         </div>
 
         {/* Membership Tier Distribution */}
-        <div className="glass rounded-2xl p-6 border hairline space-y-5">
-          <div className="flex items-center justify-between">
+        <div className="glass rounded-2xl p-4 sm:p-6 border hairline space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <PieChart size={16} className="text-champagne" />
@@ -482,8 +482,8 @@ export default function Analytics() {
       {/* Chart Section 2: Payment Status Breakdown & Date Experience Funnel */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payment Status Breakdown */}
-        <div className="glass rounded-2xl p-6 border hairline space-y-5">
-          <div className="flex items-center justify-between">
+        <div className="glass rounded-2xl p-4 sm:p-6 border hairline space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <CreditCard size={16} className="text-emerald-400" />
@@ -565,8 +565,8 @@ export default function Analytics() {
         </div>
 
         {/* Date Application Funnel & Bookings */}
-        <div className="glass rounded-2xl p-6 border hairline space-y-5">
-          <div className="flex items-center justify-between">
+        <div className="glass rounded-2xl p-4 sm:p-6 border hairline space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-rosegold" />
@@ -609,7 +609,7 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="pt-2 border-t hairline flex items-center justify-between text-xs text-mist">
+          <div className="pt-2 border-t hairline flex flex-wrap items-center justify-between gap-2 text-xs text-mist">
             <span>Upcoming Scheduled Dates: <strong className="text-ivory">{analytics.bookingStats.upcoming}</strong></span>
             <span>Total Booking Revenue: <strong className="text-champagne font-mono">{inr(analytics.bookingStats.totalRevenue)}</strong></span>
           </div>

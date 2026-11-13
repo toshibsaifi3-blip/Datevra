@@ -215,9 +215,9 @@ export default function MembershipPasses() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14 max-w-7xl mx-auto">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8">
         <SectionHead
           align="left"
           kicker="Revenue & Concierge"
@@ -251,7 +251,7 @@ export default function MembershipPasses() {
       ) : null}
 
       {/* Metrics Summary Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 min-[380px]:grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <div className="glass-panel p-4 rounded-2xl border border-white/5">
           <p className="text-xs uppercase tracking-wider text-mist">Total Generated</p>
           <p className="font-display text-2xl text-ivory mt-1">{metrics.total}</p>
@@ -297,7 +297,7 @@ export default function MembershipPasses() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Plan Filter */}
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-mist mr-1">Plan:</span>
             {(["all", "connect", "plus", "elite"] as const).map((p) => (
               <button
@@ -317,7 +317,7 @@ export default function MembershipPasses() {
           <div className="w-px h-5 bg-white/10 hidden md:block" />
 
           {/* Status Filter */}
-          <div className="flex items-center gap-1 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
             <span className="text-mist mr-1">Status:</span>
             {(["all", "active", "redeemed", "expired", "revoked"] as const).map((s) => (
               <button
@@ -595,7 +595,7 @@ export default function MembershipPasses() {
             <label className="text-xs uppercase tracking-[0.2em] text-mist block mb-2 font-medium">
               4. Member Assignment
             </label>
-            <div className="flex gap-4 mb-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-3">
               <label className="flex items-center gap-2 cursor-pointer text-sm text-ivory">
                 <input
                   type="radio"
@@ -690,11 +690,11 @@ export default function MembershipPasses() {
           </Field>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+          <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={() => setShowGenerateModal(false)}
-              className="px-5 py-2.5 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-sm"
+              className="px-5 py-2.5 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-sm min-h-[44px]"
             >
               Cancel
             </button>
@@ -702,7 +702,7 @@ export default function MembershipPasses() {
               type="button"
               disabled={isGenerating}
               onClick={handleGenerate}
-              className="btn-gold inline-flex items-center gap-2"
+              className="btn-gold inline-flex items-center gap-2 min-h-[44px]"
             >
               {isGenerating ? (
                 <span>Generating…</span>
@@ -731,8 +731,8 @@ export default function MembershipPasses() {
 
             <div>
               <p className="text-xs uppercase tracking-widest text-mist">Pass Code</p>
-              <div className="mt-2 p-4 rounded-2xl bg-white/5 border border-champagne/40 flex items-center justify-center gap-3">
-                <span className="font-mono text-2xl font-bold text-champagne tracking-wider">
+              <div className="mt-2 p-4 rounded-2xl bg-white/5 border border-champagne/40 flex flex-wrap items-center justify-center gap-3">
+                <span className="font-mono text-lg sm:text-2xl font-bold text-champagne tracking-wider break-all">
                   {createdPass.code}
                 </span>
                 <button
@@ -840,12 +840,12 @@ export default function MembershipPasses() {
               />
             </Field>
 
-            <div className="flex justify-end gap-3 pt-3">
+            <div className="flex flex-wrap justify-end gap-3 pt-3">
               <button
                 type="button"
                 disabled={isRevoking}
                 onClick={() => setPassToRevoke(null)}
-                className="px-4 py-2 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-xs"
+                className="px-4 py-2.5 rounded-full border border-white/10 text-ivory/70 hover:bg-white/5 text-xs min-h-[44px]"
               >
                 Cancel
               </button>
@@ -853,7 +853,7 @@ export default function MembershipPasses() {
                 type="button"
                 disabled={isRevoking}
                 onClick={handleRevoke}
-                className="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors"
+                className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition-colors min-h-[44px]"
               >
                 {isRevoking ? "Revoking…" : "Confirm Revoke"}
               </button>

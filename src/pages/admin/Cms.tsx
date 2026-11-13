@@ -49,7 +49,7 @@ export default function Cms() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-4xl mx-auto">
         <SectionHead
           kicker="Content"
@@ -59,12 +59,12 @@ export default function Cms() {
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load page: {error}</p>}
 
-        <div className="mt-8 flex gap-2">
+        <div className="mt-8 flex flex-wrap gap-2">
           {PAGES.map((p) => (
             <button
               key={p}
               onClick={() => setSlug(p)}
-              className={`rounded-xl px-5 py-2.5 text-sm transition-colors ${
+              className={`rounded-xl px-5 py-2.5 text-sm transition-colors min-h-[44px] ${
                 slug === p
                   ? "bg-rosegold/20 border border-rosegold/50 text-ivory"
                   : "glass text-ivory-dim hover:text-ivory"
@@ -76,12 +76,12 @@ export default function Cms() {
         </div>
 
         {loading ? (
-          <div className="glass rounded-3xl p-6 mt-6 space-y-5">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-6 space-y-5">
             <Skeleton className="h-12" />
             <Skeleton className="h-64" />
           </div>
         ) : (
-          <div className="glass rounded-3xl p-6 mt-6 space-y-5">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-6 space-y-5">
             <Field label="Page slug">
               <input value={slug} disabled className={`${inputCls} opacity-60`} />
             </Field>
@@ -95,11 +95,11 @@ export default function Cms() {
                 className={`${inputCls} min-h-64 leading-relaxed`}
               />
             </Field>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-mist">
                 {page ? `Last updated ${fmtDate(page.updatedAt)}` : "Not yet published"}
               </p>
-              <button onClick={save} className="btn-gold rounded-xl px-8 py-3 text-sm">
+              <button onClick={save} className="btn-gold rounded-xl px-8 py-3 text-sm w-full sm:w-auto min-h-[44px]">
                 Publish
               </button>
             </div>

@@ -53,7 +53,7 @@ export default function Commissions() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Partner finance"
@@ -64,14 +64,14 @@ export default function Commissions() {
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load cafés: {error}</p>}
 
         {loading ? (
-          <div className="grid grid-cols-3 gap-4 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 sm:mt-10">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-28" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mt-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 sm:mt-10">
               <Stat label="Partner cafés" value={partners.length} sub="active agreements" />
               <Stat label="Partner revenue" value={inr(totalRevenue)} sub="booked through Datevra" />
               <Stat label="Calculated balance" value={inr(totalDue)} sub="across partner venues" />
@@ -167,18 +167,18 @@ export default function Commissions() {
                   placeholder="UTR / txn id"
                 />
               </Field>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setSettleFor(null)}
-                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm flex-1"
+                  className="btn-ghost rounded-xl px-5 py-2.5 min-h-[44px] text-sm flex-1 min-w-[120px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={submitSettlement}
-                  className="btn-gold rounded-xl px-5 py-2.5 text-sm font-semibold flex-1"
+                  className="btn-gold rounded-xl px-5 py-2.5 min-h-[44px] text-sm font-semibold flex-1 min-w-[160px]"
                 >
                   Record Settlement
                 </button>

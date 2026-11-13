@@ -48,7 +48,7 @@ export default function MembershipPublic() {
       />
 
       {/* Pricing cards */}
-      <section className="relative max-w-6xl mx-auto px-5 py-14">
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <div className="grid md:grid-cols-3 gap-6 items-stretch">
           {PLANS.map((p, i) => {
             const elite = p.id === "elite";
@@ -57,7 +57,7 @@ export default function MembershipPublic() {
                 <motion.div
                   whileHover={{ y: -10 }}
                   transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                  className={`relative rounded-[2rem] p-8 h-full flex flex-col overflow-hidden ${
+                  className={`relative rounded-[2rem] p-6 sm:p-8 h-full flex flex-col overflow-hidden ${
                     elite
                       ? "glass-strong glow-border animate-glow-pulse"
                       : "glass border border-white/10 card-hover"
@@ -135,7 +135,7 @@ export default function MembershipPublic() {
       </section>
 
       {/* Comparison table */}
-      <section className="relative max-w-5xl mx-auto px-5 py-16">
+      <section className="relative max-w-5xl mx-auto px-4 sm:px-5 py-12 sm:py-16">
         <SectionHead
           kicker="Compare"
           title="Every plan, side by side"

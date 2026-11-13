@@ -50,24 +50,24 @@ export default function HowItWorks() {
       />
 
       {/* Animated timeline */}
-      <section className="max-w-4xl mx-auto px-5 py-16 relative">
-        <div className="absolute left-[2.35rem] md:left-1/2 top-16 bottom-16 w-px bg-gradient-to-b from-champagne/60 via-rosegold/30 to-transparent" aria-hidden />
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-12 sm:py-16 relative">
+        <div className="absolute left-[2.5rem] sm:left-[2.75rem] md:left-1/2 top-16 bottom-16 w-px bg-gradient-to-b from-champagne/60 via-rosegold/30 to-transparent" aria-hidden />
         <div className="space-y-10">
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={0.05}>
-              <div className={`relative flex gap-6 md:gap-0 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
+              <div className={`relative flex gap-4 sm:gap-6 md:gap-0 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
                 <motion.div
                   initial={{ scale: 0 }}
                   whileInView={{ scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                  className="relative z-10 shrink-0 md:absolute md:left-1/2 md:-translate-x-1/2 w-[4.7rem] h-[4.7rem] rounded-full glass-strong border border-rosegold/40 flex items-center justify-center"
+                  className="relative z-10 shrink-0 md:absolute md:left-1/2 md:-translate-x-1/2 w-12 h-12 sm:w-14 sm:h-14 md:w-[4.7rem] md:h-[4.7rem] rounded-full glass-strong border border-rosegold/40 flex items-center justify-center"
                 >
-                  <span className="font-display text-2xl text-champagne">{s.icon}</span>
-                  <span className="absolute -bottom-6 text-[0.65rem] tracking-[0.25em] text-mist/70">{s.n}</span>
+                  <span className="font-display text-xl md:text-2xl text-champagne">{s.icon}</span>
+                  <span className="absolute -bottom-5 md:-bottom-6 text-[0.65rem] tracking-[0.25em] text-mist/70">{s.n}</span>
                 </motion.div>
-                <div className={`flex-1 ${i % 2 === 1 ? "md:pr-[calc(50%+3.5rem)]" : "md:pl-[calc(50%+3.5rem)]"}`}>
-                  <div className="glass rounded-3xl p-7 card-hover">
+                <div className={`flex-1 min-w-0 ${i % 2 === 1 ? "md:pr-[calc(50%+3.5rem)]" : "md:pl-[calc(50%+3.5rem)]"}`}>
+                  <div className="glass rounded-3xl p-5 sm:p-7 card-hover">
                     <h3 className="font-display text-2xl text-ivory">{s.title}</h3>
                     <p className="mt-3 text-ivory-dim/85 leading-relaxed text-[0.95rem]">{s.body}</p>
                     <ul className="mt-4 space-y-1.5">
@@ -86,14 +86,14 @@ export default function HowItWorks() {
       </section>
 
       {/* Compatibility */}
-      <section className="max-w-4xl mx-auto px-5 py-16">
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-12 sm:py-16">
         <SectionHead
           kicker="Transparency"
           title="What your compatibility score means"
           sub="Computed from your stated preferences — never fabricated, never implying psychological certainty."
         />
         <Reveal className="mt-10">
-          <div className="glass-strong rounded-3xl p-8">
+          <div className="glass-strong rounded-3xl p-5 sm:p-8">
             {FACTORS.map((f, i) => (
               <div key={f.label} className="mb-6 last:mb-0">
                 <div className="flex justify-between text-sm mb-2">

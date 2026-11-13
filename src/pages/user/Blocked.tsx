@@ -56,7 +56,7 @@ export default function Blocked() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-5 py-10">
+    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Privacy</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">Blocked users</h1>
@@ -88,17 +88,17 @@ export default function Blocked() {
         <div className="space-y-3">
           {blocks.map(({ block, profile }) => (
             <Reveal key={block.blockedId}>
-              <div className="glass rounded-2xl p-4 flex items-center gap-4">
+              <div className="glass rounded-2xl p-4 flex flex-wrap sm:flex-nowrap items-center gap-3 sm:gap-4">
                 <Avatar name={profile.firstName} size={52} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-ivory font-medium">
+                  <p className="text-ivory font-medium truncate">
                     {profile.firstName}, {profile.age}
                   </p>
                   <p className="text-xs text-mist">Blocked {timeAgo(block.createdAt)}</p>
                 </div>
                 <button
                   onClick={() => doUnblock(profile.id, profile.firstName)}
-                  className="btn-ghost rounded-full px-5 py-2 text-sm"
+                  className="btn-ghost rounded-full px-5 min-h-[44px] text-sm shrink-0"
                 >
                   Unblock
                 </button>

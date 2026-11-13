@@ -61,7 +61,7 @@ export default function Partnerships() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Venue network"
@@ -72,14 +72,14 @@ export default function Partnerships() {
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load partnerships: {error}</p>}
 
         {loading ? (
-          <div className="grid grid-cols-3 gap-4 mt-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 sm:mt-10">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-28" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mt-10">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 sm:mt-10">
               <Stat label="Active partners" value={partners.length} sub="signed agreements" />
               <Stat label="Partner revenue" value={inr(partners.reduce((s, c) => s + c.revenue, 0))} sub="via Datevra bookings" />
               <Stat label="Commission due" value={inr(totalDue)} sub="unsettled estimate" />

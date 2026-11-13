@@ -46,7 +46,7 @@ export default function Legal() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-4xl mx-auto">
         <SectionHead
           kicker="Compliance"
@@ -73,12 +73,12 @@ export default function Legal() {
         </div>
 
         {loading ? (
-          <div className="glass rounded-3xl p-6 mt-6 space-y-5">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-6 space-y-5">
             <Skeleton className="h-12" />
             <Skeleton className="h-72" />
           </div>
         ) : (
-          <div className="glass rounded-3xl p-6 mt-6 space-y-5">
+          <div className="glass rounded-3xl p-4 sm:p-6 mt-6 space-y-5">
             <Field label="Document title">
               <input value={title} onChange={(e) => setTitle(e.target.value)} className={inputCls} />
             </Field>
@@ -93,11 +93,11 @@ export default function Legal() {
                 placeholder="Write the legal text here…"
               />
             </Field>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-mist">
                 {page ? `Last updated ${fmtDate(page.updatedAt)}` : "Not yet published"}
               </p>
-              <button onClick={save} className="btn-gold rounded-xl px-8 py-3 text-sm">
+              <button onClick={save} className="btn-gold rounded-xl px-8 py-3 text-sm w-full sm:w-auto min-h-[44px]">
                 Publish
               </button>
             </div>

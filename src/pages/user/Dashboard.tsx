@@ -86,10 +86,9 @@ export default function Dashboard() {
     async (b): Promise<DashboardData | null> => {
       if (!user) return null;
       const me = user;
-      const convs = await b.conversationsFor(me.id);
-      const unreadMessages = convs.reduce((n, c) => n + (c.unread[me.id] ?? 0), 0);
-      const [sub, likesRec, matches, profiles, prefs, notifs, apps, bookings] =
+      const [convs, sub, likesRec, matches, profiles, prefs, notifs, apps, bookings] =
         await Promise.all([
+          b.conversationsFor(me.id),
           b.activeSubscription(me.id),
           b.likesReceived(me.id),
           b.matchesFor(me.id),
@@ -99,6 +98,7 @@ export default function Dashboard() {
           b.applicationsFor(me.id),
           b.bookingsFor(me.id),
         ]);
+      const unreadMessages = convs.reduce((n, c) => n + (c.unread[me.id] ?? 0), 0);
       const excluded = await excludedIdsFor(b, me.id, profiles);
       const plan = sub ? PLANS.find((p) => p.id === sub.planId) : undefined;
       const recommended = rankCandidates(me, profiles, prefs, excluded).slice(0, 3);
@@ -147,9 +147,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-5 py-10 space-y-6">
+      <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6 space-y-6">
         <Skeleton className="h-44 rounded-3xl" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28" />
           ))}
@@ -161,9 +161,9 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto px-5 py-10">
+      <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6">
         <p className="text-sm text-rosegold">Couldn't load your dashboard: {error}</p>
-        <button onClick={refresh} className="btn-ghost rounded-full px-5 py-2 text-sm mt-4">
+        <button onClick={refresh} className="btn-ghost rounded-full px-5 min-h-[44px] text-sm mt-4">
           Try again
         </button>
       </div>
@@ -194,21 +194,21 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-5 py-10 space-y-10">
+    <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6 space-y-8 sm:space-y-10">
       {/* Welcome */}
       <Reveal>
-        <div className="glass rounded-3xl p-6 md:p-8 relative overflow-hidden">
+        <div className="glass rounded-3xl p-5 sm:p-6 md:p-8 relative overflow-hidden">
           <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-burgundy/40 blur-[100px]" />
-          <div className="relative flex flex-wrap items-center gap-5">
+          <div className="relative flex flex-wrap items-center gap-4 sm:gap-5">
             <Avatar name={me.firstName} photo={me.photos[0]} size={72} ring />
-            <div className="flex-1 min-w-[220px]">
+            <div className="flex-1 min-w-0 sm:min-w-[220px]">
               <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">
                 {greeting()}
               </p>
-              <h1 className="font-display text-3xl md:text-4xl text-ivory mt-1">
+              <h1 className="font-display text-3xl md:text-4xl text-ivory mt-1 truncate">
                 {me.firstName}
               </h1>
-              <div className="mt-2 flex items-center gap-3">
+              <div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-3">
                 <PlanBadge plan={me.plan} />
                 {me.verified && (
                   <Badge tone="green">✓ Verified</Badge>
@@ -240,7 +240,7 @@ export default function Dashboard() {
       </Reveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Reveal delay={0.05}>
           <Stat
             label="Mutual matches"
@@ -360,7 +360,7 @@ export default function Dashboard() {
                       </div>
                       <button
                         onClick={() => likeBack(profile.id)}
-                        className="btn-ghost rounded-full px-4 py-1.5 text-xs"
+                        className="btn-ghost rounded-full px-4 min-h-[40px] text-xs shrink-0"
                       >
                         Like back
                       </button>
@@ -433,12 +433,12 @@ export default function Dashboard() {
                     You're on the <span className="text-ivory">Free</span> plan. Upgrade for
                     priority matchmaking, enhanced visibility and exclusive experiences.
                   </p>
-                  <div className="flex gap-3 mt-4 text-sm">
+                  <div className="flex flex-wrap gap-2.5 sm:gap-3 mt-4 text-sm">
                     {PLANS.map((p) => (
                       <Link
                         key={p.id}
                         to="/membership"
-                        className="btn-ghost rounded-full px-4 py-2"
+                        className="btn-ghost rounded-full px-4 py-2 min-h-[40px] inline-flex items-center"
                       >
                         {p.name} · {inr(p.price)}
                       </Link>

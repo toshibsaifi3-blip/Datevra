@@ -296,7 +296,7 @@ export default function Matchmaking() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Match engine"
@@ -349,14 +349,14 @@ export default function Matchmaking() {
             </div>
           )
         ) : loading ? (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 sm:mt-10">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-28" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4 mt-8 sm:mt-10">
               <Stat label="Total matches" value={matches.length} sub="mutual interest pairs" />
               <Stat label="Avg compatibility" value={`${avgCompat}%`} sub="preference-based score" />
               <Stat label="Cities active" value={cities.length} sub="with at least one match" />
@@ -367,7 +367,7 @@ export default function Matchmaking() {
               />
             </div>
 
-            <div className="mt-8 glass rounded-2xl p-4 flex items-center gap-3">
+            <div className="mt-8 glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
               <select value={city} onChange={(e) => setCity(e.target.value)} className={`${inputCls} max-w-xs`}>
                 <option value="all">All cities</option>
                 {cities.map((c) => (
@@ -395,10 +395,10 @@ export default function Matchmaking() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: Math.min(idx * 0.05, 0.3) }}
-                      className="glass rounded-3xl p-6"
+                      className="glass rounded-3xl p-4 sm:p-6"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <Avatar name={a?.firstName ?? "?"} size={52} ring />
                           <Avatar name={b?.firstName ?? "?"} size={52} ring />
                           <div>
@@ -452,7 +452,7 @@ export default function Matchmaking() {
               </label>
               {userA ? (
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <Avatar name={userA.firstName} photo={userA.photos?.[0]} size={44} ring />
                       <div>
@@ -561,7 +561,7 @@ export default function Matchmaking() {
               </label>
               {userB ? (
                 <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2.5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <Avatar name={userB.firstName} photo={userB.photos?.[0]} size={44} ring />
                       <div>
@@ -745,7 +745,7 @@ export default function Matchmaking() {
             {/* Automatic Compatibility Intelligence Panel */}
             {userA && userB && userAId !== userBId && compatibilityAssessment && (
               <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-champagne" />
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-ivory">

@@ -18,7 +18,7 @@ export default function NotFound() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.7 }}
-          className="font-display text-[7rem] md:text-[9rem] leading-none text-gradient-gold font-semibold mt-8"
+          className="font-display text-[5.5rem] sm:text-[7rem] md:text-[9rem] leading-none text-gradient-gold font-semibold mt-8"
         >
           404
         </motion.p>
@@ -43,12 +43,12 @@ export default function NotFound() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.65, duration: 0.6 }}
-          className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+          className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4"
         >
-          <Link to="/" className="btn-gold rounded-full px-10 py-4 text-base font-semibold">
+          <Link to="/" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base font-semibold inline-flex items-center justify-center min-h-[44px]">
             Back to home
           </Link>
-          <Link to="/experiences" className="btn-ghost rounded-full px-10 py-4 text-base">
+          <Link to="/experiences" className="btn-ghost rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base inline-flex items-center justify-center min-h-[44px]">
             Explore experiences
           </Link>
         </motion.div>

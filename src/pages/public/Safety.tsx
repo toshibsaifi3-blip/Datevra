@@ -63,15 +63,15 @@ export default function Safety() {
       />
 
       {/* Tips */}
-      <section className="max-w-6xl mx-auto px-5 py-14">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <SectionHead
           kicker="Date safer"
           title="Six habits of safe dating"
         />
-        <div className="mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {TIPS.map((t, i) => (
             <Reveal key={t.title} delay={(i % 3) * 0.08}>
-              <div className="glass rounded-3xl p-7 h-full card-hover">
+              <div className="glass rounded-3xl p-6 sm:p-7 h-full card-hover">
                 <p className="font-display text-3xl text-rosegold">{t.icon}</p>
                 <h3 className="font-display text-xl text-ivory mt-4">{t.title}</h3>
                 <p className="mt-2.5 text-sm text-ivory-dim/85 leading-relaxed">{t.body}</p>
@@ -82,7 +82,7 @@ export default function Safety() {
       </section>
 
       {/* Blocking & reporting */}
-      <section className="max-w-4xl mx-auto px-5 py-14">
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <SectionHead
           kicker="You're in control"
           title="Blocking & reporting, in seconds"
@@ -96,7 +96,7 @@ export default function Safety() {
             { n: "4", t: "Delete your data anytime", b: "You can delete your account and personal data from Settings whenever you choose. No dark patterns, no retention tricks." },
           ].map((s, i) => (
             <Reveal key={s.n} delay={i * 0.06}>
-              <div className="glass rounded-2xl p-6 flex gap-5 items-start">
+              <div className="glass rounded-2xl p-5 sm:p-6 flex gap-4 sm:gap-5 items-start">
                 <span className="font-display text-3xl text-gradient-gold font-semibold shrink-0">{s.n}</span>
                 <div>
                   <h3 className="font-display text-lg text-ivory">{s.t}</h3>
@@ -109,14 +109,14 @@ export default function Safety() {
       </section>
 
       {/* Guidelines */}
-      <section className="max-w-4xl mx-auto px-5 py-14">
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <SectionHead
           kicker="Community guidelines"
           title="The rules of the room"
           sub="Short version. The full text lives in our Terms."
         />
         <Reveal className="mt-10">
-          <div className="glass-strong rounded-3xl p-8">
+          <div className="glass-strong rounded-3xl p-6 sm:p-8">
             <ul className="space-y-3.5">
               {GUIDELINES.map((g) => (
                 <li key={g} className="flex gap-3 text-[0.95rem] text-ivory-dim/90">
@@ -134,9 +134,9 @@ export default function Safety() {
       </section>
 
       {/* Help */}
-      <section className="max-w-4xl mx-auto px-5 py-14 text-center">
+      <section className="max-w-4xl mx-auto px-4 sm:px-5 py-10 sm:py-14 text-center">
         <Reveal>
-          <div className="glass rounded-[2rem] p-10">
+          <div className="glass rounded-[2rem] p-6 sm:p-10">
             <h2 className="font-display text-3xl text-ivory">Need help or feel unsafe?</h2>
             <p className="mt-4 text-ivory-dim/85 leading-relaxed max-w-xl mx-auto">
               Write to us anytime at{" "}

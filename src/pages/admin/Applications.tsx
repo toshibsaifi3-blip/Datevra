@@ -242,7 +242,7 @@ export default function Applications() {
   };
 
   return (
-    <div className="px-5 pb-24 pt-10 md:pt-14">
+    <div className="px-0 sm:px-5 pb-16 sm:pb-24 pt-4 sm:pt-10 md:pt-14">
       <div className="max-w-6xl mx-auto">
         <SectionHead
           kicker="Experiences → Applications"
@@ -264,7 +264,7 @@ export default function Applications() {
 
         {/* Filter & Search Bar */}
         <div className="mt-8 glass rounded-2xl p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          <div className="flex-1 min-w-[240px]">
+          <div className="flex-1 min-w-0 sm:min-w-[240px]">
             <input
               type="text"
               value={searchQuery}
@@ -279,7 +279,7 @@ export default function Applications() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className={`${inputCls} !py-2 text-xs max-w-[150px]`}
+              className={`${inputCls} !py-2 text-xs w-full sm:w-auto sm:max-w-[150px]`}
             >
               <option value="all">All statuses</option>
               {(["submitted", "under_review", "eligible", "selected", "confirmed", "completed", "declined", "cancelled"] as const).map((s) => (
@@ -293,7 +293,7 @@ export default function Applications() {
             <select
               value={cafeFilter}
               onChange={(e) => setCafeFilter(e.target.value)}
-              className={`${inputCls} !py-2 text-xs max-w-[160px]`}
+              className={`${inputCls} !py-2 text-xs w-full sm:w-auto sm:max-w-[160px]`}
             >
               <option value="all">All Cafés</option>
               <option value="c-hot-stag-del">Café Hot Stag</option>
@@ -305,7 +305,7 @@ export default function Applications() {
             <select
               value={expFilter}
               onChange={(e) => setExpFilter(e.target.value)}
-              className={`${inputCls} !py-2 text-xs max-w-[160px]`}
+              className={`${inputCls} !py-2 text-xs w-full sm:w-auto sm:max-w-[160px]`}
             >
               <option value="all">All Experiences</option>
               <option value="Premium Date">Premium Date</option>
@@ -472,29 +472,29 @@ export default function Applications() {
               wide
             >
               <div className="space-y-6">
-                <div className="glass rounded-2xl p-5 border border-white/10 space-y-4">
+                <div className="glass rounded-2xl p-4 sm:p-5 border border-white/10 space-y-4">
                   {/* Point 1: Application ID */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">1. Application ID</span>
-                    <span className="text-xs font-mono text-champagne font-medium">{viewDetailApp.id}</span>
+                    <span className="text-xs font-mono text-champagne font-medium break-all">{viewDetailApp.id}</span>
                   </div>
 
                   {/* Point 2: User details */}
-                  <div className="flex items-start justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">2. User Details</span>
-                    <div className="text-right">
+                    <div className="sm:text-right min-w-0">
                       <p className="text-sm font-semibold text-ivory">
                         {u?.firstName || "Member"} {u ? `(${u.age}, ${u.gender})` : ""}
                       </p>
-                      <p className="text-xs text-mist">{u?.email || "No email"}</p>
+                      <p className="text-xs text-mist break-all">{u?.email || "No email"}</p>
                       <p className="text-xs text-mist">{u?.city || "Delhi"}</p>
                     </div>
                   </div>
 
                   {/* Point 3: Café details */}
-                  <div className="flex items-start justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">3. Café Venue</span>
-                    <div className="text-right">
+                    <div className="sm:text-right">
                       <p className="text-sm font-semibold text-ivory">
                         {parsed.venue || "Partner Café"}
                       </p>
@@ -502,21 +502,21 @@ export default function Applications() {
                   </div>
 
                   {/* Point 4: Experience type */}
-                  <div className="flex items-start justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-start justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">4. Experience Type</span>
-                    <span className="text-sm font-semibold text-champagne text-right">
+                    <span className="text-sm font-semibold text-champagne sm:text-right">
                       {parsed.experienceTitle || exp?.title || viewDetailApp.experienceId}
                     </span>
                   </div>
 
                   {/* Point 5: Preferred date */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">5. Preferred Date</span>
                     <span className="text-sm text-ivory font-medium">{viewDetailApp.slotDate}</span>
                   </div>
 
                   {/* Point 6: Preferred time */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">6. Preferred Time</span>
                     <span className="text-sm text-ivory font-medium">
                       {viewDetailApp.slotTime} (Subject to confirmation)
@@ -524,7 +524,7 @@ export default function Applications() {
                   </div>
 
                   {/* Point 7: Guest count */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">7. Guest Count</span>
                     <span className="text-sm text-ivory font-medium">
                       {parsed.guestCount ? `${parsed.guestCount} Guests` : "2 Guests"}
@@ -532,7 +532,7 @@ export default function Applications() {
                   </div>
 
                   {/* Points 8 & 9: Selected Budget Range */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">8 & 9. Selected Budget Range</span>
                     <span className="text-sm font-semibold text-champagne">
                       {parsed.budgetRange || "Standard range"}
@@ -544,19 +544,19 @@ export default function Applications() {
                     <span className="text-xs uppercase tracking-wider text-mist block mb-1">
                       10. Member Special Requests / Notes
                     </span>
-                    <p className="text-xs text-ivory-dim italic bg-black/20 p-2.5 rounded-lg">
+                    <p className="text-xs text-ivory-dim italic bg-black/20 p-2.5 rounded-lg [overflow-wrap:anywhere]">
                       {parsed.userNote || "None provided"}
                     </p>
                   </div>
 
                   {/* Point 11: Submission timestamp */}
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2.5">
                     <span className="text-xs uppercase tracking-wider text-mist">11. Submission Timestamp</span>
                     <span className="text-xs text-mist">{fmtDate(viewDetailApp.createdAt)}</span>
                   </div>
 
                   {/* Point 12: Current application status */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-xs uppercase tracking-wider text-mist">12. Current Status</span>
                     <Badge tone={STATUS_TONES[viewDetailApp.status]}>
                       {viewDetailApp.status.replace("_", " ")}
@@ -568,7 +568,7 @@ export default function Applications() {
                       <span className="text-xs uppercase tracking-wider text-mist block mb-1">
                         Admin Note on Record
                       </span>
-                      <p className="text-xs text-champagne bg-champagne/10 p-2.5 rounded-lg border border-champagne/20">
+                      <p className="text-xs text-champagne bg-champagne/10 p-2.5 rounded-lg border border-champagne/20 [overflow-wrap:anywhere]">
                         {viewDetailApp.adminNote}
                       </p>
                     </div>
@@ -576,16 +576,16 @@ export default function Applications() {
                 </div>
 
                 {/* Modal Footer Actions */}
-                <div className="flex justify-between items-center gap-3">
+                <div className="flex flex-wrap justify-between items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setViewDetailApp(null)}
-                    className="btn-ghost rounded-full px-6 py-2.5 text-xs text-mist hover:text-ivory"
+                    className="btn-ghost rounded-full px-6 py-2.5 text-xs text-mist hover:text-ivory min-h-[44px]"
                   >
                     Close
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {viewDetailApp.status !== "declined" && viewDetailApp.status !== "cancelled" && (
                       <button
                         type="button"
@@ -594,7 +594,7 @@ export default function Applications() {
                           setViewDetailApp(null);
                           setDecideFor({ app: target, next: "declined" });
                         }}
-                        className="btn-ghost text-rosegold hover:text-champagne border border-rosegold/30 rounded-full px-4 py-2 text-xs"
+                        className="btn-ghost text-rosegold hover:text-champagne border border-rosegold/30 rounded-full px-4 py-2 text-xs min-h-[44px]"
                       >
                         Decline Application
                       </button>
@@ -668,18 +668,18 @@ export default function Applications() {
                   placeholder="Reason for decision, date availability notes…"
                 />
               </Field>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setDecideFor(null)}
-                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm flex-1"
+                  className="btn-ghost rounded-xl px-5 py-2.5 text-sm flex-1 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={submitDecision}
-                  className="btn-gold rounded-xl px-6 py-2.5 text-sm font-semibold flex-1"
+                  className="btn-gold rounded-xl px-6 py-2.5 text-sm font-semibold flex-1 min-h-[44px]"
                 >
                   Confirm Decision
                 </button>
@@ -743,18 +743,18 @@ export default function Applications() {
                 </Field>
               </div>
               <p className="text-xs text-mist">Amount shown: {inr(Number(amount) || 0)} · payment status starts as pending.</p>
-              <div className="flex gap-3 pt-2">
+              <div className="flex flex-wrap gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setBookingFor(null)}
-                  className="btn-ghost rounded-xl px-5 py-3 text-sm flex-1"
+                  className="btn-ghost rounded-xl px-5 py-3 text-sm flex-1 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={submitBooking}
-                  className="btn-gold rounded-xl px-6 py-3 text-sm font-semibold flex-1"
+                  className="btn-gold rounded-xl px-6 py-3 text-sm font-semibold flex-1 min-h-[44px]"
                 >
                   Create Booking & Confirm
                 </button>

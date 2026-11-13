@@ -165,7 +165,7 @@ export default function Legal({ slug }: { slug: "terms" | "privacy" | "refund" }
     <div>
       <PageHero kicker={c.kicker} title={c.title} sub={c.sub}>
         <p className="mt-6 text-xs text-mist/70">{c.updated}</p>
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {links.map((l) => (
             <Link
               key={l.slug}
@@ -182,7 +182,7 @@ export default function Legal({ slug }: { slug: "terms" | "privacy" | "refund" }
         </div>
       </PageHero>
 
-      <section className="max-w-3xl mx-auto px-5 pb-24">
+      <section className="max-w-3xl mx-auto px-4 sm:px-5 pb-20 sm:pb-24">
         <div className="space-y-4">
           {c.sections.map((s, i) => (
             <Reveal key={s.h} delay={Math.min(i * 0.04, 0.3)}>
@@ -190,7 +190,7 @@ export default function Legal({ slug }: { slug: "terms" | "privacy" | "refund" }
                 initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
-                className="glass rounded-3xl p-7 md:p-8"
+                className="glass rounded-3xl p-5 sm:p-7 md:p-8"
               >
                 <h2 className="font-display text-xl md:text-2xl text-ivory">{s.h}</h2>
                 <div className="mt-4 space-y-3">

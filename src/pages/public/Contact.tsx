@@ -43,9 +43,9 @@ export default function Contact() {
         sub="Questions, feedback, press, partnerships — or just to say hello. A human reads every message."
       />
 
-      <section className="max-w-6xl mx-auto px-5 py-14 grid md:grid-cols-5 gap-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid md:grid-cols-5 gap-6">
         <Reveal className="md:col-span-3">
-          <form onSubmit={submit} className="glass rounded-[1.75rem] p-8 space-y-5">
+          <form onSubmit={submit} className="glass rounded-[1.75rem] p-5 sm:p-8 space-y-5">
             <Field label="Your name">
               <input
                 className={inputCls}
@@ -86,7 +86,7 @@ export default function Contact() {
         </Reveal>
 
         <Reveal delay={0.1} className="md:col-span-2">
-          <div className="glass-strong rounded-[1.75rem] p-8 h-full">
+          <div className="glass-strong rounded-[1.75rem] p-5 sm:p-8 h-full">
             <h3 className="font-display text-2xl text-ivory">Other ways to reach us</h3>
             <div className="mt-6 space-y-5 text-sm">
               <div>

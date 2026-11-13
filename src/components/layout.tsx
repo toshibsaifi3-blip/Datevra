@@ -85,7 +85,7 @@ export function PublicNav() {
         scrolled ? "glass-strong shadow-2xl" : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-5 h-[72px] flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-5 h-[72px] flex items-center justify-between">
         {/* Mobile: hamburger left (min 44x44 touch target) */}
         <button
           className="lg:hidden text-ivory text-2xl min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation"
@@ -96,7 +96,7 @@ export function PublicNav() {
         </button>
         {/* Mobile: centered script logo */}
         <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2 min-h-[44px] flex items-center">
-          <span className="font-display text-[1.65rem] tracking-[0.14em] text-gradient-dream">
+          <span className="font-display text-[1.35rem] min-[375px]:text-[1.65rem] tracking-[0.12em] sm:tracking-[0.14em] text-gradient-dream whitespace-nowrap">
             Datevra
           </span>
         </Link>
@@ -209,8 +209,8 @@ export function PublicNav() {
 
 export function Footer() {
   return (
-    <footer className="relative border-t hairline mt-24 bg-onyx/60">
-      <div className="max-w-7xl mx-auto px-5 py-14 grid gap-10 md:grid-cols-4">
+    <footer className="relative border-t hairline mt-16 sm:mt-24 bg-onyx/60">
+      <div className="max-w-7xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid gap-8 sm:gap-10 md:grid-cols-4">
         <div>
           <Logo size={34} />
           <p className="mt-4 text-sm text-ivory-dim/80 leading-relaxed max-w-xs">
@@ -281,10 +281,10 @@ export function Footer() {
 export function PublicLayout() {
   const { user } = useAuth();
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col overflow-x-clip">
       <GlowOrbs />
       <PublicNav />
-      <main className={`flex-1 relative ${user ? "pb-24 lg:pb-0" : ""}`}>
+      <main className={`flex-1 relative min-w-0 ${user ? "pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
         <Outlet />
       </main>
       <Footer />
@@ -563,7 +563,7 @@ export function UserShell() {
   );
 
   return (
-    <div className="min-h-screen lg:flex">
+    <div className="min-h-screen lg:flex overflow-x-clip">
       <GlowOrbs />
       <aside className="hidden lg:block w-[264px] shrink-0 border-r hairline bg-onyx/70 backdrop-blur-xl sticky top-0 h-screen">
         {sidebar}
@@ -600,7 +600,7 @@ export function UserShell() {
             </div>
           </div>
         </div>
-        <main className="flex-1 px-4 md:px-8 py-8 pb-28 lg:pb-8 max-w-6xl w-full mx-auto relative min-w-0">
+        <main className="flex-1 px-3.5 sm:px-4 md:px-8 py-6 sm:py-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-8 max-w-6xl w-full mx-auto relative min-w-0">
           <Outlet />
         </main>
       </div>
@@ -967,7 +967,7 @@ export function AdminShell() {
   );
 
   return (
-    <div className="min-h-screen lg:flex bg-[#0b0614] text-ivory antialiased selection:bg-rosegold/30 selection:text-ivory">
+    <div className="min-h-screen lg:flex overflow-x-clip bg-[#0b0614] text-ivory antialiased selection:bg-rosegold/30 selection:text-ivory">
       <GlowOrbs />
 
       {/* Desktop Collapsible Sidebar */}
@@ -1046,7 +1046,7 @@ export function AdminShell() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 px-4 sm:px-6 md:px-8 py-8 max-w-7xl w-full mx-auto relative">
+        <main className="flex-1 px-3.5 sm:px-6 md:px-8 py-6 sm:py-8 max-w-7xl w-full mx-auto relative min-w-0">
           <Outlet />
         </main>
       </div>
@@ -1078,7 +1078,7 @@ export function AdminShell() {
       {/* Route Quick Search Modal (Command Palette) */}
       <AnimatePresence>
         {searchOpen && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4">
+          <div className="fixed inset-0 z-50 flex items-start justify-center pt-12 sm:pt-20 px-3 sm:px-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1091,10 +1091,10 @@ export function AdminShell() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="relative w-full max-w-lg rounded-2xl glass-strong border hairline shadow-2xl overflow-hidden bg-[#120a20] z-50"
+              className="relative w-full max-w-lg max-h-[85dvh] flex flex-col rounded-2xl glass-strong border hairline shadow-2xl overflow-hidden bg-[#120a20] z-50"
             >
               {/* Search input */}
-              <div className="flex items-center px-4 py-3.5 border-b hairline gap-3">
+              <div className="flex items-center px-4 py-3 border-b hairline gap-3">
                 <Search size={18} className="text-rosegold shrink-0" />
                 <input
                   type="text"
@@ -1102,18 +1102,20 @@ export function AdminShell() {
                   placeholder="Jump to admin section (e.g. Users, Verification, Payments)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-transparent text-sm text-ivory placeholder-mist focus:outline-none"
+                  className="w-full min-w-0 bg-transparent text-sm text-ivory placeholder-mist focus:outline-none"
                 />
                 <button
+                  type="button"
                   onClick={() => setSearchOpen(false)}
-                  className="p-1 rounded text-mist hover:text-ivory"
+                  aria-label="Close search"
+                  className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center rounded-xl text-mist hover:text-ivory active:bg-white/10 touch-manipulation"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               </div>
 
               {/* Results list */}
-              <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+              <div className="flex-1 min-h-0 max-h-80 overflow-y-auto p-2 space-y-1">
                 {filteredSearchLinks.length === 0 ? (
                   <p className="p-4 text-center text-xs text-mist">No matching routes found.</p>
                 ) : (

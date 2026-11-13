@@ -187,7 +187,7 @@ export default function Membership() {
   };
 
   return (
-    <div className="relative max-w-6xl mx-auto px-5 py-10">
+    <div className="relative max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-10">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-burgundy/30 blur-[130px] animate-aura-shift" />
       <div className="pointer-events-none absolute top-64 -right-32 h-80 w-80 rounded-full bg-rosegold/10 blur-[120px]" />
@@ -222,10 +222,10 @@ export default function Membership() {
         <>
           {/* Current status */}
           <Reveal>
-            <div className="glass-strong glow-border rounded-[2rem] p-6 md:p-8 mb-6 relative overflow-hidden">
+            <div className="glass-strong glow-border rounded-[2rem] p-5 sm:p-6 md:p-8 mb-6 relative overflow-hidden">
               <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-burgundy/40 blur-[100px] animate-aura-shift" />
-              <div className="relative flex flex-wrap items-center gap-6">
-                <div className="flex-1 min-w-[220px]">
+              <div className="relative flex flex-wrap items-center gap-5 sm:gap-6">
+                <div className="flex-1 min-w-0 sm:min-w-[220px]">
                   <p className="text-[0.72rem] uppercase tracking-[0.24em] text-mist mb-2">Current plan</p>
                   <div className="flex items-center gap-3 flex-wrap">
                     <PlanBadge plan={data?.sub?.planId ?? null} />
@@ -255,7 +255,7 @@ export default function Membership() {
             <div className="glass rounded-[2rem] p-5 md:p-6 mb-10 border border-white/10 relative overflow-hidden">
               <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-champagne/10 blur-[70px] pointer-events-none" />
               <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-5">
-                <div className="flex-1 min-w-[240px]">
+                <div className="flex-1 min-w-0 sm:min-w-[240px]">
                   <div className="flex items-center gap-2">
                     <span className="text-rosegold text-xs">✦</span>
                     <p className="text-[0.72rem] uppercase tracking-[0.24em] text-rosegold">Privilege Pass</p>
@@ -288,7 +288,7 @@ export default function Membership() {
                   <button
                     type="submit"
                     disabled={redeeming || !passCode.trim()}
-                    className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="btn-gold rounded-full px-6 py-2.5 min-h-[44px] text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     {redeeming ? "Activating…" : "Redeem Pass"}
                   </button>
@@ -302,27 +302,27 @@ export default function Membership() {
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-strong rounded-[2rem] p-6 mb-10 border border-champagne/40 shadow-[0_0_60px_rgba(197,164,255,0.12)]"
+              className="glass-strong rounded-[2rem] p-5 sm:p-6 mb-10 border border-champagne/40 shadow-[0_0_60px_rgba(197,164,255,0.12)]"
             >
               <div className="flex flex-wrap items-center gap-4">
-                <div className="flex-1 min-w-[220px]">
+                <div className="flex-1 min-w-0 sm:min-w-[220px]">
                   <p className="font-display text-xl text-ivory">Payment pending</p>
                   <p className="text-sm text-mist mt-1">
-                    {inr(pending.amount)} · Order <span className="text-champagne">{pending.razorpayOrderId}</span> ·
+                    {inr(pending.amount)} · Order <span className="text-champagne break-all">{pending.razorpayOrderId}</span> ·
                     Razorpay test mode
                   </p>
                   <p className="text-xs text-mist/80 mt-1">
                     Your plan activates only after the payment is verified. Nothing is marked successful before then.
                   </p>
                 </div>
-                <div className="flex gap-3">
-                  <button onClick={() => setPending(null)} className="btn-ghost rounded-full px-5 py-2.5 text-sm">
+                <div className="flex flex-wrap gap-3">
+                  <button onClick={() => setPending(null)} className="btn-ghost rounded-full px-5 py-2.5 min-h-[44px] text-sm">
                     Dismiss
                   </button>
                   <button
                     onClick={completeTestPayment}
                     disabled={verifying}
-                    className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium disabled:opacity-60"
+                    className="btn-gold rounded-full px-6 py-2.5 min-h-[44px] text-sm font-medium disabled:opacity-60"
                   >
                     {verifying ? "Verifying…" : "Complete test payment"}
                   </button>
@@ -346,7 +346,7 @@ export default function Membership() {
                   <motion.div
                     whileHover={{ y: -8 }}
                     transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                    className={`relative rounded-[2rem] p-7 h-full overflow-hidden flex flex-col ${
+                    className={`relative rounded-[2rem] p-5 sm:p-7 h-full overflow-hidden flex flex-col ${
                       featured
                         ? "glass-strong glow-border animate-glow-pulse"
                         : "glass border border-white/10 card-hover"
@@ -402,7 +402,7 @@ export default function Membership() {
           {/* History */}
           <div className="grid lg:grid-cols-2 gap-6">
             <Reveal>
-              <div className="glass rounded-[2rem] p-6 relative overflow-hidden">
+              <div className="glass rounded-[2rem] p-5 sm:p-6 relative overflow-hidden">
                 <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-champagne/10 blur-[80px]" />
                 <h2 className="font-display text-xl text-ivory mb-4 relative">Purchase history</h2>
                 {(data?.payments.length ?? 0) === 0 ? (
@@ -427,7 +427,7 @@ export default function Membership() {
               </div>
             </Reveal>
             <Reveal delay={0.08}>
-              <div className="glass rounded-[2rem] p-6 relative overflow-hidden">
+              <div className="glass rounded-[2rem] p-5 sm:p-6 relative overflow-hidden">
                 <div className="absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-rosegold/10 blur-[80px]" />
                 <h2 className="font-display text-xl text-ivory mb-4 relative">Subscription history</h2>
                 {(data?.subs.length ?? 0) === 0 ? (
@@ -484,21 +484,21 @@ export default function Membership() {
               type="checkbox"
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-1 h-4 w-4 accent-[#FF3D9A]"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[#FF3D9A]"
             />
             <span className="text-sm text-ivory-dim">
               I understand that membership enhances visibility and priority only, and does not
               guarantee matches, dates, or any romantic outcome.
             </span>
           </label>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setTermsFor(null)} className="btn-ghost rounded-full px-5 py-2.5 text-sm">
+          <div className="flex flex-wrap justify-end gap-3">
+            <button onClick={() => setTermsFor(null)} className="btn-ghost rounded-full px-5 py-2.5 min-h-[44px] text-sm">
               Cancel
             </button>
             <button
               onClick={confirmPurchase}
               disabled={!agreed}
-              className="btn-gold rounded-full px-6 py-2.5 text-sm font-medium disabled:opacity-40"
+              className="btn-gold rounded-full px-6 py-2.5 min-h-[44px] text-sm font-medium disabled:opacity-40"
             >
               Agree & continue to payment
             </button>

@@ -122,7 +122,7 @@ export default function PhotoManager() {
 
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
         <h2 className="font-display text-xl text-ivory">Photos</h2>
         <span className="text-xs text-mist">
           {photos.length}/{MAX_PHOTOS} · first photo is your main one
@@ -143,7 +143,7 @@ export default function PhotoManager() {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
         {photos.map((url, i) => (
           <motion.div
             key={url}
@@ -153,18 +153,18 @@ export default function PhotoManager() {
             exit={{ opacity: 0, scale: 0.92 }}
             className="relative aspect-square overflow-hidden rounded-2xl border border-white/10 bg-white/5 group"
           >
-            <img src={url} alt={`Profile photo ${i + 1}`} className="h-full w-full object-cover" loading="lazy" />
+            <img src={url} alt={`Profile photo ${i + 1}`} className="h-full w-full object-cover" loading="lazy" decoding="async" />
             {i === 0 && (
               <span className="absolute left-2 top-2 rounded-full bg-gold px-2.5 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wider text-midnight">
                 Main
               </span>
             )}
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6">
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/75 to-transparent p-2 pt-6">
               {i !== 0 ? (
                 <button
                   onClick={() => void makeMain(url)}
                   disabled={busy}
-                  className="rounded-full bg-white/15 px-2.5 py-1 text-[0.65rem] font-medium text-ivory backdrop-blur-sm hover:bg-white/25 disabled:opacity-50"
+                  className="rounded-full bg-white/15 px-2.5 py-1.5 min-h-[32px] text-[0.68rem] font-medium text-ivory backdrop-blur-sm hover:bg-white/25 disabled:opacity-50 touch-manipulation"
                 >
                   Make main
                 </button>
@@ -175,13 +175,13 @@ export default function PhotoManager() {
                 onClick={() => void removePhoto(url)}
                 disabled={busy}
                 aria-label={confirmDelete === url ? "Confirm delete photo" : "Delete photo"}
-                className={`rounded-full px-2.5 py-1 text-[0.65rem] font-medium backdrop-blur-sm transition-colors ${
+                className={`rounded-full px-2.5 py-1.5 min-h-[32px] text-[0.68rem] font-medium backdrop-blur-sm transition-colors touch-manipulation ${
                   confirmDelete === url
                     ? "bg-rose text-white"
                     : "bg-white/15 text-ivory hover:bg-rose/70 hover:text-white"
                 } disabled:opacity-50`}
               >
-                {confirmDelete === url ? "Tap again to delete" : "Delete"}
+                {confirmDelete === url ? "Tap again" : "Delete"}
               </button>
             </div>
           </motion.div>

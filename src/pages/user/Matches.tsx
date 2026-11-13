@@ -136,7 +136,7 @@ export default function Matches() {
     : [];
 
   return (
-    <div className="max-w-5xl mx-auto px-5 py-10 overflow-x-hidden">
+    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Matches</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">
@@ -242,6 +242,7 @@ export default function Matches() {
                           alt={`${profile.firstName}'s photo`}
                           className="absolute inset-0 h-full w-full object-cover"
                           loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-coal via-burgundy-deep to-midnight flex items-center justify-center">
@@ -320,19 +321,20 @@ export default function Matches() {
       >
         {viewing && (
           <div className="space-y-5">
-            <div className="relative -mx-6 -mt-6 h-52 overflow-hidden rounded-t-[1.4rem]">
+            <div className="relative -mx-5 -mt-5 sm:-mx-6 sm:-mt-6 md:-mx-8 md:-mt-8 h-52 overflow-hidden rounded-t-[1.4rem]">
               {viewing.profile.photos[0] ? (
                 <img
                   src={viewing.profile.photos[0]}
                   alt={`${viewing.profile.firstName}'s photo`}
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               ) : (
                 <div className="h-full w-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/30 to-transparent" />
-              <div className="absolute bottom-3 left-6 flex items-center gap-3">
+              <div className="absolute bottom-3 left-5 sm:left-6 flex items-center gap-3">
                 <Avatar name={viewing.profile.firstName} photo={viewing.profile.photos[0]} size={64} ring />
                 <div>
                   <p className="text-ivory font-display text-xl">
@@ -355,7 +357,7 @@ export default function Matches() {
             {viewing.profile.photos.length > 0 && (
               <div>
                 <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">Photos</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {viewing.profile.photos.map((url, i) => (
                     <div
                       key={url}
@@ -366,6 +368,7 @@ export default function Matches() {
                         alt={`${viewing.profile.firstName}'s photo ${i + 1}`}
                         className="h-full w-full object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ))}
@@ -452,7 +455,7 @@ export default function Matches() {
           This will permanently close the conversation and remove the match for both of you.
           This can&apos;t be undone.
         </p>
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex flex-wrap justify-end gap-3 mt-6">
           <button
             type="button"
             disabled={unmatching}

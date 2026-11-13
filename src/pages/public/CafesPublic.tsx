@@ -79,7 +79,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
         />
       )}
 
-      <section className="relative max-w-6xl mx-auto px-5 py-14">
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         {loading ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -140,7 +140,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                       </button>
                     )}
                   </div>
-                  <div className="p-6 flex-1 flex flex-col">
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-display text-xl text-ivory">{c.name}</h3>
                       <span className="text-[0.7rem] tracking-widest text-champagne border border-champagne/30 rounded-full px-2.5 py-0.5 shrink-0">

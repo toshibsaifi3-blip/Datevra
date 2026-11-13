@@ -79,7 +79,7 @@ export default function CafeDetail() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-burgundy via-burgundy-deep to-[#20090f]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_30%,rgba(240,220,174,0.25),transparent_60%)]" />
-        <div className="relative max-w-6xl mx-auto px-5 pt-32 pb-16">
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-5 pt-24 sm:pt-32 pb-12 sm:pb-16">
           <Link to="/cafes" className="text-rosegold text-sm hover:text-champagne transition-colors">
             ← All cafés
           </Link>
@@ -90,12 +90,12 @@ export default function CafeDetail() {
             className="mt-6 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
           >
             <div>
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
                 {cafe.partner && <Badge tone="gold">✦ Datevra Partner</Badge>}
                 <Badge tone="muted">★ {cafe.rating.toFixed(1)}</Badge>
                 <Badge tone="muted">{cafe.priceRange}</Badge>
               </div>
-              <h1 className="font-display text-5xl md:text-6xl text-ivory leading-tight">
+              <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-ivory leading-tight">
                 {cafe.name}
               </h1>
               <p className="mt-3 text-ivory-dim/90">
@@ -104,7 +104,7 @@ export default function CafeDetail() {
             </div>
             <button
               onClick={toggleSave}
-              className={`rounded-full px-8 py-3.5 text-sm font-semibold shrink-0 ${
+              className={`rounded-full px-8 py-3.5 min-h-[44px] text-sm font-semibold shrink-0 self-start md:self-auto ${
                 saved ? "btn-ghost" : "btn-gold"
               }`}
             >
@@ -129,12 +129,12 @@ export default function CafeDetail() {
       ) : null}
 
       {/* Details */}
-      <section className="max-w-6xl mx-auto px-5 py-14 grid md:grid-cols-3 gap-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.6 }}
-          className="md:col-span-2 glass rounded-3xl p-8"
+          className="md:col-span-2 glass rounded-3xl p-5 sm:p-8"
         >
           <h2 className="font-display text-2xl text-ivory">About this café</h2>
           <p className="mt-4 text-ivory-dim/90 leading-relaxed">{cafe.description}</p>
@@ -156,7 +156,7 @@ export default function CafeDetail() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28, duration: 0.6 }}
-          className="glass-strong rounded-3xl p-8 h-fit"
+          className="glass-strong rounded-3xl p-5 sm:p-8 h-fit"
         >
           <h3 className="text-[0.72rem] uppercase tracking-[0.25em] text-mist">Visit</h3>
           <dl className="mt-5 space-y-5 text-sm">

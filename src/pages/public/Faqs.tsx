@@ -16,7 +16,7 @@ export default function Faqs() {
         sub="Everything about joining, matching, membership, curated experiences and safety."
       />
 
-      <section className="max-w-3xl mx-auto px-5 py-14 space-y-12">
+      <section className="max-w-3xl mx-auto px-4 sm:px-5 py-10 sm:py-14 space-y-10 sm:space-y-12">
         {groups.map((g) => (
           <div key={g}>
             <Reveal>
@@ -36,10 +36,10 @@ export default function Faqs() {
                     >
                       <button
                         onClick={() => setOpen(isOpen ? null : f.q)}
-                        className="w-full text-left px-6 py-5 flex items-center justify-between gap-4"
+                        className="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4 min-h-[44px]"
                         aria-expanded={isOpen}
                       >
-                        <span className="font-display text-lg text-ivory">{f.q}</span>
+                        <span className="font-display text-base sm:text-lg text-ivory">{f.q}</span>
                         <motion.span
                           animate={{ rotate: isOpen ? 45 : 0 }}
                           transition={{ duration: 0.25 }}
@@ -56,7 +56,7 @@ export default function Faqs() {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                           >
-                            <p className="px-6 pb-6 text-[0.95rem] text-ivory-dim/85 leading-relaxed">
+                            <p className="px-4 sm:px-6 pb-5 sm:pb-6 text-sm sm:text-[0.95rem] text-ivory-dim/85 leading-relaxed">
                               {f.a}
                             </p>
                           </motion.div>
