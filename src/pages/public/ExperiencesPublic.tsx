@@ -222,8 +222,9 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
       toast("Application submitted successfully — pending review by our team.", "gold");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      if (msg.includes("foreign key") || msg.includes("date_applications_experience_id_fkey")) {
-        toast("Experience schedule is currently being synchronized with the venue. Please try again shortly or contact concierge.", "rose");
+      const msgLower = msg.toLowerCase();
+      if (msgLower.includes("foreign key") || msgLower.includes("date_applications_experience_id_fkey")) {
+        toast("This curated experience is not yet available for applications in the live catalogue. Your details have been kept — please try again later or contact concierge.", "rose");
       } else if (msg.includes("requires an active Elite") || msg.includes("requires an active Privé")) {
         toast("This curated experience is reserved for Privé members.", "rose");
       } else {
