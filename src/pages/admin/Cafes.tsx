@@ -189,7 +189,7 @@ export default function Cafes() {
         {formOpen && (
           <Modal open onClose={() => setFormOpen(false)} title={cafesRaw.some((c) => c.id === form.id) ? "Edit café" : "Add café"} wide>
             <div className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Café name">
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
                 </Field>
@@ -253,7 +253,7 @@ export default function Cafes() {
               <Field label="Booking information">
                 <textarea value={form.bookingInfo} onChange={(e) => setForm({ ...form, bookingInfo: e.target.value })} className={`${inputCls} min-h-16`} placeholder="How members book; table minimums…" />
               </Field>
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Field label="Partner">
                   <select value={form.partner ? "yes" : "no"} onChange={(e) => setForm({ ...form, partner: e.target.value === "yes" })} className={inputCls}>
                     <option value="no">Listed only</option>
@@ -269,7 +269,7 @@ export default function Cafes() {
                   <input value={form.agreementRef ?? ""} onChange={(e) => setForm({ ...form, agreementRef: e.target.value })} className={inputCls} placeholder="CAFE-2026-…" />
                 </Field>
               </div>
-              <button onClick={save} className="btn-gold rounded-xl px-6 py-3 text-sm w-full">
+              <button onClick={save} className="btn-gold rounded-xl px-6 py-3 min-h-[44px] text-sm font-semibold w-full">
                 Save café
               </button>
             </div>

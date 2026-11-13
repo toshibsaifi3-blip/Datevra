@@ -187,7 +187,7 @@ export default function Membership() {
   };
 
   return (
-    <div className="relative max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-10">
+    <div className="relative max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-10 overflow-x-clip">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute -top-32 left-1/4 h-96 w-96 rounded-full bg-burgundy/30 blur-[130px] animate-aura-shift" />
       <div className="pointer-events-none absolute top-64 -right-32 h-80 w-80 rounded-full bg-rosegold/10 blur-[120px]" />
@@ -210,7 +210,7 @@ export default function Membership() {
       {loading ? (
         <div className="space-y-6">
           <Skeleton className="h-44 rounded-3xl" />
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="h-96 rounded-3xl" />
             ))}
@@ -332,7 +332,7 @@ export default function Membership() {
           )}
 
           {/* Plans */}
-          <div className="grid md:grid-cols-3 gap-5 mb-12 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-y-7 md:gap-5 mb-12 items-stretch">
             {PLANS.map((p, i) => {
               const isCurrent = data?.sub?.planId === p.id;
               const featured = p.id === "elite";
@@ -346,15 +346,17 @@ export default function Membership() {
                   <motion.div
                     whileHover={{ y: -8 }}
                     transition={{ type: "spring", stiffness: 240, damping: 22 }}
-                    className={`relative rounded-[2rem] p-5 sm:p-7 h-full overflow-hidden flex flex-col ${
+                    className={`relative rounded-[2rem] p-5 sm:p-7 h-full flex flex-col ${
                       featured
                         ? "glass-strong glow-border animate-glow-pulse"
                         : "glass border border-white/10 card-hover"
                     } ${isCurrent ? "ring-1 ring-rosegold/60" : ""}`}
                   >
-                    <div className={`absolute inset-0 bg-gradient-to-b pointer-events-none ${PLAN_ACCENTS[p.id]}`} />
+                    <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
+                      <div className={`absolute inset-0 bg-gradient-to-b ${PLAN_ACCENTS[p.id]}`} />
+                    </div>
                     {featured && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
                         <Badge tone="gold">✦ Most coveted</Badge>
                       </div>
                     )}
@@ -400,7 +402,7 @@ export default function Membership() {
           </div>
 
           {/* History */}
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Reveal>
               <div className="glass rounded-[2rem] p-5 sm:p-6 relative overflow-hidden">
                 <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-champagne/10 blur-[80px]" />
@@ -410,12 +412,12 @@ export default function Membership() {
                 ) : (
                   <div className="space-y-3 relative">
                     {data?.payments.map((p) => (
-                      <div key={p.id} className="flex items-center gap-3 hairline pb-3 last:border-0 last:pb-0">
+                      <div key={p.id} className="flex items-center gap-3 hairline pb-3 last:border-0 last:pb-0 min-w-0">
                         <div className="flex-1 min-w-0">
-                          <p className="text-ivory text-sm font-medium">
+                          <p className="text-ivory text-sm font-medium break-words [overflow-wrap:anywhere]">
                             {p.planId ? PLANS.find((x) => x.id === p.planId)?.name : "Payment"} · {inr(p.amount)}
                           </p>
-                          <p className="text-xs text-mist">
+                          <p className="text-xs text-mist break-words [overflow-wrap:anywhere]">
                             {timeAgo(p.createdAt)} · {p.method}
                           </p>
                         </div>
@@ -435,12 +437,12 @@ export default function Membership() {
                 ) : (
                   <div className="space-y-3 relative">
                     {data?.subs.map((s) => (
-                      <div key={s.id} className="flex items-center gap-3 hairline pb-3 last:border-0 last:pb-0">
+                      <div key={s.id} className="flex items-center gap-3 hairline pb-3 last:border-0 last:pb-0 min-w-0">
                         <div className="flex-1 min-w-0">
-                          <p className="text-ivory text-sm font-medium">
+                          <p className="text-ivory text-sm font-medium break-words [overflow-wrap:anywhere]">
                             {PLANS.find((x) => x.id === s.planId)?.name}
                           </p>
-                          <p className="text-xs text-mist">
+                          <p className="text-xs text-mist break-words [overflow-wrap:anywhere]">
                             {fmtDate(s.startedAt)} → {fmtExpiry(s.expiresAt)}
                             {s.autoRenew ? " · auto-renew" : ""}
                           </p>

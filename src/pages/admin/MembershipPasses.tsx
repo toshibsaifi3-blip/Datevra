@@ -229,7 +229,7 @@ export default function MembershipPasses() {
             resetForm();
             setShowGenerateModal(true);
           }}
-          className="btn-gold shrink-0 inline-flex items-center gap-2 self-start md:self-end"
+          className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-sm font-semibold shrink-0 inline-flex items-center gap-2 self-start md:self-end"
         >
           <Plus className="w-4 h-4" />
           <span>Generate Pass</span>
@@ -275,7 +275,7 @@ export default function MembershipPasses() {
       {/* Filter and Search Bar */}
       <div className="glass-panel p-4 rounded-2xl border border-white/10 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
         {/* Search */}
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 min-w-0 lg:max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-mist" />
           <input
             type="text"
@@ -352,7 +352,7 @@ export default function MembershipPasses() {
         />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/10 glass-panel">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[880px] text-sm">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.02]">
                 <th className={thCls}>Pass Code</th>
@@ -586,7 +586,7 @@ export default function MembershipPasses() {
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className={inputCls}
+              className={`${inputCls} appearance-none min-w-0`}
             />
           </Field>
 
@@ -702,7 +702,7 @@ export default function MembershipPasses() {
               type="button"
               disabled={isGenerating}
               onClick={handleGenerate}
-              className="btn-gold inline-flex items-center gap-2 min-h-[44px]"
+              className="btn-gold rounded-full px-6 py-2.5 text-sm font-semibold inline-flex items-center gap-2 min-h-[44px]"
             >
               {isGenerating ? (
                 <span>Generating…</span>
@@ -756,23 +756,23 @@ export default function MembershipPasses() {
             </div>
 
             <div className="text-left text-xs space-y-2 bg-white/[0.02] p-4 rounded-xl border border-white/5">
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Tier:</span>
                 <span className="text-ivory font-medium">
                   {PLAN_META[createdPass.planId]?.name ?? createdPass.planId}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Duration:</span>
                 <span className="text-ivory font-medium">{createdPass.durationDays} days</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Assigned to:</span>
-                <span className="text-ivory font-medium">
+                <span className="text-ivory font-medium break-words">
                   {createdPass.issuedToName ?? createdPass.issuedToEmail ?? "Unassigned (Open)"}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Redemption Expiry:</span>
                 <span className="text-ivory font-medium">
                   {createdPass.expiresAt ? fmtDate(createdPass.expiresAt) : "No expiry"}
@@ -783,7 +783,7 @@ export default function MembershipPasses() {
             <button
               type="button"
               onClick={() => setCreatedPass(null)}
-              className="btn-gold w-full"
+              className="btn-gold rounded-full px-6 py-3 min-h-[44px] text-sm font-semibold w-full"
             >
               Done
             </button>
@@ -809,23 +809,23 @@ export default function MembershipPasses() {
               </span>
             </div>
 
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-xs space-y-1">
-              <div className="flex justify-between">
+            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-xs space-y-1.5">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Code:</span>
-                <span className="font-mono text-champagne font-semibold">
+                <span className="font-mono text-champagne font-semibold break-all">
                   {passToRevoke.code}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex flex-wrap justify-between gap-2">
                 <span className="text-mist">Plan:</span>
                 <span className="text-ivory">
                   {PLAN_META[passToRevoke.planId]?.name} ({passToRevoke.durationDays} days)
                 </span>
               </div>
               {passToRevoke.issuedToName && (
-                <div className="flex justify-between">
+                <div className="flex flex-wrap justify-between gap-2">
                   <span className="text-mist">Issued To:</span>
-                  <span className="text-ivory">{passToRevoke.issuedToName}</span>
+                  <span className="text-ivory break-words">{passToRevoke.issuedToName}</span>
                 </div>
               )}
             </div>

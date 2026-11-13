@@ -136,7 +136,7 @@ export default function Matches() {
     : [];
 
   return (
-    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
+    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-clip">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Matches</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">
@@ -150,7 +150,7 @@ export default function Matches() {
       {proposals.length > 0 && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-3">💌 Curated proposals for you</h2>
-          <div className="grid gap-3">
+          <div className="grid grid-cols-1 gap-3">
             {proposals.map((p) => {
               const otherName = p.userAId === me.id ? p.userBName : p.userAName;
               const myResponse = p.userAId === me.id ? p.userAResponse : p.userBResponse;
@@ -189,7 +189,7 @@ export default function Matches() {
       )}
 
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-56 rounded-[1.5rem]" />
           ))}
@@ -219,14 +219,14 @@ export default function Matches() {
           }
         />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {matches.map(({ match, profile }) => {
             const photo = profile.photos[0];
             return (
               <Reveal key={match.id}>
                 <motion.div
                   whileHover={reducedMotion ? undefined : { y: -4 }}
-                  className="glass glow-border rounded-[1.5rem] overflow-hidden card-hover relative"
+                  className="glass glow-border rounded-[1.5rem] w-full min-w-0 overflow-hidden card-hover relative"
                 >
                   {/* Photo banner with dreamy lighting */}
                   <button
@@ -253,7 +253,7 @@ export default function Matches() {
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/40 to-transparent" />
                       <div className="absolute inset-0 bg-gradient-to-tr from-burgundy/25 via-transparent to-rosegold/15" />
-                      <div className="absolute bottom-3 left-4 flex items-center gap-3 pr-16">
+                      <div className="absolute bottom-3 inset-x-4 flex items-center gap-3 pr-16">
                         <Avatar name={profile.firstName} photo={photo} size={56} ring />
                         <div className="min-w-0">
                           <p className="text-ivory font-medium text-lg leading-tight truncate">
@@ -334,13 +334,13 @@ export default function Matches() {
                 <div className="h-full w-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/30 to-transparent" />
-              <div className="absolute bottom-3 left-5 sm:left-6 flex items-center gap-3">
+              <div className="absolute bottom-3 inset-x-5 sm:inset-x-6 flex items-center gap-3">
                 <Avatar name={viewing.profile.firstName} photo={viewing.profile.photos[0]} size={64} ring />
-                <div>
-                  <p className="text-ivory font-display text-xl">
+                <div className="min-w-0 flex-1">
+                  <p className="text-ivory font-display text-xl truncate">
                     {viewing.profile.firstName}, {viewing.profile.age}
                   </p>
-                  <p className="text-mist text-sm">{viewing.profile.city}</p>
+                  <p className="text-mist text-sm truncate">{viewing.profile.city}</p>
                 </div>
               </div>
             </div>

@@ -206,7 +206,7 @@ export default function Overview() {
               refreshBookings();
               refreshActivity();
             }}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-colors"
+            className="flex items-center gap-2 px-3 py-2 min-h-[40px] rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-colors"
             title="Refresh operational data"
           >
             <RefreshCw size={13} />
@@ -214,7 +214,7 @@ export default function Overview() {
           </button>
           <Link
             to="/admin/analytics"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-burgundy/80 to-rosegold/80 text-xs text-ivory font-medium border border-rosegold/40 hover:opacity-90 shadow-sm transition-opacity"
+            className="flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-burgundy/80 to-rosegold/80 text-xs text-ivory font-medium border border-rosegold/40 hover:opacity-90 shadow-sm transition-opacity"
           >
             <TrendingUp size={13} />
             <span>Detailed Analytics</span>
@@ -580,7 +580,7 @@ export default function Overview() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[680px] text-sm">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.01]">
                       <th className={thCls}>Timestamp</th>
@@ -592,9 +592,11 @@ export default function Overview() {
                   <tbody>
                     {recentActivity.map((a) => (
                       <tr key={a.id} className={rowCls}>
-                        <td className={`${tdCls} whitespace-nowrap text-xs text-mist flex items-center gap-1.5`}>
-                          <Clock size={12} className="text-mist/70" />
-                          <span>{timeAgo(a.createdAt)}</span>
+                        <td className={`${tdCls} whitespace-nowrap text-xs text-mist`}>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={12} className="text-mist/70 shrink-0" />
+                            <span>{timeAgo(a.createdAt)}</span>
+                          </div>
                         </td>
                         <td className={`${tdCls} whitespace-nowrap`}>
                           <span className="px-2 py-0.5 rounded-md font-mono text-[0.72rem] bg-rosegold/10 text-rosegold border border-rosegold/20">
@@ -626,7 +628,7 @@ export default function Overview() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[680px] text-sm">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.01]">
                       <th className={thCls}>Date</th>

@@ -28,9 +28,9 @@ export default function CafeDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-5 pt-32 pb-20 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-5 pt-24 sm:pt-32 pb-20 space-y-6">
         <Skeleton className="h-64" />
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Skeleton className="h-72 md:col-span-2" />
           <Skeleton className="h-72" />
         </div>
@@ -74,7 +74,7 @@ export default function CafeDetail() {
   };
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-burgundy via-burgundy-deep to-[#20090f]" />
@@ -89,16 +89,16 @@ export default function CafeDetail() {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="mt-6 flex flex-col md:flex-row md:items-end md:justify-between gap-6"
           >
-            <div>
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {cafe.partner && <Badge tone="gold">✦ Datevra Partner</Badge>}
                 <Badge tone="muted">★ {cafe.rating.toFixed(1)}</Badge>
                 <Badge tone="muted">{cafe.priceRange}</Badge>
               </div>
-              <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-ivory leading-tight">
+              <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-ivory leading-tight break-words">
                 {cafe.name}
               </h1>
-              <p className="mt-3 text-ivory-dim/90">
+              <p className="mt-3 text-ivory-dim/90 break-words">
                 {cafe.address} · {cafe.city}
               </p>
             </div>
@@ -116,12 +116,12 @@ export default function CafeDetail() {
 
       {/* Photo Gallery Slider */}
       {(cafe.images?.length || cafe.image) ? (
-        <section className="max-w-6xl mx-auto px-5 pt-8">
+        <section className="max-w-6xl mx-auto px-4 sm:px-5 pt-8">
           <div className="rounded-3xl overflow-hidden glass glow-border">
             <CafePhotoSlider
               images={cafe.images && cafe.images.length > 0 ? cafe.images : [cafe.image]}
               cafeName={cafe.name}
-              aspectRatioClassName="h-72 sm:h-96 md:h-[460px]"
+              aspectRatioClassName="h-64 sm:h-96 md:h-[460px]"
               fallbackLetter={cafe.name.charAt(0)}
             />
           </div>
@@ -129,15 +129,15 @@ export default function CafeDetail() {
       ) : null}
 
       {/* Details */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid md:grid-cols-3 gap-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.6 }}
-          className="md:col-span-2 glass rounded-3xl p-5 sm:p-8"
+          className="md:col-span-2 glass rounded-3xl p-5 sm:p-8 min-w-0"
         >
           <h2 className="font-display text-2xl text-ivory">About this café</h2>
-          <p className="mt-4 text-ivory-dim/90 leading-relaxed">{cafe.description}</p>
+          <p className="mt-4 text-ivory-dim/90 leading-relaxed break-words">{cafe.description}</p>
 
           <h3 className="font-display text-xl text-ivory mt-8">Experiences hosted</h3>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -149,14 +149,14 @@ export default function CafeDetail() {
           </div>
 
           <h3 className="font-display text-xl text-ivory mt-8">Booking information</h3>
-          <p className="mt-3 text-ivory-dim/90 leading-relaxed text-[0.95rem]">{cafe.bookingInfo}</p>
+          <p className="mt-3 text-ivory-dim/90 leading-relaxed text-[0.95rem] break-words">{cafe.bookingInfo}</p>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.28, duration: 0.6 }}
-          className="glass-strong rounded-3xl p-5 sm:p-8 h-fit"
+          className="glass-strong rounded-3xl p-5 sm:p-8 h-fit min-w-0"
         >
           <h3 className="text-[0.72rem] uppercase tracking-[0.25em] text-mist">Visit</h3>
           <dl className="mt-5 space-y-5 text-sm">

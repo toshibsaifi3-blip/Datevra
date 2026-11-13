@@ -36,14 +36,14 @@ export default function Contact() {
   };
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero
         kicker="Contact"
         title="We'd love to hear from you"
         sub="Questions, feedback, press, partnerships — or just to say hello. A human reads every message."
       />
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid md:grid-cols-5 gap-6">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14 grid grid-cols-1 md:grid-cols-5 gap-6">
         <Reveal className="md:col-span-3">
           <form onSubmit={submit} className="glass rounded-[1.75rem] p-5 sm:p-8 space-y-5">
             <Field label="Your name">
@@ -79,7 +79,7 @@ export default function Contact() {
                 {error}
               </p>
             )}
-            <button type="submit" className="btn-gold rounded-full px-10 py-3.5 text-sm font-semibold w-full sm:w-auto">
+            <button type="submit" className="btn-gold rounded-full px-10 py-3.5 min-h-[44px] text-sm font-semibold w-full sm:w-auto">
               Send message
             </button>
           </form>
@@ -93,7 +93,7 @@ export default function Contact() {
                 <p className="text-[0.68rem] uppercase tracking-[0.25em] text-mist">Support</p>
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="text-champagne hover:text-rosegold transition-colors mt-1 inline-block"
+                  className="text-champagne hover:text-rosegold transition-colors mt-1 inline-block break-all"
                 >
                   {supportEmail}
                 </a>

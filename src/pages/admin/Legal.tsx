@@ -61,7 +61,7 @@ export default function Legal() {
             <button
               key={d.slug}
               onClick={() => setSlug(d.slug)}
-              className={`rounded-xl px-5 py-2.5 text-sm transition-colors ${
+              className={`rounded-xl px-5 py-2.5 min-h-[44px] text-sm transition-colors ${
                 slug === d.slug
                   ? "bg-rosegold/20 border border-rosegold/50 text-ivory"
                   : "glass text-ivory-dim hover:text-ivory"

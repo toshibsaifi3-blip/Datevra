@@ -191,7 +191,7 @@ export default function Investors() {
               <Field label="Notes">
                 <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={`${inputCls} min-h-20`} placeholder="Contract terms summary…" />
               </Field>
-              <button onClick={saveForm} className="btn-gold rounded-xl px-6 py-3 text-sm w-full">
+              <button onClick={saveForm} className="btn-gold rounded-xl px-6 py-3 min-h-[44px] text-sm font-medium w-full">
                 Save investor record
               </button>
             </div>
@@ -211,7 +211,7 @@ export default function Investors() {
                 <input value={payoutAmount} onChange={(e) => setPayoutAmount(e.target.value)} inputMode="numeric" className={inputCls} placeholder="50000" />
               </Field>
               <p className="text-xs text-mist">This is a ledger entry for a real transfer — never a promise of returns.</p>
-              <button onClick={submitPayout} className="btn-gold rounded-xl px-6 py-3 text-sm w-full">
+              <button onClick={submitPayout} className="btn-gold rounded-xl px-6 py-3 min-h-[44px] text-sm font-medium w-full">
                 Record payout
               </button>
             </div>

@@ -145,7 +145,7 @@ export default function Passes() {
       ) : null}
 
       <div className="flex justify-end mb-4">
-        <button className="btn-gold w-full sm:w-auto min-h-[44px]" onClick={() => setShowCreate(true)}>Generate pass</button>
+        <button className="btn-gold rounded-full px-5 py-2.5 text-sm font-semibold w-full sm:w-auto min-h-[44px]" onClick={() => setShowCreate(true)}>Generate pass</button>
       </div>
 
       <div className="glass-panel p-4 rounded-2xl border border-white/10 mb-6 flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
@@ -226,7 +226,7 @@ export default function Passes() {
         />
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/10">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className={rowCls}>
                 <th className={thCls}>Code</th>
@@ -295,9 +295,9 @@ export default function Passes() {
             <input value={note} onChange={(e) => setNote(e.target.value)} className={inputCls} placeholder="e.g. Anniversary treat" />
           </Field>
           <Field label="Expires (optional)">
-            <input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputCls} />
+            <input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={`${inputCls} appearance-none min-w-0`} />
           </Field>
-          <button onClick={create} className="btn-gold w-full">Generate pass</button>
+          <button onClick={create} className="btn-gold rounded-full px-6 py-3 min-h-[44px] text-sm font-semibold w-full">Generate pass</button>
         </div>
       </Modal>
 

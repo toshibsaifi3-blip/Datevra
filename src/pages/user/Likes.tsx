@@ -174,7 +174,7 @@ export default function Likes() {
   const viewingMatched = viewing ? matchedSet.has(viewing.profile.id) : false;
 
   return (
-    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
+    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-clip">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Likes</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-6">
@@ -200,7 +200,7 @@ export default function Likes() {
       </div>
 
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-44 rounded-[1.5rem]" />
           ))}
@@ -231,7 +231,7 @@ export default function Likes() {
             }
           />
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {received.map(({ like, profile }) => {
               const isBusy = busyId === profile.id;
               const isMatched = matchedSet.has(profile.id);
@@ -240,31 +240,33 @@ export default function Likes() {
                 <Reveal key={like.id}>
                   <motion.div
                     whileHover={reducedMotion ? undefined : { y: -4 }}
-                    className="glass glow-border rounded-[1.5rem] p-5 card-hover relative overflow-hidden"
+                    className="glass glow-border rounded-[1.5rem] p-4 sm:p-5 w-full min-w-0 card-hover relative overflow-hidden"
                   >
                     <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-rosegold/25 blur-[70px] pointer-events-none" />
-                    <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5">
-                      <span className="text-[0.7rem] text-champagne font-semibold">
-                        ✦ {compat.score}%
-                      </span>
-                      <span className="text-rosegold text-lg">♥</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setViewing({ profile, source: "received" })}
-                      className="flex items-center gap-4 relative w-full text-left pr-14 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-                    >
-                      <Avatar name={profile.firstName} photo={profile.photos[0]} size={64} ring />
-                      <div className="min-w-0">
-                        <p className="text-ivory font-medium text-lg truncate">
-                          {profile.firstName}, {profile.age}
-                        </p>
-                        <p className="text-sm text-mist truncate">{profile.city}</p>
-                        <p className="text-xs text-mist/70">{timeAgo(like.createdAt)}</p>
+                    <div className="flex items-start justify-between gap-2 relative">
+                      <button
+                        type="button"
+                        onClick={() => setViewing({ profile, source: "received" })}
+                        className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                      >
+                        <Avatar name={profile.firstName} photo={profile.photos[0]} size={64} ring />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-ivory font-medium text-lg truncate">
+                            {profile.firstName}, {profile.age}
+                          </p>
+                          <p className="text-sm text-mist truncate">{profile.city}</p>
+                          <p className="text-xs text-mist/70 truncate">{timeAgo(like.createdAt)}</p>
+                        </div>
+                      </button>
+                      <div className="shrink-0 flex items-center gap-1.5 pt-0.5">
+                        <span className="text-[0.7rem] text-champagne font-semibold">
+                          ✦ {compat.score}%
+                        </span>
+                        <span className="text-rosegold text-lg">♥</span>
                       </div>
-                    </button>
+                    </div>
                     {profile.bio && (
-                      <p className="text-xs text-ivory-dim/90 mt-3 line-clamp-2 relative">
+                      <p className="text-xs text-ivory-dim/90 mt-3 line-clamp-2 break-words [overflow-wrap:anywhere] relative">
                         {profile.bio}
                       </p>
                     )}
@@ -327,7 +329,7 @@ export default function Likes() {
           }
         />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {sent.map(({ like, profile }) => {
             const compat = computeCompatibility(me, profile, data.prefs);
             const isMatched = matchedSet.has(profile.id);
@@ -335,27 +337,29 @@ export default function Likes() {
               <Reveal key={like.id}>
                 <motion.div
                   whileHover={reducedMotion ? undefined : { y: -4 }}
-                  className="glass glow-border rounded-[1.5rem] p-5 card-hover relative overflow-hidden"
+                  className="glass glow-border rounded-[1.5rem] p-4 sm:p-5 w-full min-w-0 card-hover relative overflow-hidden"
                 >
                   <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-burgundy/40 blur-[70px] pointer-events-none" />
-                  <div className="absolute top-4 right-4 z-10 text-[0.7rem] text-champagne font-semibold">
-                    ✦ {compat.score}%
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setViewing({ profile, source: "sent" })}
-                    className="flex items-center gap-4 relative w-full text-left pr-12 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-                  >
-                    <Avatar name={profile.firstName} photo={profile.photos[0]} size={64} />
-                    <div className="min-w-0">
-                      <p className="text-ivory font-medium text-lg truncate">
-                        {profile.firstName}, {profile.age}
-                      </p>
-                      <p className="text-sm text-mist truncate">{profile.city}</p>
-                      <p className="text-xs text-mist/70">Liked {timeAgo(like.createdAt)}</p>
+                  <div className="flex items-start justify-between gap-2 relative">
+                    <button
+                      type="button"
+                      onClick={() => setViewing({ profile, source: "sent" })}
+                      className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 text-left rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+                    >
+                      <Avatar name={profile.firstName} photo={profile.photos[0]} size={64} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-ivory font-medium text-lg truncate">
+                          {profile.firstName}, {profile.age}
+                        </p>
+                        <p className="text-sm text-mist truncate">{profile.city}</p>
+                        <p className="text-xs text-mist/70 truncate">Liked {timeAgo(like.createdAt)}</p>
+                      </div>
+                    </button>
+                    <div className="shrink-0 text-[0.7rem] text-champagne font-semibold pt-0.5">
+                      ✦ {compat.score}%
                     </div>
-                  </button>
-                  <p className="text-xs text-mist mt-4 relative">
+                  </div>
+                  <p className="text-xs text-mist mt-4 break-words [overflow-wrap:anywhere] relative">
                     {isMatched
                       ? "It's mutual! Open Matches or Chat to message."
                       : "Waiting for them to like you back — a match appears only when it's mutual."}
@@ -406,18 +410,18 @@ export default function Likes() {
                 <div className="h-full w-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/30 to-transparent" />
-              <div className="absolute bottom-3 left-5 sm:left-6 flex items-center gap-3">
+              <div className="absolute bottom-3 inset-x-5 sm:inset-x-6 flex items-center gap-3">
                 <Avatar
                   name={viewing.profile.firstName}
                   photo={viewing.profile.photos[0]}
                   size={64}
                   ring
                 />
-                <div>
-                  <p className="text-ivory font-display text-xl">
+                <div className="min-w-0 flex-1">
+                  <p className="text-ivory font-display text-xl truncate">
                     {viewing.profile.firstName}, {viewing.profile.age}
                   </p>
-                  <p className="text-mist text-sm">{viewing.profile.city}</p>
+                  <p className="text-mist text-sm truncate">{viewing.profile.city}</p>
                 </div>
               </div>
             </div>

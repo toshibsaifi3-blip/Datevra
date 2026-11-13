@@ -170,7 +170,7 @@ function Shortcut({ label, icon, to }: { label: string; icon: string; to: string
   const openMenu = () => window.dispatchEvent(new CustomEvent("datevra:open-menu"));
   const inner = (
     <>
-      <span className="w-16 h-16 rounded-full glass flex items-center justify-center text-2xl text-champagne shadow-[0_0_20px_rgba(197,164,255,0.25)] border border-champagne/25 transition-transform group-active:scale-95">
+      <span className="w-14 h-14 sm:w-16 sm:h-16 rounded-full glass flex items-center justify-center text-xl sm:text-2xl text-champagne shadow-[0_0_20px_rgba(197,164,255,0.25)] border border-champagne/25 transition-transform group-active:scale-95">
         <span className="drop-shadow-[0_0_8px_rgba(255,61,154,0.7)]">{icon}</span>
       </span>
       <span className="mt-2 text-xs tracking-wide text-ivory-dim/90">{label}</span>
@@ -279,7 +279,7 @@ export default function Home() {
   const suggested = profiles.filter((p) => p.id !== user?.id).slice(0, 3);
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       {/* ================= HERO ================= */}
       <section className="relative px-4 sm:px-5 pt-24 sm:pt-28 pb-10 max-w-6xl mx-auto">
         <Reveal>
@@ -342,7 +342,7 @@ export default function Home() {
       </section>
 
       {/* ================= SHORTCUTS ================= */}
-      <section className="px-5 pb-4 max-w-6xl mx-auto">
+      <section className="px-4 sm:px-5 pb-4 max-w-6xl mx-auto">
         <Reveal>
           <div className="grid grid-cols-4 gap-2 max-w-md mx-auto">
             {SHORTCUTS.map((s) => (
@@ -391,7 +391,7 @@ export default function Home() {
             <p className="mt-4 text-ivory-dim/80 max-w-xl mx-auto">
               Join Datevra — verified profiles, thoughtful matching, and dates arranged like art.
             </p>
-            <Link to="/register" className="btn-gold rounded-full px-10 py-4 text-base font-semibold inline-block mt-8">
+            <Link to="/register" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto text-base font-semibold inline-flex items-center justify-center mt-8">
               Sign Up Free
             </Link>
           </div>

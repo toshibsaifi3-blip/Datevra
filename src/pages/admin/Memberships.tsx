@@ -490,7 +490,7 @@ export default function Memberships() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search by member, email, subscription ID, payment ID..."
-              className={`${inputCls} pl-10 w-full`}
+              className={`${inputCls} pl-10 pr-10 w-full`}
             />
             {searchQuery && (
               <button
@@ -508,7 +508,7 @@ export default function Memberships() {
             <select
               value={tierFilter}
               onChange={(e) => handleTierFilter(e.target.value as "all" | PlanId)}
-              className="bg-space-dark/80 text-xs text-ivory rounded-xl border hairline px-3 py-2 outline-none focus:border-champagne/40"
+              className="w-full sm:w-auto min-h-[40px] bg-space-dark/80 text-xs text-ivory rounded-xl border hairline px-3 py-2 outline-none focus:border-champagne/40"
             >
               <option value="all">All Tiers</option>
               <option value="connect">Select (₹499)</option>

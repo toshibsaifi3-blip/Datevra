@@ -34,7 +34,7 @@ export default function MatchOverlay({ celebration, onClose, onChat }: MatchOver
       {celebration && (
         <motion.div
           key="match-overlay"
-          className="fixed inset-0 z-[90] flex items-center justify-center px-6 overflow-hidden"
+          className="fixed inset-0 z-[90] flex items-center justify-center px-4 sm:px-6 overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } }}
@@ -79,7 +79,7 @@ export default function MatchOverlay({ celebration, onClose, onChat }: MatchOver
             role="dialog"
             aria-modal="true"
             aria-label="It's a match"
-            className="relative glass-strong glow-border rounded-[2rem] px-8 pt-10 pb-8 max-w-sm w-full text-center overflow-hidden"
+            className="relative glass-strong glow-border rounded-[2rem] px-5 sm:px-8 pt-10 pb-8 max-w-sm w-full text-center overflow-hidden"
             initial={{ scale: 0.82, y: 40, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 24, opacity: 0, transition: { duration: 0.3, ease: "easeIn" } }}
@@ -125,7 +125,7 @@ export default function MatchOverlay({ celebration, onClose, onChat }: MatchOver
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.45 }}
-              className="font-display text-4xl text-gradient-dream tracking-wide"
+              className="font-display text-3xl sm:text-4xl text-gradient-dream tracking-wide"
             >
               IT&apos;S A MATCH!
             </motion.h2>

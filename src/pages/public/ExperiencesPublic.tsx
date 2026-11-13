@@ -235,7 +235,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
   };
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       {/* Dreamy ambience background sparkles */}
       <div className="pointer-events-none absolute top-0 right-1/4 h-96 w-96 rounded-full bg-rosegold/10 blur-[130px] animate-aura-shift" />
       {[8, 30, 52, 76, 92].map((left, i) => (
@@ -267,7 +267,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         {/* CAFÉ EXPERIENCE CARDS (Café Hot Stag & Karma La Cafe only)      */}
         {/* ============================================================== */}
         {loadingCafes ? (
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {[0, 1].map((i) => (
               <Skeleton key={i} className="h-[34rem] rounded-[2rem]" />
             ))}
@@ -275,7 +275,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
         ) : cafesError ? (
           <p className="text-center text-rosegold">{cafesError}</p>
         ) : (
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {displayedCafes.map(({ cfg, cafe }, i) => (
               <Reveal key={cfg.cafeId} delay={i * 0.1} className="h-full">
                 <motion.article
@@ -331,8 +331,8 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                             key={exp.id}
                             className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/5 hover:border-white/15 transition-colors"
                           >
-                            <span className="text-rosegold text-sm">✦</span>
-                            <span className="text-sm text-ivory font-medium">{exp.title}</span>
+                            <span className="text-rosegold text-sm shrink-0">✦</span>
+                            <span className="text-sm text-ivory font-medium min-w-0 break-words">{exp.title}</span>
                           </div>
                         ))}
                       </div>
@@ -342,13 +342,13 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                     <div className="mt-7 pt-5 border-t border-white/10 flex flex-col sm:flex-row items-center gap-3">
                       <button
                         onClick={() => openApplication(cfg, cafe)}
-                        className="btn-gold rounded-full px-7 py-3 text-sm font-semibold w-full sm:flex-1 touch-manipulation"
+                        className="btn-gold rounded-full px-7 py-3 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold w-full sm:flex-1 touch-manipulation"
                       >
                         Apply for Experience
                       </button>
                       <Link
                         to={`/cafes/${cfg.cafeId}`}
-                        className="btn-ghost rounded-full px-5 py-3 text-xs text-mist hover:text-ivory w-full sm:w-auto text-center touch-manipulation"
+                        className="btn-ghost rounded-full px-5 py-3 min-h-[44px] inline-flex items-center justify-center text-xs text-mist hover:text-ivory w-full sm:w-auto text-center touch-manipulation"
                       >
                         View café details
                       </Link>
@@ -451,37 +451,37 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
               Please review your application details before submitting to our curation team.
             </p>
 
-            <div className="glass rounded-2xl p-5 space-y-3.5 border border-white/10">
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Selected Café</span>
-                <span className="text-sm text-ivory font-semibold text-right">
+            <div className="glass rounded-2xl p-4 sm:p-5 space-y-3.5 border border-white/10">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Selected Café</span>
+                <span className="text-sm text-ivory font-semibold text-right min-w-0 break-words">
                   {activeCafeConfig?.displayName}
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Experience</span>
-                <span className="text-sm text-champagne font-semibold text-right">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Experience</span>
+                <span className="text-sm text-champagne font-semibold text-right min-w-0 break-words">
                   {activeCafeConfig?.experiences.find((e) => e.id === selectedExperience)?.title}
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Reservation Date</span>
-                <span className="text-sm text-ivory font-medium text-right">{selectedDate}</span>
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Reservation Date</span>
+                <span className="text-sm text-ivory font-medium text-right min-w-0 break-words">{selectedDate}</span>
               </div>
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Preferred Timing</span>
-                <span className="text-sm text-ivory font-medium text-right">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Preferred Timing</span>
+                <span className="text-sm text-ivory font-medium text-right min-w-0 break-words">
                   {preferredTime}{" "}
                   <span className="text-xs text-mist block font-normal">(Subject to confirmation)</span>
                 </span>
               </div>
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Guest Count</span>
-                <span className="text-sm text-ivory font-medium text-right">{guestCount} Guests</span>
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Guest Count</span>
+                <span className="text-sm text-ivory font-medium text-right min-w-0 break-words">{guestCount} Guests</span>
               </div>
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-xs uppercase tracking-wider text-mist">Comfortable Budget</span>
-                <span className="text-sm text-champagne font-semibold text-right">
+              <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+                <span className="text-xs uppercase tracking-wider text-mist shrink-0">Comfortable Budget</span>
+                <span className="text-sm text-champagne font-semibold text-right min-w-0 break-words">
                   ₹{formBudgetRange[0].toLocaleString("en-IN")} – ₹{formBudgetRange[1].toLocaleString("en-IN")}
                 </span>
               </div>
@@ -490,7 +490,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                   <span className="text-xs uppercase tracking-wider text-mist block mb-1">
                     Special Note
                   </span>
-                  <p className="text-xs text-ivory-dim italic bg-black/20 p-2.5 rounded-lg">
+                  <p className="text-xs text-ivory-dim italic bg-black/20 p-2.5 rounded-lg break-words [overflow-wrap:anywhere]">
                     “{note.trim()}”
                   </p>
                 </div>
@@ -646,7 +646,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
             )}
 
             {/* Field D: Date Selection (Interactive calendar picker, past disabled) */}
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field
                 label="Preferred Reservation Date"
                 hint="Past dates disabled. Subject to venue review."
@@ -656,7 +656,7 @@ export default function ExperiencesPublic({ hideHero = false }: { hideHero?: boo
                   min={todayStr}
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className={`${inputCls} accent-rosegold cursor-pointer`}
+                  className={`${inputCls} appearance-none min-w-0 accent-rosegold cursor-pointer`}
                   required
                 />
               </Field>

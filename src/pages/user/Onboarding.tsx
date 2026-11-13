@@ -234,7 +234,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="min-h-screen bg-midnight text-ivory flex flex-col relative overflow-x-hidden">
+    <div className="min-h-screen bg-midnight text-ivory flex flex-col relative overflow-x-clip">
       {/* Ambient luxury glows */}
       <div className="pointer-events-none absolute -top-40 -left-40 h-[32rem] w-[32rem] rounded-full bg-burgundy/30 blur-[140px]" />
       <div className="pointer-events-none absolute top-1/2 -right-40 h-[30rem] w-[30rem] rounded-full bg-rosegold/15 blur-[140px]" />
@@ -309,7 +309,7 @@ export default function Onboarding() {
                     <p className="text-sm text-mist mt-1">Let&apos;s start with the basics of who you are.</p>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field label="First name" hint="What should matches call you?">
                       <input
                         className={inputCls}
@@ -353,7 +353,7 @@ export default function Onboarding() {
                     </Field>
                   </div>
 
-                  <div className="grid sm:grid-cols-2 gap-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <Field label="I identify as">
                       <select
                         className={inputCls}
@@ -420,7 +420,7 @@ export default function Onboarding() {
                   </div>
 
                   <Field label="I am interested in meeting">
-                    <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+                    <div className="grid grid-cols-1 min-[340px]:grid-cols-3 gap-2.5 sm:gap-3">
                       {INTERESTED_OPTIONS.map((opt) => (
                         <button
                           key={opt.id}
@@ -688,7 +688,7 @@ export default function Onboarding() {
                       <div className="absolute inset-0 bg-gradient-to-t from-midnight via-transparent to-transparent" />
                       <div className="absolute bottom-3 left-4 right-4">
                         <div className="flex items-baseline gap-2 flex-wrap">
-                          <span className="font-display text-2xl text-ivory">{firstName || user.firstName}, {age}</span>
+                          <span className="font-display text-2xl text-ivory break-words">{firstName || user.firstName}, {age}</span>
                           {user.verified && <Badge tone="green">Verified</Badge>}
                         </div>
                         <p className="text-xs text-rosegold">{city}</p>
@@ -743,7 +743,7 @@ export default function Onboarding() {
                   role="alert"
                   className="mt-5 p-3.5 rounded-xl bg-burgundy/30 border border-rosegold/30 text-xs text-rosegold flex items-center justify-between gap-3 flex-wrap"
                 >
-                  <span>{error}</span>
+                  <span className="break-words min-w-0 flex-1">{error}</span>
                   {(offlineError || step <= 4) && (
                     <button
                       type="button"

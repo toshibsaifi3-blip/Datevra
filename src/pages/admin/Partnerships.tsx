@@ -89,7 +89,7 @@ export default function Partnerships() {
               <button
                 onClick={downloadReport}
                 disabled={partners.length === 0}
-                className="btn-ghost rounded-xl px-5 py-3 text-sm disabled:opacity-40"
+                className="btn-ghost rounded-xl px-5 py-3 text-sm w-full sm:w-auto min-h-[44px] disabled:opacity-40"
               >
                 ⬇ Generate report (CSV)
               </button>

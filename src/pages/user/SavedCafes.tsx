@@ -46,14 +46,14 @@ export default function SavedCafes() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-4 sm:py-8">
+    <div className="max-w-5xl mx-auto px-0 sm:px-4 py-4 sm:py-8 overflow-x-clip">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Saved cafés</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-8">Your shortlist of lovely places</h1>
       </Reveal>
 
       {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[0, 1, 2].map((i) => (
             <Skeleton key={i} className="h-64" />
           ))}
@@ -71,7 +71,7 @@ export default function SavedCafes() {
           }
         />
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {cafes.filter((c) => !isDemoCafe(c)).map((c) => (
             <Reveal key={c.id}>
               <div className="glass rounded-3xl overflow-hidden card-hover h-full flex flex-col">

@@ -55,7 +55,7 @@ export default function Safety() {
   const supportEmail = settings?.supportEmail ?? "care@datevra.in";
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero
         kicker="Safety centre"
         title="Romance deserves to feel safe"
@@ -68,7 +68,7 @@ export default function Safety() {
           kicker="Date safer"
           title="Six habits of safe dating"
         />
-        <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {TIPS.map((t, i) => (
             <Reveal key={t.title} delay={(i % 3) * 0.08}>
               <div className="glass rounded-3xl p-6 sm:p-7 h-full card-hover">
@@ -98,7 +98,7 @@ export default function Safety() {
             <Reveal key={s.n} delay={i * 0.06}>
               <div className="glass rounded-2xl p-5 sm:p-6 flex gap-4 sm:gap-5 items-start">
                 <span className="font-display text-3xl text-gradient-gold font-semibold shrink-0">{s.n}</span>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h3 className="font-display text-lg text-ivory">{s.t}</h3>
                   <p className="mt-1.5 text-sm text-ivory-dim/85 leading-relaxed">{s.b}</p>
                 </div>
@@ -140,17 +140,17 @@ export default function Safety() {
             <h2 className="font-display text-3xl text-ivory">Need help or feel unsafe?</h2>
             <p className="mt-4 text-ivory-dim/85 leading-relaxed max-w-xl mx-auto">
               Write to us anytime at{" "}
-              <a href={`mailto:${supportEmail}`} className="text-champagne hover:text-rosegold transition-colors">
+              <a href={`mailto:${supportEmail}`} className="text-champagne hover:text-rosegold transition-colors break-all">
                 {supportEmail}
               </a>
               . Safety reports are prioritised and reviewed by a human — usually
               within 24 hours.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/contact" className="btn-gold rounded-full px-8 py-3.5 text-sm font-semibold">
+              <Link to="/contact" className="btn-gold rounded-full px-8 py-3.5 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-sm font-semibold">
                 Contact support
               </Link>
-              <Link to="/faqs" className="btn-ghost rounded-full px-8 py-3.5 text-sm">
+              <Link to="/faqs" className="btn-ghost rounded-full px-8 py-3.5 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-sm">
                 Read FAQs
               </Link>
             </div>

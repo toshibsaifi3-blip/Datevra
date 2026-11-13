@@ -133,7 +133,7 @@ export default function Settings() {
             <button
               onClick={save}
               disabled={!dirty}
-              className="btn-gold rounded-xl px-8 py-3 text-sm w-full disabled:opacity-40"
+              className="btn-gold rounded-xl px-8 py-3 min-h-[44px] text-sm font-medium w-full disabled:opacity-40"
             >
               {dirty ? "Save settings" : "No changes"}
             </button>

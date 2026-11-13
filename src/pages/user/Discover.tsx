@@ -180,7 +180,7 @@ function ProfileCard({
       </motion.div>
 
       {/* Classic Tinder-style full-card photograph with multi-photo tap navigation */}
-      <div className="relative h-[min(58dvh,450px)] min-h-[340px] sm:h-[530px] overflow-hidden">
+      <div className="relative h-[min(56dvh,440px)] min-h-[320px] sm:h-[530px] overflow-hidden">
         {/* Segmented photo indicators at top */}
         {photos.length > 1 && (
           <div
@@ -671,7 +671,7 @@ export default function Discover() {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
+    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-clip">
       <div className="sr-only" aria-live="polite">
         {liveStatus || (current ? `Showing ${current.profile.firstName}, ${current.profile.age}` : "")}
       </div>
@@ -726,7 +726,7 @@ export default function Discover() {
 
       {loading ? (
         <div className="max-w-md mx-auto">
-          <Skeleton className="h-[min(58dvh,450px)] min-h-[340px] sm:h-[560px] rounded-[2rem]" />
+          <Skeleton className="h-[min(56dvh,440px)] min-h-[320px] sm:h-[560px] rounded-[2rem]" />
         </div>
       ) : error ? (
         <EmptyState
@@ -892,13 +892,13 @@ export default function Discover() {
                 <div className="h-full w-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/30 to-transparent" />
-              <div className="absolute bottom-3 left-5 sm:left-6 flex items-center gap-3">
+              <div className="absolute bottom-3 inset-x-5 sm:inset-x-6 flex items-center gap-3">
                 <Avatar name={viewing.firstName} photo={viewing.photos[0]} size={64} ring />
-                <div>
-                  <p className="text-ivory font-display text-xl">
+                <div className="min-w-0 flex-1">
+                  <p className="text-ivory font-display text-xl truncate">
                     {viewing.firstName}, {viewing.age}
                   </p>
-                  <p className="text-mist text-sm">{viewing.city}</p>
+                  <p className="text-mist text-sm truncate">{viewing.city}</p>
                 </div>
               </div>
             </div>
@@ -1126,7 +1126,7 @@ export default function Discover() {
                 Tune who appears in your deck. Changes apply immediately.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-4">
               <Field label="Min age">
                 <input
                   type="number"

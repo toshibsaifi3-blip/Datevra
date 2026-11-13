@@ -57,7 +57,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
   };
 
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute top-0 left-1/4 h-96 w-96 rounded-full bg-burgundy/25 blur-[130px] animate-aura-shift" />
       {[10, 34, 58, 82].map((left, i) => (
@@ -81,7 +81,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
 
       <section className="relative max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-96" />
             ))}
@@ -89,14 +89,14 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
         ) : error ? (
           <p className="text-center text-rosegold">{error}</p>
         ) : cafes.length === 0 ? (
-          <div className="glass rounded-[2rem] p-12 text-center max-w-xl mx-auto">
+          <div className="glass rounded-[2rem] p-8 sm:p-12 text-center max-w-xl mx-auto">
             <p className="font-display text-2xl text-ivory">No cafés yet</p>
             <p className="text-sm text-mist mt-2">
               Our curators are still hand-picking the first rooms. Check back soon.
             </p>
           </div>
         ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {cafes.filter((c) => !isDemoCafe(c)).map((c, i) => {
             const saved = savedIds.includes(c.id);
             return (
@@ -142,7 +142,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                   </div>
                   <div className="p-5 sm:p-6 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-display text-xl text-ivory">{c.name}</h3>
+                      <h3 className="font-display text-xl text-ivory min-w-0 break-words">{c.name}</h3>
                       <span className="text-[0.7rem] tracking-widest text-champagne border border-champagne/30 rounded-full px-2.5 py-0.5 shrink-0">
                         {c.priceRange}
                       </span>
@@ -169,7 +169,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                     </div>
                     <Link
                       to={`/cafes/${c.id}`}
-                      className="btn-ghost rounded-full px-6 py-2.5 text-sm mt-5 text-center"
+                      className="btn-ghost rounded-full px-6 py-2.5 min-h-[44px] inline-flex items-center justify-center text-sm mt-5 text-center"
                     >
                       View café
                     </Link>

@@ -312,7 +312,7 @@ export default function Matchmaking() {
             </button>
           ))}
           {tab === "proposals" && (
-            <button className="btn-gold ml-auto" onClick={() => setShowPropose(true)}>Propose match</button>
+            <button className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-sm font-semibold ml-auto" onClick={() => setShowPropose(true)}>Propose match</button>
           )}
         </div>
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load matches: {error}</p>}
@@ -322,7 +322,7 @@ export default function Matchmaking() {
             <EmptyState title="No proposals yet" body="Propose a curated match between two members. Both must accept for a match to form." />
           ) : (
             <div className="overflow-x-auto rounded-2xl border border-white/10 mt-4">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[680px] text-sm">
                 <thead>
                   <tr className={rowCls}>
                     <th className={thCls}>Members</th>
@@ -368,7 +368,7 @@ export default function Matchmaking() {
             </div>
 
             <div className="mt-8 glass rounded-2xl p-4 flex flex-wrap items-center gap-3">
-              <select value={city} onChange={(e) => setCity(e.target.value)} className={`${inputCls} max-w-xs`}>
+              <select value={city} onChange={(e) => setCity(e.target.value)} className={`${inputCls} w-full sm:w-auto sm:max-w-xs`}>
                 <option value="all">All cities</option>
                 {cities.map((c) => (
                   <option key={c} value={c}>
@@ -384,7 +384,7 @@ export default function Matchmaking() {
                 <EmptyState title="No matches yet" body="Mutual likes will create matches that appear here." />
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 gap-5 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
                 {filtered.map((m, idx) => {
                   const a = userMap.get(m.userA);
                   const b = userMap.get(m.userB);
@@ -395,22 +395,22 @@ export default function Matchmaking() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: Math.min(idx * 0.05, 0.3) }}
-                      className="glass rounded-3xl p-4 sm:p-6"
+                      className="glass rounded-3xl p-4 sm:p-6 min-w-0"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <Avatar name={a?.firstName ?? "?"} size={52} ring />
                           <Avatar name={b?.firstName ?? "?"} size={52} ring />
-                          <div>
-                            <p className="text-ivory font-medium">
+                          <div className="min-w-0">
+                            <p className="text-ivory font-medium break-words">
                               {a?.firstName} <span className="text-rosegold">✦</span> {b?.firstName}
                             </p>
-                            <p className="text-xs text-mist">
+                            <p className="text-xs text-mist break-words">
                               {a?.city} · {b?.city} · {fmtDate(m.createdAt)}
                             </p>
                           </div>
                         </div>
-                        <div className="text-center">
+                        <div className="text-center shrink-0">
                           <p className="font-display text-3xl text-gradient-gold">{m.compatibility}%</p>
                           <p className="text-[0.65rem] uppercase tracking-[0.2em] text-mist">compatible</p>
                         </div>
@@ -845,7 +845,7 @@ export default function Matchmaking() {
                 isSubmitting
               }
               onClick={propose}
-              className="btn-gold w-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="btn-gold rounded-full px-6 py-3 min-h-[44px] text-sm font-semibold w-full disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>

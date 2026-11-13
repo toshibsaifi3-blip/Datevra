@@ -395,11 +395,11 @@ export function Modal({
           >
             {title && (
               <div className="flex items-start justify-between gap-3 mb-5">
-                <h3 id={titleId} className="font-display text-2xl text-ivory">{title}</h3>
+                <h3 id={titleId} className="font-display text-xl sm:text-2xl text-ivory min-w-0 break-words">{title}</h3>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="min-h-[44px] min-w-[44px] -mr-2 -mt-2 flex items-center justify-center rounded-xl text-mist hover:text-ivory active:bg-white/10 transition-colors text-2xl leading-none touch-manipulation"
+                  className="min-h-[44px] min-w-[44px] shrink-0 -mr-2 -mt-2 flex items-center justify-center rounded-xl text-mist hover:text-ivory active:bg-white/10 transition-colors text-2xl leading-none touch-manipulation"
                   aria-label="Close"
                 >
                   ×
@@ -504,7 +504,7 @@ export function Reveal({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
       transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
+      className={`min-w-0 ${className}`}
     >
       {children}
     </motion.div>

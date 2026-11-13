@@ -283,7 +283,7 @@ export default function Analytics() {
               refreshApps();
               refreshBookings();
             }}
-            className="p-2 rounded-xl glass hover:border-rosegold/40 text-mist hover:text-ivory transition-colors"
+            className="min-h-[40px] min-w-[40px] p-2.5 flex items-center justify-center rounded-xl glass hover:border-rosegold/40 text-mist hover:text-ivory transition-colors"
             title="Refresh analytics data"
           >
             <RefreshCw size={14} />
@@ -395,12 +395,12 @@ export default function Analytics() {
             </div>
           ) : (
             <div className="pt-6">
-              <div className="h-44 flex items-end gap-2 border-b hairline pb-2">
+              <div className="h-44 flex items-end gap-1.5 sm:gap-2 border-b hairline pb-2">
                 {analytics.userRegistrationBars.map((b) => {
                   const heightPct = Math.max(8, (b.count / analytics.maxRegCount) * 100);
                   return (
-                    <div key={b.date} className="flex-1 flex flex-col items-center gap-1.5 group relative">
-                      <div className="w-full flex justify-center">
+                    <div key={b.date} className="flex-1 h-full flex flex-col justify-end items-center gap-1.5 group relative min-w-0">
+                      <div className="flex-1 w-full flex items-end justify-center min-h-0">
                         <motion.div
                           initial={{ height: 0 }}
                           animate={{ height: `${heightPct}%` }}
@@ -408,7 +408,7 @@ export default function Analytics() {
                           className="w-full max-w-[28px] rounded-t-lg bg-gradient-to-t from-rosegold/50 via-rosegold to-champagne group-hover:brightness-125 transition-all"
                         />
                       </div>
-                      <span className="text-[0.62rem] text-mist font-mono truncate max-w-[42px]">
+                      <span className="text-[0.62rem] text-mist font-mono truncate max-w-[42px] shrink-0">
                         {b.date.slice(5)}
                       </span>
 

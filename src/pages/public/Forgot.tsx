@@ -33,7 +33,7 @@ export default function Forgot() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative overflow-x-clip">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(110,27,46,0.35),transparent_65%)]" />
       <motion.div
         initial={{ opacity: 0, y: 28 }}

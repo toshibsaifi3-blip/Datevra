@@ -125,7 +125,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative">
+    <div className="min-h-screen flex items-center justify-center px-4 sm:px-5 py-12 sm:py-16 relative overflow-x-clip">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(110,27,46,0.35),transparent_65%)]" />
       <motion.div
         initial={{ opacity: 0, y: 28 }}
@@ -138,7 +138,7 @@ export default function Register() {
           <h1 className="font-display text-3xl text-ivory mt-6">
             {step === "otp" ? "Check your inbox" : "Begin your story"}
           </h1>
-          <p className="text-sm text-ivory-dim/80 mt-2">
+          <p className="text-sm text-ivory-dim/80 mt-2 break-words">
             {step === "otp"
               ? `We sent a 6-digit code to ${email.trim()}. It expires soon.`
               : "Free to join · 18+ only · takes two minutes"}
@@ -203,7 +203,7 @@ export default function Register() {
           </form>
         ) : (
         <form onSubmit={submit} className="glass-strong rounded-[1.75rem] p-5 sm:p-8 space-y-5">
-          <div className="grid sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="First name">
               <input
                 className={inputCls}
@@ -248,7 +248,7 @@ export default function Register() {
             />
           </Field>
 
-          <div className="grid sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <Field label="I am">
               <select
                 className={inputCls}

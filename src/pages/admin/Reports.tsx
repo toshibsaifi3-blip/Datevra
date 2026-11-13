@@ -372,7 +372,7 @@ export default function Reports() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search by reporter, reported member, reason, details..."
-              className={`${inputCls} pl-10 w-full`}
+              className={`${inputCls} pl-10 pr-14 w-full`}
             />
             {searchQuery && (
               <button
@@ -390,7 +390,7 @@ export default function Reports() {
             <select
               value={reasonFilter}
               onChange={(e) => handleReasonFilter(e.target.value)}
-              className={`${inputCls} text-xs py-2`}
+              className={`${inputCls} text-xs py-2 w-full sm:w-auto`}
             >
               <option value="all">All Reasons</option>
               {availableReasons.map((r) => (
@@ -401,7 +401,7 @@ export default function Reports() {
             </select>
 
             {/* Sort field selector */}
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-2 py-1">
+            <div className="flex flex-wrap items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-2 py-1">
               <span className="text-[0.7rem] text-mist uppercase tracking-wider pl-1">Sort:</span>
               <button
                 type="button"
@@ -702,15 +702,15 @@ export default function Reports() {
 
             {/* Quick Context Card */}
             <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-mist">Report Reason:</span>
                 <span className="text-champagne font-medium">{confirmModal.report.reason}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-mist">Report ID:</span>
-                <span className="text-ivory font-mono text-[0.7rem]">{confirmModal.report.id}</span>
+                <span className="text-ivory font-mono text-[0.7rem] break-all">{confirmModal.report.id}</span>
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-mist">Current Status:</span>
                 <Badge tone={STATUS_TONES[confirmModal.report.status]}>
                   {confirmModal.report.status}
@@ -719,11 +719,11 @@ export default function Reports() {
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-2">
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setConfirmModal(null)}
-                className="btn-ghost px-4 py-2 rounded-xl text-xs text-mist hover:text-ivory"
+                className="btn-ghost px-4 py-2.5 min-h-[44px] rounded-xl text-xs text-mist hover:text-ivory"
               >
                 Cancel
               </button>
@@ -733,7 +733,7 @@ export default function Reports() {
                 onClick={() =>
                   executeStatusChange(confirmModal.report.id, confirmModal.targetStatus)
                 }
-                className={`rounded-xl px-4 py-2 text-xs font-medium transition-all ${
+                className={`rounded-xl px-5 py-2.5 min-h-[44px] text-xs font-medium transition-all ${
                   confirmModal.tone === "green"
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
                     : confirmModal.tone === "rose"
@@ -786,11 +786,11 @@ export default function Reports() {
 
                 {/* Complaint Narrative Details */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-[0.7rem] uppercase tracking-wider text-mist font-semibold">
                       Complaint Narrative & Details
                     </p>
-                    <span className="text-[0.68rem] text-mist font-mono">
+                    <span className="text-[0.68rem] text-mist font-mono break-all">
                       ID: {inspectReport.id}
                     </span>
                   </div>
@@ -847,7 +847,7 @@ export default function Reports() {
                         </div>
                       )}
                       {reporter?.email && (
-                        <div className="text-[0.72rem] text-mist/80 font-mono">
+                        <div className="text-[0.72rem] text-mist/80 font-mono break-all">
                           {reporter.email}
                         </div>
                       )}
@@ -903,7 +903,7 @@ export default function Reports() {
                         </div>
                       )}
                       {reported?.email && (
-                        <div className="text-[0.72rem] text-mist/80 font-mono">
+                        <div className="text-[0.72rem] text-mist/80 font-mono break-all">
                           {reported.email}
                         </div>
                       )}
@@ -953,7 +953,7 @@ export default function Reports() {
 
                 {/* In-Modal Action Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t hairline">
-                  <span className="text-xs text-mist">
+                  <span className="text-xs text-mist break-all">
                     Audit log actor: <span className="font-mono text-champagne">{actor}</span>
                   </span>
 
@@ -963,7 +963,7 @@ export default function Reports() {
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => executeStatusChange(inspectReport.id, "reviewing")}
-                        className="btn-ghost rounded-xl px-3.5 py-2 text-xs text-champagne hover:text-rosegold border-champagne/30 disabled:opacity-40"
+                        className="btn-ghost rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs text-champagne hover:text-rosegold border-champagne/30 disabled:opacity-40"
                       >
                         {isSubmitting ? "Starting…" : "Start Review"}
                       </button>
@@ -975,7 +975,7 @@ export default function Reports() {
                           type="button"
                           disabled={isSubmitting}
                           onClick={() => requestResolve(inspectReport)}
-                          className="btn-ghost rounded-xl px-3.5 py-2 text-xs text-emerald-300 hover:text-emerald-200 border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-40 flex items-center gap-1"
+                          className="btn-ghost rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs text-emerald-300 hover:text-emerald-200 border-emerald-500/30 hover:bg-emerald-500/10 disabled:opacity-40 flex items-center gap-1"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>Resolve Report</span>
@@ -984,7 +984,7 @@ export default function Reports() {
                           type="button"
                           disabled={isSubmitting}
                           onClick={() => requestDismiss(inspectReport)}
-                          className="btn-ghost rounded-xl px-3.5 py-2 text-xs text-mist hover:text-rose-300 border-white/10 hover:border-rose-500/30 hover:bg-rose-500/10 disabled:opacity-40"
+                          className="btn-ghost rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs text-mist hover:text-rose-300 border-white/10 hover:border-rose-500/30 hover:bg-rose-500/10 disabled:opacity-40"
                         >
                           <span>Dismiss Report</span>
                         </button>
@@ -996,7 +996,7 @@ export default function Reports() {
                         type="button"
                         disabled={isSubmitting}
                         onClick={() => requestReopen(inspectReport)}
-                        className="btn-ghost rounded-xl px-3.5 py-2 text-xs text-amber-300 hover:text-amber-200 border-amber-500/30 hover:bg-amber-500/10 disabled:opacity-40 flex items-center gap-1.5"
+                        className="btn-ghost rounded-xl px-3.5 py-2.5 min-h-[44px] text-xs text-amber-300 hover:text-amber-200 border-amber-500/30 hover:bg-amber-500/10 disabled:opacity-40 flex items-center gap-1.5"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>Reopen Investigation</span>

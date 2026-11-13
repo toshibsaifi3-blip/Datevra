@@ -608,7 +608,7 @@ export default function Applications() {
                           setViewDetailApp(null);
                           setDecideFor({ app: target, next: "under_review" });
                         }}
-                        className="btn-gold rounded-full px-5 py-2 text-xs font-semibold"
+                        className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-xs font-semibold"
                       >
                         Mark Under Review
                       </button>
@@ -622,7 +622,7 @@ export default function Applications() {
                           setViewDetailApp(null);
                           setDecideFor({ app: target, next: "eligible" });
                         }}
-                        className="btn-gold rounded-full px-5 py-2 text-xs font-semibold"
+                        className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-xs font-semibold"
                       >
                         Mark Eligible
                       </button>
@@ -636,7 +636,7 @@ export default function Applications() {
                           setViewDetailApp(null);
                           openBooking(target);
                         }}
-                        className="btn-gold rounded-full px-5 py-2 text-xs font-semibold"
+                        className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-xs font-semibold"
                       >
                         Proceed to Booking
                       </button>
@@ -699,7 +699,7 @@ export default function Applications() {
                 <span className="text-champagne font-semibold">{expMap.get(bookingFor.experienceId)?.title || "Curated Experience"}</span>.
                 Booking creates calendar confirmation and notifications.
               </p>
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Member (Applicant)">
                   <input
                     value={userMap.get(bookingFor.userId)?.firstName ?? ""}
@@ -733,10 +733,10 @@ export default function Applications() {
                   <input value={venue} onChange={(e) => setVenue(e.target.value)} className={inputCls} placeholder="Venue details" />
                 </Field>
                 <Field label="Date">
-                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
+                  <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputCls} appearance-none min-w-0`} />
                 </Field>
                 <Field label="Time">
-                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={inputCls} />
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={`${inputCls} appearance-none min-w-0`} />
                 </Field>
                 <Field label="Amount (₹)" hint="Payable for the experience.">
                   <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="numeric" className={inputCls} />

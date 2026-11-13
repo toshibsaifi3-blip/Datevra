@@ -266,7 +266,7 @@ export default function Profile() {
   const circ = 2 * Math.PI * radius;
 
   return (
-    <div className="relative max-w-4xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-hidden">
+    <div className="relative max-w-4xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-clip">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-burgundy/30 blur-[120px] animate-aura-shift" />
       <div className="pointer-events-none absolute top-1/3 -right-32 h-80 w-80 rounded-full bg-rosegold/10 blur-[120px]" />
@@ -296,7 +296,7 @@ export default function Profile() {
               <p className="text-[0.7rem] uppercase tracking-[0.3em] text-rosegold mb-1">
                 Your constellation
               </p>
-              <h1 className="font-display text-3xl text-gradient-dream">
+              <h1 className="font-display text-3xl text-gradient-dream break-words">
                 {firstName || user.firstName}, {age}
               </h1>
               <p className="text-sm text-mist mt-1">
@@ -372,7 +372,7 @@ export default function Profile() {
               title="Write your story"
               sub="A few honest lines — what a great first evening looks like, what you're into."
             />
-            <div className="grid md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <Field label="First name">
                 <input className={inputCls} value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={40} />
               </Field>
@@ -417,7 +417,7 @@ export default function Profile() {
               title="Who you're hoping to meet"
               sub="These shape your discovery deck and compatibility."
             />
-            <div className="grid md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <Field label="I identify as">
                 <select className={inputCls} value={gender} onChange={(e) => setGender(e.target.value as Gender)}>
                   {GENDERS.map((g) => (
@@ -564,8 +564,8 @@ export default function Profile() {
             title="Your presence"
             sub="Control how visible you are while you're here."
           />
-          <label className="flex items-center justify-between gap-4 glass rounded-2xl px-5 py-4 cursor-pointer card-hover">
-            <div>
+          <label className="flex items-center justify-between gap-4 glass rounded-2xl px-4 sm:px-5 py-4 cursor-pointer card-hover">
+            <div className="min-w-0 flex-1">
               <p className="text-ivory font-medium">Show me as online</p>
               <p className="text-xs text-mist mt-0.5">Matches can see when you're around to chat.</p>
             </div>
@@ -586,7 +586,7 @@ export default function Profile() {
             onClick={save}
             disabled={saving}
             whileTap={{ scale: 0.97 }}
-            className="btn-gold rounded-full px-10 py-3.5 font-medium disabled:opacity-60"
+            className="btn-gold rounded-full px-10 py-3.5 min-h-[44px] w-full sm:w-auto font-medium disabled:opacity-60"
           >
             {saving ? "Saving…" : "Save profile"}
           </motion.button>
@@ -595,7 +595,7 @@ export default function Profile() {
 
       {/* account controls */}
       <Reveal>
-        <div className="grid sm:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Link to="/settings" className="glass rounded-3xl p-6 card-hover block relative overflow-hidden">
             <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-rosegold/10 blur-[60px]" />
             <p className="text-[0.7rem] uppercase tracking-[0.25em] text-rosegold mb-2">Account</p>

@@ -396,7 +396,7 @@ export default function Chat() {
   if (!me) return null;
 
   return (
-    <div className="relative overflow-x-hidden">
+    <div className="relative overflow-x-clip">
       {/* Dreamy ambient glows */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-burgundy/30 blur-[110px]" />
       <div aria-hidden className="pointer-events-none absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-rosegold/15 blur-[120px]" />
@@ -443,7 +443,7 @@ export default function Chat() {
           <div
             className={`flex gap-4 ${
               active
-                ? "h-[calc(100dvh-13rem)] min-h-[320px] md:h-[calc(100dvh-250px)] md:min-h-[460px]"
+                ? "h-[calc(100dvh-13.25rem-env(safe-area-inset-bottom))] min-h-[300px] md:h-[calc(100dvh-250px)] md:min-h-[460px]"
                 : "h-[calc(100dvh-17rem)] min-h-[340px] md:h-[calc(100dvh-250px)] md:min-h-[460px]"
             }`}
           >
@@ -591,7 +591,7 @@ export default function Chat() {
                           }`}
                         />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-ivory font-medium truncate group-hover:text-champagne transition-colors">
                           {partner.firstName}, {partner.age}
                         </p>
@@ -819,10 +819,7 @@ export default function Chat() {
                   </div>
 
                   {/* Composer */}
-                  <div
-                    className="border-t border-white/10 bg-white/[0.02] px-2.5 sm:px-4 pt-3 shrink-0"
-                    style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
-                  >
+                  <div className="border-t border-white/10 bg-white/[0.02] px-2.5 sm:px-4 pt-2.5 pb-2.5 lg:pb-3 shrink-0">
                     {failedText && (
                       <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-rosegold/40 bg-rosegold/10 px-3 py-2 text-xs text-ivory">
                         <span className="truncate">Message didn&apos;t send. Your text was kept.</span>
@@ -885,17 +882,17 @@ export default function Chat() {
                                 animate={{ opacity: 1, y: 0, scale: 1 }}
                                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
                                 transition={{ duration: 0.15 }}
-                                className="absolute bottom-12 left-0 z-20 glass-strong rounded-2xl p-3 w-[248px] max-w-[calc(100vw-2.5rem)] shadow-2xl"
+                                className="absolute bottom-12 left-0 z-20 glass-strong rounded-2xl p-2.5 sm:p-3 w-[228px] sm:w-[256px] max-w-[calc(100vw-2rem)] shadow-2xl"
                                 role="dialog"
                                 aria-label="Emoji picker"
                               >
-                                <div className="grid grid-cols-8 gap-1">
+                                <div className="grid grid-cols-6 sm:grid-cols-8 gap-1">
                                   {EMOJI_SET.map((e) => (
                                     <button
                                       key={e}
                                       type="button"
                                       onClick={() => insertEmoji(e)}
-                                      className="text-xl p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                                      className="text-xl min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
                                       aria-label={`Insert ${e}`}
                                     >
                                       {e}
@@ -912,7 +909,7 @@ export default function Chat() {
                         disabled
                         title="Photo sharing is coming soon"
                         aria-label="Attach a photo (coming soon)"
-                        className="p-2.5 rounded-full text-mist/50 opacity-40 cursor-not-allowed"
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center shrink-0 rounded-full text-mist/50 opacity-40 cursor-not-allowed"
                       >
                         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path
@@ -967,8 +964,8 @@ export default function Chat() {
           <div className="space-y-4">
             <div className="flex items-center gap-4">
               <Avatar name={partner.firstName} photo={partner.photos[0]} size={64} ring />
-              <div>
-                <p className="text-mist">{partner.city}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-mist break-words">{partner.city}</p>
                 {partner.verified && <Badge tone="green">✓ Verified</Badge>}
               </div>
             </div>

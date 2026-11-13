@@ -26,7 +26,7 @@ const VALUES = [
 
 export default function About() {
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero
         kicker="Our story"
         title="Datevra: where romance is a craft"
@@ -71,7 +71,7 @@ export default function About() {
           kicker="What we believe"
           title="Four promises we keep"
         />
-        <div className="mt-10 sm:mt-12 grid sm:grid-cols-2 gap-5">
+        <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-2 gap-5">
           {VALUES.map((v, i) => (
             <Reveal key={v.title} delay={i * 0.08}>
               <div className="glass rounded-3xl p-6 sm:p-8 h-full card-hover">
@@ -99,10 +99,10 @@ export default function About() {
             Come as you are. <span className="text-gradient-gold">Leave with a story.</span>
           </h2>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/register" className="btn-gold rounded-full px-10 py-4 text-base font-semibold">
+            <Link to="/register" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-base font-semibold">
               Join Datevra
             </Link>
-            <Link to="/contact" className="btn-ghost rounded-full px-10 py-4 text-base">
+            <Link to="/contact" className="btn-ghost rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-base">
               Talk to us
             </Link>
           </div>

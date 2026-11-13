@@ -300,7 +300,7 @@ export default function Payments() {
           <button
             type="button"
             onClick={() => setCashOpen(true)}
-            className="btn-gold rounded-xl px-5 py-3 text-sm flex items-center justify-center gap-2 shrink-0 sm:self-start mt-2 sm:mt-0"
+            className="btn-gold rounded-xl px-5 py-3 min-h-[44px] text-sm font-medium flex items-center justify-center gap-2 shrink-0 sm:self-start mt-2 sm:mt-0 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Record Cash Payment</span>
@@ -445,7 +445,7 @@ export default function Payments() {
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder="Search by member, email, payment ID, order ID, gateway pay ID..."
-              className={`${inputCls} pl-10 w-full`}
+              className={`${inputCls} pl-10 pr-14 w-full`}
             />
             {searchQuery && (
               <button
@@ -463,7 +463,7 @@ export default function Payments() {
             <select
               value={kindFilter}
               onChange={(e) => handleKindFilter(e.target.value)}
-              className={`${inputCls} text-xs py-2`}
+              className={`${inputCls} text-xs py-2 w-full sm:w-auto`}
             >
               <option value="all">All Types</option>
               <option value="membership">Membership</option>
@@ -472,7 +472,7 @@ export default function Payments() {
             </select>
 
             {/* Sort Toggle */}
-            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-2 py-1">
+            <div className="flex flex-wrap items-center gap-1 bg-white/5 border border-white/10 rounded-xl px-2 py-1">
               <span className="text-[0.7rem] text-mist uppercase tracking-wider pl-1">Sort:</span>
               <button
                 type="button"

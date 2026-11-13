@@ -149,7 +149,7 @@ export default function Dashboard() {
     return (
       <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6 space-y-6">
         <Skeleton className="h-44 rounded-3xl" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-28" />
           ))}
@@ -194,7 +194,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6 space-y-8 sm:space-y-10">
+    <div className="max-w-6xl mx-auto px-0 sm:px-4 py-2 sm:py-6 space-y-8 sm:space-y-10 overflow-x-clip">
       {/* Welcome */}
       <Reveal>
         <div className="glass rounded-3xl p-5 sm:p-6 md:p-8 relative overflow-hidden">
@@ -240,7 +240,7 @@ export default function Dashboard() {
       </Reveal>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Reveal delay={0.05}>
           <Stat
             label="Mutual matches"
@@ -277,9 +277,9 @@ export default function Dashboard() {
 
       {/* Recommended */}
       <Reveal>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-2 mb-4">
           <h2 className="font-display text-2xl text-ivory">Recommended for you</h2>
-          <Link to="/discover" className="text-sm text-rosegold hover:text-champagne">
+          <Link to="/discover" className="text-sm text-rosegold hover:text-champagne shrink-0">
             Discover more →
           </Link>
         </div>
@@ -294,20 +294,20 @@ export default function Dashboard() {
             }
           />
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {data.recommended.map(({ profile, score, factors }) => (
               <Link
                 key={profile.id}
                 to="/discover"
-                className="glass rounded-2xl p-5 card-hover block"
+                className="glass rounded-2xl p-4 sm:p-5 card-hover block min-w-0"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                   <Avatar name={profile.firstName} photo={profile.photos[0]} size={60} ring />
-                  <div>
-                    <p className="text-ivory font-medium text-lg">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-ivory font-medium text-lg truncate">
                       {profile.firstName}, {profile.age}
                     </p>
-                    <p className="text-sm text-mist">{profile.city}</p>
+                    <p className="text-sm text-mist truncate">{profile.city}</p>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -332,13 +332,13 @@ export default function Dashboard() {
       </Reveal>
 
       {/* Two-column panels */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent likes */}
         <Reveal>
-          <div className="glass rounded-3xl p-6 h-full">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass rounded-3xl p-4 sm:p-6 h-full min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-display text-xl text-ivory">New likes</h2>
-              <Link to="/likes" className="text-sm text-rosegold hover:text-champagne">
+              <Link to="/likes" className="text-sm text-rosegold hover:text-champagne shrink-0">
                 View all →
               </Link>
             </div>
@@ -353,7 +353,7 @@ export default function Dashboard() {
                     <div key={like.id} className="flex items-center gap-3">
                       <Avatar name={profile.firstName} photo={profile.photos[0]} size={46} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-ivory text-sm font-medium">
+                        <p className="text-ivory text-sm font-medium truncate">
                           {profile.firstName}, {profile.age} · {profile.city}
                         </p>
                         <p className="text-xs text-mist">{timeAgo(like.createdAt)}</p>
@@ -374,10 +374,10 @@ export default function Dashboard() {
 
         {/* Notifications */}
         <Reveal delay={0.08}>
-          <div className="glass rounded-3xl p-6 h-full">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass rounded-3xl p-4 sm:p-6 h-full min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-display text-xl text-ivory">Notifications</h2>
-              <Link to="/notifications" className="text-sm text-rosegold hover:text-champagne">
+              <Link to="/notifications" className="text-sm text-rosegold hover:text-champagne shrink-0">
                 View all →
               </Link>
             </div>
@@ -404,23 +404,23 @@ export default function Dashboard() {
 
         {/* Membership */}
         <Reveal>
-          <div className="glass rounded-3xl p-6 h-full relative overflow-hidden">
+          <div className="glass rounded-3xl p-4 sm:p-6 h-full min-w-0 relative overflow-hidden">
             <div className="absolute -bottom-20 -left-20 h-52 w-52 rounded-full bg-rosegold/10 blur-[90px]" />
             <div className="relative">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <h2 className="font-display text-xl text-ivory">Membership</h2>
-                <Link to="/membership" className="text-sm text-rosegold hover:text-champagne">
+                <Link to="/membership" className="text-sm text-rosegold hover:text-champagne shrink-0">
                   Manage →
                 </Link>
               </div>
               {data.plan && data.sub ? (
                 <div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <PlanBadge plan={data.plan.id as "connect" | "plus" | "elite"} />
                     <span className="text-sm text-ivory-dim">{data.plan.tagline}</span>
                   </div>
                   <p className="text-sm text-mist mt-3">
-                    Active {data.sub.expiresAt ? "until" : ""}
+                    Active {data.sub.expiresAt ? "until " : ""}
                     <span className="text-ivory">
                       {fmtExpiry(data.sub.expiresAt)}
                     </span>
@@ -452,10 +452,10 @@ export default function Dashboard() {
 
         {/* Applications + bookings */}
         <Reveal delay={0.08}>
-          <div className="glass rounded-3xl p-6 h-full">
-            <div className="flex items-center justify-between mb-4">
+          <div className="glass rounded-3xl p-4 sm:p-6 h-full min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <h2 className="font-display text-xl text-ivory">Date experiences</h2>
-              <Link to="/experiences" className="text-sm text-rosegold hover:text-champagne">
+              <Link to="/experiences" className="text-sm text-rosegold hover:text-champagne shrink-0">
                 View all →
               </Link>
             </div>

@@ -79,7 +79,7 @@ export default function Notifications() {
         />
         {error && <p className="mt-6 text-sm text-rosegold">Couldn&apos;t load inbox: {error}</p>}
 
-        <div className="grid lg:grid-cols-2 gap-6 mt-8 sm:mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 sm:mt-10">
           <div className="glass rounded-3xl p-4 sm:p-6">
             <h3 className="font-display text-xl text-ivory">Broadcast announcement</h3>
             <p className="text-xs text-mist mt-1">Pushes an in-app notification to all members</p>
@@ -93,7 +93,7 @@ export default function Notifications() {
               <Field label="Link (optional)" hint="In-app path, e.g. /app/experiences">
                 <input value={link} onChange={(e) => setLink(e.target.value)} className={inputCls} placeholder="/experiences" />
               </Field>
-              <button onClick={broadcast} className="btn-gold rounded-xl px-6 py-3 text-sm w-full">
+              <button onClick={broadcast} className="btn-gold rounded-xl px-6 py-3 min-h-[44px] text-sm font-semibold w-full">
                 Send broadcast
               </button>
             </div>

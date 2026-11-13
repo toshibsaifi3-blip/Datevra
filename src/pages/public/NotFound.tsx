@@ -4,7 +4,7 @@ import { Logo, PetalField } from "../../components/ui";
 
 export default function NotFound() {
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-5 py-20 relative">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-5 py-16 sm:py-20 relative overflow-x-clip">
       <PetalField count={10} />
       <div className="text-center relative">
         <motion.div

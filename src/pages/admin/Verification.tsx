@@ -325,7 +325,7 @@ export default function Verification() {
         <div className="glass rounded-3xl p-5 space-y-4">
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
             {/* Search Input */}
-            <div className="relative flex-1">
+            <div className="relative flex-1 min-w-0">
               <Search className="w-4 h-4 text-mist absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 value={searchQuery}
@@ -350,7 +350,7 @@ export default function Verification() {
               <select
                 value={cityFilter}
                 onChange={(e) => changeCity(e.target.value)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
+                className="w-full sm:w-auto bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
               >
                 <option value="all" className="bg-midnight text-ivory">All Cities</option>
                 {availableCities.map((c) => (
@@ -362,7 +362,7 @@ export default function Verification() {
               <select
                 value={completenessFilter}
                 onChange={(e) => changeCompleteness(e.target.value as CompletenessFilter)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
+                className="w-full sm:w-auto bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
               >
                 <option value="all" className="bg-midnight text-ivory">All Completeness</option>
                 <option value="high" className="bg-midnight text-ivory">High (80%+)</option>
@@ -374,7 +374,7 @@ export default function Verification() {
               <select
                 value={sortOrder}
                 onChange={(e) => changeSort(e.target.value as SortOption)}
-                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
+                className="w-full sm:w-auto bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-ivory focus:outline-none focus:border-champagne/40"
               >
                 <option value="oldest" className="bg-midnight text-ivory">Oldest Registered</option>
                 <option value="newest" className="bg-midnight text-ivory">Newest Registered</option>
@@ -432,7 +432,7 @@ export default function Verification() {
 
         {/* Content Body */}
         {loading ? (
-          <div className="grid md:grid-cols-2 gap-5 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-64 rounded-3xl" />
             ))}
@@ -470,7 +470,7 @@ export default function Verification() {
             </div>
 
             {/* Member Cards Grid */}
-            <div className="grid md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {paginatedUsers.map((u, idx) => {
                 const isSubmitting = submittingIds.has(u.id);
                 const hasPhotos = Array.isArray(u.photos) && u.photos.length > 0;
@@ -622,7 +622,7 @@ export default function Verification() {
                       <button
                         type="button"
                         onClick={() => openInspectModal(u)}
-                        className="btn-ghost rounded-xl px-3 py-2 text-xs flex items-center gap-1.5 shrink-0"
+                        className="btn-ghost rounded-xl px-3 py-2 min-h-[44px] text-xs flex items-center gap-1.5 shrink-0"
                       >
                         <Eye className="w-3.5 h-3.5 text-champagne" />
                         <span>Inspect</span>
@@ -634,7 +634,7 @@ export default function Verification() {
                             type="button"
                             disabled={isSubmitting}
                             onClick={() => handleDecision(u, true)}
-                            className="btn-gold rounded-xl px-3 py-2 text-xs flex-1 flex items-center justify-center gap-1 disabled:opacity-50"
+                            className="btn-gold rounded-xl px-3 py-2 min-h-[44px] text-xs font-medium flex-1 flex items-center justify-center gap-1 disabled:opacity-50"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>{isSubmitting ? "Approving…" : "Approve"}</span>
@@ -647,7 +647,7 @@ export default function Verification() {
                               setDeclineTarget(u);
                               setDeclineReason("");
                             }}
-                            className="btn-ghost rounded-xl px-3 py-2 text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 disabled:opacity-50"
+                            className="btn-ghost rounded-xl px-3 py-2 min-h-[44px] text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 disabled:opacity-50"
                           >
                             <span>Decline</span>
                           </button>
@@ -662,7 +662,7 @@ export default function Verification() {
                             setDeclineTarget(u);
                             setDeclineReason("");
                           }}
-                          className="btn-ghost rounded-xl px-3 py-2 text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 flex-1 disabled:opacity-50"
+                          className="btn-ghost rounded-xl px-3 py-2 min-h-[44px] text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 flex-1 disabled:opacity-50"
                         >
                           <span>{isSubmitting ? "Revoking…" : "Revoke Verification"}</span>
                         </button>
@@ -673,7 +673,7 @@ export default function Verification() {
                           type="button"
                           disabled={isSubmitting}
                           onClick={() => handleDecision(u, true)}
-                          className="btn-gold rounded-xl px-3 py-2 text-xs flex-1 flex items-center justify-center gap-1 disabled:opacity-50"
+                          className="btn-gold rounded-xl px-3 py-2 min-h-[44px] text-xs font-medium flex-1 flex items-center justify-center gap-1 disabled:opacity-50"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>{isSubmitting ? "Approving…" : "Re-evaluate & Approve"}</span>
@@ -687,7 +687,7 @@ export default function Verification() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-4">
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
@@ -896,20 +896,20 @@ export default function Verification() {
             {/* Account & Safety Audit Details */}
             <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2 text-xs">
               <p className="text-[0.7rem] uppercase tracking-wider font-semibold text-mist">Audit & Registration Details</p>
-              <div className="grid sm:grid-cols-2 gap-2 text-mist">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-mist">
+                <div className="min-w-0">
                   <span className="text-ivory font-mono">ID: </span>
-                  <span>{inspectUser.id}</span>
+                  <span className="break-all font-mono">{inspectUser.id}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-ivory">Email: </span>
-                  <span>{inspectUser.email}</span>
+                  <span className="break-all">{inspectUser.email}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-ivory">Account Created: </span>
                   <span>{fmtDate(inspectUser.createdAt)}</span>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <span className="text-ivory">Last Active: </span>
                   <span>{timeAgo(inspectUser.lastActive)}</span>
                 </div>
@@ -920,7 +920,7 @@ export default function Verification() {
                   <span className="text-champagne">Last Decision: </span>
                   <span>{fmtDate(inspectUser.verificationReviewedAt)}</span>
                   {inspectUser.verificationNote && (
-                    <p className="mt-1 text-ivory-dim italic">Note: &ldquo;{inspectUser.verificationNote}&rdquo;</p>
+                    <p className="mt-1 text-ivory-dim italic break-words">Note: &ldquo;{inspectUser.verificationNote}&rdquo;</p>
                   )}
                 </div>
               )}
@@ -931,7 +931,7 @@ export default function Verification() {
               <button
                 type="button"
                 onClick={() => setInspectUser(null)}
-                className="btn-ghost rounded-xl px-4 py-2.5 text-xs"
+                className="btn-ghost rounded-xl px-4 py-2.5 min-h-[44px] text-xs"
               >
                 Close
               </button>
@@ -943,7 +943,7 @@ export default function Verification() {
                   setDeclineTarget(inspectUser);
                   setDeclineReason("");
                 }}
-                className="btn-ghost rounded-xl px-4 py-2.5 text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 disabled:opacity-50"
+                className="btn-ghost rounded-xl px-4 py-2.5 min-h-[44px] text-xs text-rose-300 hover:text-rose-200 border-rose-500/30 hover:bg-rose-500/15 disabled:opacity-50"
               >
                 Decline Verification
               </button>
@@ -952,7 +952,7 @@ export default function Verification() {
                 type="button"
                 disabled={submittingIds.has(inspectUser.id)}
                 onClick={() => handleDecision(inspectUser, true)}
-                className="btn-gold rounded-xl px-5 py-2.5 text-xs flex items-center gap-1.5 disabled:opacity-50"
+                className="btn-gold rounded-xl px-5 py-2.5 min-h-[44px] text-xs font-medium flex items-center gap-1.5 disabled:opacity-50"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{submittingIds.has(inspectUser.id) ? "Approving…" : "Approve Verification"}</span>
@@ -1010,14 +1010,14 @@ export default function Verification() {
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-2 flex items-center justify-end gap-3">
+            <div className="pt-2 flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setDeclineTarget(null);
                   setDeclineReason("");
                 }}
-                className="btn-ghost rounded-xl px-4 py-2 text-xs"
+                className="btn-ghost rounded-xl px-4 py-2.5 min-h-[44px] text-xs"
               >
                 Cancel
               </button>
@@ -1025,7 +1025,7 @@ export default function Verification() {
                 type="button"
                 disabled={submittingIds.has(declineTarget.id)}
                 onClick={() => handleDecision(declineTarget, false, declineReason)}
-                className="btn-ghost rounded-xl px-4 py-2 text-xs text-rose-300 border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50"
+                className="btn-ghost rounded-xl px-4 py-2.5 min-h-[44px] text-xs text-rose-300 border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50"
               >
                 {submittingIds.has(declineTarget.id) ? "Declining…" : "Confirm Decline"}
               </button>

@@ -64,7 +64,7 @@ export default function Applications() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-8">
+    <div className="max-w-4xl mx-auto px-0 sm:px-4 py-4 sm:py-8 overflow-x-clip">
       <Reveal>
         <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">Curated experiences</p>
         <h1 className="font-display text-3xl text-ivory mt-1 mb-2">Your applications</h1>
@@ -77,19 +77,19 @@ export default function Applications() {
       <Reveal>
         <Link
           to="/experiences"
-          className="glass rounded-3xl p-6 mb-8 flex items-center gap-5 card-hover block relative overflow-hidden"
+          className="glass rounded-3xl p-4 sm:p-6 mb-8 flex items-center gap-4 sm:gap-5 card-hover relative overflow-hidden"
         >
           <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-rosegold/10 blur-[80px]" />
           <span className="relative h-12 w-12 rounded-full bg-gradient-to-br from-burgundy to-burgundy-deep border border-rosegold/30 flex items-center justify-center text-xl text-champagne shrink-0">
             ☕
           </span>
-          <span className="relative flex-1">
+          <span className="relative flex-1 min-w-0">
             <span className="block font-display text-xl text-ivory">Apply for another experience</span>
             <span className="block text-sm text-mist mt-0.5">
               Romantic cafés, premium dining, curated first dates — browse what's on.
             </span>
           </span>
-          <span className="relative text-rosegold text-xl">→</span>
+          <span className="relative text-rosegold text-xl shrink-0">→</span>
         </Link>
       </Reveal>
 
@@ -132,7 +132,7 @@ export default function Applications() {
                         </p>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-3">
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3">
                       <Badge tone={meta.tone}>{meta.label}</Badge>
                       {CANCELLABLE.includes(a.status) && (
                         <button

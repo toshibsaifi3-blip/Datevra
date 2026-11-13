@@ -416,7 +416,7 @@ export default function Activity() {
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="btn-gold mt-4 text-xs px-4 py-2"
+                  className="btn-gold rounded-full mt-4 text-xs px-5 py-2.5 min-h-[44px] font-semibold"
                 >
                   Clear all filters
                 </button>
@@ -615,8 +615,8 @@ export default function Activity() {
               </div>
 
               {/* Log Record ID & Copy */}
-              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
-                <div className="space-y-0.5 overflow-hidden mr-2">
+              <div className="p-3 rounded-xl bg-white/[0.02] border border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="space-y-0.5 overflow-hidden min-w-0 flex-1">
                   <p className="text-[0.65rem] uppercase tracking-wider text-mist">Audit Record ID</p>
                   <p className="font-mono text-mist truncate">{inspectLog.id}</p>
                 </div>
@@ -654,7 +654,7 @@ export default function Activity() {
                 <button
                   type="button"
                   onClick={() => setInspectLog(null)}
-                  className="btn-gold px-5 py-2 text-xs"
+                  className="btn-gold rounded-full px-5 py-2.5 min-h-[44px] text-xs font-semibold"
                 >
                   Close Inspection
                 </button>

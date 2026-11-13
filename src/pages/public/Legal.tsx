@@ -162,7 +162,7 @@ export default function Legal({ slug }: { slug: "terms" | "privacy" | "refund" }
   ];
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero kicker={c.kicker} title={c.title} sub={c.sub}>
         <p className="mt-6 text-xs text-mist/70">{c.updated}</p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
@@ -170,7 +170,7 @@ export default function Legal({ slug }: { slug: "terms" | "privacy" | "refund" }
             <Link
               key={l.slug}
               to={`/${l.slug}`}
-              className={`rounded-full px-5 py-2 text-xs transition-colors ${
+              className={`rounded-full px-5 py-2.5 min-h-[44px] inline-flex items-center text-xs transition-colors ${
                 l.slug === slug
                   ? "bg-champagne/15 text-champagne border border-champagne/40"
                   : "text-mist hover:text-ivory border border-white/10"

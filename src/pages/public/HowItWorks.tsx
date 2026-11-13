@@ -42,7 +42,7 @@ const FACTORS = [
 
 export default function HowItWorks() {
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero
         kicker="How it works"
         title="From first hello to first date"
@@ -51,7 +51,7 @@ export default function HowItWorks() {
 
       {/* Animated timeline */}
       <section className="max-w-4xl mx-auto px-4 sm:px-5 py-12 sm:py-16 relative">
-        <div className="absolute left-[2.5rem] sm:left-[2.75rem] md:left-1/2 top-16 bottom-16 w-px bg-gradient-to-b from-champagne/60 via-rosegold/30 to-transparent" aria-hidden />
+        <div className="absolute left-[2.5rem] sm:left-[3rem] md:left-1/2 top-16 bottom-16 w-px bg-gradient-to-b from-champagne/60 via-rosegold/30 to-transparent" aria-hidden />
         <div className="space-y-10">
           {STEPS.map((s, i) => (
             <Reveal key={s.n} delay={0.05}>
@@ -96,9 +96,9 @@ export default function HowItWorks() {
           <div className="glass-strong rounded-3xl p-5 sm:p-8">
             {FACTORS.map((f, i) => (
               <div key={f.label} className="mb-6 last:mb-0">
-                <div className="flex justify-between text-sm mb-2">
+                <div className="flex justify-between gap-2 text-sm mb-2">
                   <span className="text-ivory">{f.label}</span>
-                  <span className="text-champagne font-semibold">{f.pct}%</span>
+                  <span className="text-champagne font-semibold shrink-0">{f.pct}%</span>
                 </div>
                 <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                   <motion.div
@@ -120,16 +120,16 @@ export default function HowItWorks() {
         </Reveal>
       </section>
 
-      <section className="max-w-6xl mx-auto px-5 py-16 text-center">
+      <section className="max-w-6xl mx-auto px-4 sm:px-5 py-12 sm:py-16 text-center">
         <Reveal>
           <h2 className="font-display text-3xl md:text-4xl text-ivory">
             Ready to begin the ritual?
           </h2>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/register" className="btn-gold rounded-full px-10 py-4 text-base font-semibold">
+            <Link to="/register" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-base font-semibold">
               Create your profile
             </Link>
-            <Link to="/experiences" className="btn-ghost rounded-full px-10 py-4 text-base">
+            <Link to="/experiences" className="btn-ghost rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-base">
               Browse experiences
             </Link>
           </div>

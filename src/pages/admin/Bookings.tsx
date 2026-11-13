@@ -141,8 +141,8 @@ export default function Bookings() {
                         </td>
                         <td className={`${tdCls} text-champagne whitespace-nowrap`}>{exp?.title ?? "—"}</td>
                         <td className={`${tdCls} text-ivory-dim max-w-[180px]`}>
-                          <p className="line-clamp-1">{b.venue}</p>
-                          {cafe && <p className="text-xs text-mist">{cafe.name}</p>}
+                          <p className="line-clamp-1 break-words">{b.venue}</p>
+                          {cafe && <p className="text-xs text-mist break-words">{cafe.name}</p>}
                         </td>
                         <td className={`${tdCls} text-ivory-dim whitespace-nowrap`}>
                           {b.date} · {b.time}
@@ -156,7 +156,7 @@ export default function Bookings() {
                           <p className="text-xs text-mist mt-1">{fmtDate(b.createdAt)}</p>
                         </td>
                         <td className={tdCls}>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {b.status === "upcoming" && (
                               <>
                                 <button

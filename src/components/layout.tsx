@@ -85,23 +85,23 @@ export function PublicNav() {
         scrolled ? "glass-strong shadow-2xl" : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-5 h-[72px] flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 h-[72px] flex items-center justify-between">
         {/* Mobile: hamburger left (min 44x44 touch target) */}
         <button
-          className="lg:hidden text-ivory text-2xl min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation"
+          className="lg:hidden text-ivory text-2xl min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation shrink-0"
           onClick={() => setOpen((o) => !o)}
           aria-label={open ? "Close menu" : "Open menu"}
         >
           {open ? "×" : "☰"}
         </button>
         {/* Mobile: centered script logo */}
-        <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2 min-h-[44px] flex items-center">
-          <span className="font-display text-[1.35rem] min-[375px]:text-[1.65rem] tracking-[0.12em] sm:tracking-[0.14em] text-gradient-dream whitespace-nowrap">
+        <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2 max-w-[44vw] min-h-[44px] flex items-center justify-center">
+          <span className="font-display text-[1.18rem] min-[360px]:text-[1.45rem] min-[400px]:text-[1.65rem] tracking-[0.08em] min-[360px]:tracking-[0.12em] sm:tracking-[0.14em] text-gradient-dream whitespace-nowrap truncate">
             Datevra
           </span>
         </Link>
         {/* Mobile: search + notifications right (min 44x44 touch target) */}
-        <div className="lg:hidden flex items-center gap-1 -mr-2">
+        <div className="lg:hidden flex items-center gap-0.5 sm:gap-1 -mr-1.5 sm:-mr-2 shrink-0">
           <Link
             to="/discover"
             aria-label="Search"
@@ -168,7 +168,7 @@ export function PublicNav() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden glass-strong border-t hairline overflow-hidden"
+            className="lg:hidden glass-strong border-t hairline overflow-y-auto max-h-[calc(100dvh-72px)]"
             aria-label="Mobile"
           >
             <div className="px-6 py-5 flex flex-col gap-2">
@@ -281,10 +281,10 @@ export function Footer() {
 export function PublicLayout() {
   const { user } = useAuth();
   return (
-    <div className="min-h-screen flex flex-col overflow-x-clip">
+    <div className={`min-h-screen flex flex-col overflow-x-clip ${user ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
       <GlowOrbs />
       <PublicNav />
-      <main className={`flex-1 relative min-w-0 ${user ? "pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
+      <main className="flex-1 relative min-w-0">
         <Outlet />
       </main>
       <Footer />
@@ -570,10 +570,10 @@ export function UserShell() {
       </aside>
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="sticky top-0 z-40 glass-strong border-b hairline">
-          <div className="flex items-center justify-between px-4 md:px-8 h-[68px]">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between px-3 sm:px-4 md:px-8 h-[68px] gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
-                className="lg:hidden text-2xl text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation"
+                className="lg:hidden text-2xl text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center -ml-2 rounded-xl active:bg-white/10 touch-manipulation shrink-0"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open menu"
               >
@@ -581,7 +581,7 @@ export function UserShell() {
               </button>
               <Link
                 to="/app"
-                className="sm:hidden font-display text-lg tracking-[0.08em] text-gradient-dream min-h-[44px] flex items-center px-1"
+                className="sm:hidden font-display text-lg tracking-[0.08em] text-gradient-dream min-h-[44px] flex items-center px-1 truncate"
                 aria-label="Member dashboard"
               >
                 Datevra
@@ -590,7 +590,7 @@ export function UserShell() {
                 Welcome back, <span className="text-gradient-gold">{user?.firstName}</span>
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <Bell />
               <Link to="/profile" aria-label="Your profile" className="min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation">
                 <span className="inline-flex h-10 w-10 rounded-full bg-gradient-to-br from-burgundy to-burgundy-deep border border-rosegold/40 items-center justify-center font-display text-champagne">
@@ -600,7 +600,7 @@ export function UserShell() {
             </div>
           </div>
         </div>
-        <main className="flex-1 px-3.5 sm:px-4 md:px-8 py-6 sm:py-8 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-8 max-w-6xl w-full mx-auto relative min-w-0">
+        <main className="flex-1 px-3.5 sm:px-4 md:px-8 pt-6 sm:pt-8 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-8 max-w-6xl w-full mx-auto relative min-w-0">
           <Outlet />
         </main>
       </div>
@@ -983,11 +983,11 @@ export function AdminShell() {
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top Navigation Bar */}
         <header className="sticky top-0 z-30 glass-strong border-b hairline bg-[#0b0614]/85 backdrop-blur-xl">
-          <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 h-[68px] gap-3">
+          <div className="flex items-center justify-between px-3 sm:px-6 md:px-8 h-[68px] gap-2 sm:gap-3">
             {/* Left: Mobile trigger & Breadcrumbs */}
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
               <button
-                className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-ivory glass hover:border-rosegold/40 active:bg-white/10 transition-colors touch-manipulation"
+                className="lg:hidden min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-ivory glass hover:border-rosegold/40 active:bg-white/10 transition-colors touch-manipulation shrink-0"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Open navigation menu"
               >
@@ -998,7 +998,7 @@ export function AdminShell() {
                 <div className="flex items-center gap-1.5 text-xs text-mist/75">
                   <span className="hover:text-ivory transition-colors">Admin</span>
                   <span>/</span>
-                  <span className="text-mist">{currentLink.group}</span>
+                  <span className="text-mist truncate">{currentLink.group}</span>
                 </div>
                 <div className="flex items-center gap-2 min-w-0">
                   <h1 className="font-display text-lg sm:text-xl font-medium tracking-wide text-ivory truncate">
@@ -1009,11 +1009,11 @@ export function AdminShell() {
             </div>
 
             {/* Right: Quick Search + Notifications + Admin Identity */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               {/* Quick Route Search Button */}
               <button
                 onClick={() => setSearchOpen(true)}
-                className="flex items-center gap-2 px-3 min-h-[44px] rounded-xl glass hover:border-rosegold/40 active:bg-white/10 text-xs text-mist hover:text-ivory transition-all group touch-manipulation"
+                className="flex items-center gap-2 px-2.5 sm:px-3 min-h-[44px] rounded-xl glass hover:border-rosegold/40 active:bg-white/10 text-xs text-mist hover:text-ivory transition-all group touch-manipulation"
                 aria-label="Search admin navigation"
               >
                 <Search size={14} className="text-mist group-hover:text-rosegold transition-colors" />
@@ -1027,7 +1027,7 @@ export function AdminShell() {
               <AdminBell />
 
               {/* Admin Identity Area */}
-              <div className="flex items-center gap-2.5 pl-2 border-l hairline">
+              <div className="flex items-center gap-2 sm:gap-2.5 pl-1.5 sm:pl-2 border-l hairline">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-burgundy to-rosegold/40 flex items-center justify-center text-ivory font-display font-semibold text-sm border border-rosegold/30 shadow-inner">
                   {user?.firstName ? user.firstName[0]?.toUpperCase() : user?.email ? user.email[0]?.toUpperCase() : "A"}
                 </div>
@@ -1159,7 +1159,7 @@ export function AdminShell() {
 /* Splash layout for auth pages */
 export function SplashLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen relative flex items-center justify-center px-4 py-16">
+    <div className="min-h-screen relative flex items-center justify-center px-4 py-16 overflow-x-clip">
       <GlowOrbs />
       <PetalField count={10} />
       {children}

@@ -260,7 +260,7 @@ export default function Users() {
           <Skeleton className="h-10 w-64" />
           <Skeleton className="h-8 w-24" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-14" />
           ))}
@@ -312,7 +312,7 @@ export default function Users() {
       <div className="glass rounded-2xl p-4 border hairline space-y-3">
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
           {/* Universal Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-mist" />
             <input
               type="text"
@@ -338,7 +338,7 @@ export default function Users() {
             <select
               value={verificationFilter}
               onChange={(e) => setVerificationFilter(e.target.value as VerificationFilter)}
-              className="px-3 py-2 rounded-xl bg-white/[0.04] border hairline text-xs text-ivory focus:outline-none focus:border-rosegold/40"
+              className="w-full sm:w-auto px-3 py-2 rounded-xl bg-white/[0.04] border hairline text-xs text-ivory focus:outline-none focus:border-rosegold/40"
             >
               <option value="all" className="bg-[#120a20] text-ivory">All Verification States</option>
               <option value="verified" className="bg-[#120a20] text-ivory">Verified Only</option>
@@ -349,7 +349,7 @@ export default function Users() {
             <select
               value={planFilter}
               onChange={(e) => setPlanFilter(e.target.value as PlanFilter)}
-              className="px-3 py-2 rounded-xl bg-white/[0.04] border hairline text-xs text-ivory focus:outline-none focus:border-rosegold/40"
+              className="w-full sm:w-auto px-3 py-2 rounded-xl bg-white/[0.04] border hairline text-xs text-ivory focus:outline-none focus:border-rosegold/40"
             >
               <option value="all" className="bg-[#120a20] text-ivory">All Membership Tiers</option>
               <option value="connect" className="bg-[#120a20] text-ivory">Select (Connect)</option>
@@ -361,7 +361,7 @@ export default function Users() {
             {/* Sort toggle */}
             <button
               onClick={() => handleSort("createdAt")}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-colors"
+              className="w-full sm:w-auto justify-center flex items-center gap-1.5 px-3 py-2 rounded-xl glass hover:border-rosegold/40 text-xs text-mist hover:text-ivory transition-colors"
               title="Toggle sort direction"
             >
               <ArrowUpDown size={13} className="text-rosegold" />
@@ -598,23 +598,23 @@ export default function Users() {
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2 text-xs text-mist">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 mt-2 text-xs text-mist">
                     <span className="flex items-center gap-1">
-                      <MapPin size={12} className="text-rosegold" />
+                      <MapPin size={12} className="text-rosegold shrink-0" />
                       {detailUser.city || "No city set"}
                     </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 font-mono">
-                      <Mail size={12} className="text-champagne" />
+                    <span className="hidden sm:inline">•</span>
+                    <span className="flex items-center gap-1 font-mono break-all">
+                      <Mail size={12} className="text-champagne shrink-0" />
                       {detailUser.email}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1.5 mt-2 text-xs font-mono text-mist/70">
-                    <span>ID: {detailUser.id}</span>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mt-2 text-xs font-mono text-mist/70">
+                    <span className="break-all">ID: {detailUser.id}</span>
                     <button
                       onClick={() => copyToClipboard(detailUser.id, "User ID")}
-                      className="p-1 hover:text-ivory"
+                      className="p-1 hover:text-ivory shrink-0"
                       title="Copy full ID"
                     >
                       <Copy size={11} />

@@ -9,7 +9,7 @@ export default function Faqs() {
   const [open, setOpen] = useState<string | null>(FAQS[0]?.q ?? null);
 
   return (
-    <div>
+    <div className="overflow-x-clip">
       <PageHero
         kicker="FAQs"
         title="Questions, answered honestly"
@@ -39,7 +39,7 @@ export default function Faqs() {
                         className="w-full text-left px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between gap-4 min-h-[44px]"
                         aria-expanded={isOpen}
                       >
-                        <span className="font-display text-base sm:text-lg text-ivory">{f.q}</span>
+                        <span className="font-display text-base sm:text-lg text-ivory min-w-0 flex-1 break-words">{f.q}</span>
                         <motion.span
                           animate={{ rotate: isOpen ? 45 : 0 }}
                           transition={{ duration: 0.25 }}

@@ -27,7 +27,7 @@ const PLAN_TAGS: Record<string, string> = {
 
 export default function MembershipPublic() {
   return (
-    <div className="relative">
+    <div className="relative overflow-x-clip">
       {/* dreamy ambience */}
       <div className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-[28rem] w-[60rem] max-w-[120vw] rounded-full bg-burgundy/25 blur-[140px] animate-aura-shift" />
       {[6, 20, 44, 68, 82, 94].map((left, i) => (
@@ -49,7 +49,7 @@ export default function MembershipPublic() {
 
       {/* Pricing cards */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
-        <div className="grid md:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-y-7 md:gap-6 items-stretch">
           {PLANS.map((p, i) => {
             const elite = p.id === "elite";
             return (
@@ -57,21 +57,23 @@ export default function MembershipPublic() {
                 <motion.div
                   whileHover={{ y: -10 }}
                   transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                  className={`relative rounded-[2rem] p-6 sm:p-8 h-full flex flex-col overflow-hidden ${
+                  className={`relative rounded-[2rem] p-6 sm:p-8 h-full flex flex-col ${
                     elite
                       ? "glass-strong glow-border animate-glow-pulse"
                       : "glass border border-white/10 card-hover"
                   }`}
                 >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-b pointer-events-none ${
-                      elite
-                        ? "from-champagne/15 via-rosegold/5 to-transparent"
-                        : "from-white/[0.04] to-transparent"
-                    }`}
-                  />
+                  <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-b ${
+                        elite
+                          ? "from-champagne/15 via-rosegold/5 to-transparent"
+                          : "from-white/[0.04] to-transparent"
+                      }`}
+                    />
+                  </div>
                   {elite && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10 whitespace-nowrap">
                       <Badge tone="gold">✦ Most coveted</Badge>
                     </div>
                   )}
@@ -84,7 +86,7 @@ export default function MembershipPublic() {
                     </h3>
                     <p className="text-sm text-mist mt-1 italic">{p.tagline}</p>
                     <p className="mt-6">
-                      <span className="font-display text-5xl text-gradient-gold font-semibold">
+                      <span className="font-display text-4xl sm:text-5xl text-gradient-gold font-semibold">
                         ₹{p.price.toLocaleString("en-IN")}
                       </span>
                       <span className="text-mist text-sm"> /month</span>
@@ -105,13 +107,13 @@ export default function MembershipPublic() {
                           >
                             ✦
                           </motion.span>
-                          <span>{f}</span>
+                          <span className="min-w-0 break-words">{f}</span>
                         </li>
                       ))}
                     </ul>
                     <Link
                       to="/register"
-                      className={`mt-8 rounded-full px-8 py-3.5 text-sm font-semibold text-center ${
+                      className={`mt-8 rounded-full px-8 py-3.5 min-h-[44px] inline-flex items-center justify-center text-sm font-semibold text-center ${
                         elite ? "btn-gold" : "btn-ghost"
                       }`}
                     >
@@ -185,7 +187,7 @@ export default function MembershipPublic() {
         </Reveal>
 
         <Reveal className="text-center mt-12">
-          <Link to="/register" className="btn-gold rounded-full px-10 py-4 text-base font-semibold">
+          <Link to="/register" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 min-h-[44px] w-full sm:w-auto inline-flex items-center justify-center text-base font-semibold">
             Join Datevra today
           </Link>
           <p className="mt-4 text-xs text-mist/70">
