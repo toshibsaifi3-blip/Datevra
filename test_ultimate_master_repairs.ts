@@ -29,11 +29,11 @@ describe("DATEVRA ULTIMATE MASTER REPAIR VERIFICATION SUITE", () => {
     );
   });
 
-  it("preserves compact profile cards in Discover and retains full profile details in modal", () => {
+  it("uses classic minimal profile cards in Discover and retains full profile details in modal", () => {
     const discoverSource = fs.readFileSync("src/pages/user/Discover.tsx", "utf-8");
     assert.match(discoverSource, /ProfileCard/, "ProfileCard exists");
-    assert.match(discoverSource, /Full Profile/i, "Full profile action preserved");
-    assert.match(discoverSource, /p\.interests\.slice\(0,\s*3\)/, "Compact interests preserved");
+    assert.match(discoverSource, /Full Profile/, "Full profile action preserved");
+    assert.match(discoverSource, /<CompatBar score=\{viewingCompat\.score\}/, "Full profile modal retains full details");
   });
 
   /* -------------------------------------------------------------

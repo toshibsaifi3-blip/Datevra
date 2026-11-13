@@ -94,19 +94,11 @@ const reducedCardVariants = {
 
 function ProfileCard({
   entry,
-  saved,
-  onLike,
-  onPass,
-  onSave,
   onView,
   onSwipe,
   busy,
 }: {
   entry: Ranked;
-  saved: boolean;
-  onLike: () => void;
-  onPass: () => void;
-  onSave: () => void;
   onView: () => void;
   /** direction: 1 = liked (swiped right), -1 = passed (swiped left) */
   onSwipe: (dir: 1 | -1) => void;
@@ -164,29 +156,29 @@ function ProfileCard({
         if (info.offset.x > 110) onSwipe(1);
         else if (info.offset.x < -110) onSwipe(-1);
       }}
-      className="glass-strong glow-border rounded-[2rem] overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-y select-none"
+      className="glass-strong glow-border rounded-[2rem] overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-y select-none shadow-[0_24px_60px_-18px_rgba(16,9,31,0.85)]"
     >
       {/* Drag stamps */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-6 left-6 z-20 rotate-[-14deg] rounded-xl border-4 border-rosegold bg-rosegold/15 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-rosegold pointer-events-none"
+        className="absolute top-16 left-6 z-30 rotate-[-14deg] rounded-xl border-4 border-rosegold bg-rosegold/15 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-rosegold pointer-events-none"
       >
         LIKE
       </motion.div>
       <motion.div
         style={{ opacity: passOpacity }}
-        className="absolute top-6 right-6 z-20 rotate-[14deg] rounded-xl border-4 border-mist bg-midnight/40 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-mist pointer-events-none"
+        className="absolute top-16 right-6 z-30 rotate-[14deg] rounded-xl border-4 border-mist bg-midnight/40 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-mist pointer-events-none"
       >
         NOPE
       </motion.div>
 
-      {/* Photo with dreamy lighting and multi-photo tap navigation */}
-      <div className="relative h-[380px] sm:h-[430px] overflow-hidden">
+      {/* Classic Tinder-style full-card photograph with multi-photo tap navigation */}
+      <div className="relative h-[440px] sm:h-[530px] overflow-hidden">
         {/* Segmented photo indicators at top */}
         {photos.length > 1 && (
           <div
             aria-hidden="true"
-            className="absolute top-2.5 inset-x-3 z-30 flex items-center gap-1.5 pointer-events-none"
+            className="absolute top-3 inset-x-4 z-30 flex items-center gap-1.5 pointer-events-none"
           >
             {photos.map((_, i) => (
               <div
@@ -198,7 +190,7 @@ function ProfileCard({
                     ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]"
                     : i < photoIdx
                       ? "bg-white/60"
-                      : "bg-white/20"
+                      : "bg-white/25"
                 }`}
               />
             ))}
@@ -223,13 +215,6 @@ function ProfileCard({
               className="absolute inset-y-0 right-0 w-[60%] z-20 cursor-pointer disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-champagne"
             />
           </>
-        )}
-
-        {/* Photo count indicator */}
-        {photos.length > 1 && (
-          <span className="absolute top-5 left-4 z-10 flex items-center gap-1 rounded-full bg-midnight/65 backdrop-blur px-2.5 py-1 border border-white/15 text-[0.68rem] text-ivory pointer-events-none">
-            {photoIdx + 1} / {photos.length}
-          </span>
         )}
 
         {currentPhoto && !imgFailed ? (
@@ -263,123 +248,33 @@ function ProfileCard({
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-midnight via-midnight/35 to-transparent pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-burgundy/30 via-transparent to-rosegold/20 pointer-events-none" />
-        <div className="absolute top-5 right-4 z-10 flex items-center gap-1.5 rounded-full bg-midnight/60 backdrop-blur px-3 py-1.5 border border-champagne/30 pointer-events-none">
-          <span className="text-champagne text-sm">✦</span>
-          <span className="text-champagne text-sm font-semibold">{entry.score}%</span>
-        </div>
+        {/* Subtle top scrim for progress bar & Full Profile button readability */}
+        <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-midnight/70 via-midnight/25 to-transparent pointer-events-none" />
+        {/* Bottom gradient scrim for readable name & age overlay */}
+        <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-midnight via-midnight/65 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-burgundy/25 via-transparent to-rosegold/15 pointer-events-none" />
 
-        {/* Name block overlaid */}
+        {/* Upper-right Full Profile button (isolated from card drag/swipe & photo taps) */}
+        <button
+          type="button"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (draggingRef.current) return;
+            onView();
+          }}
+          aria-label={`Full Profile of ${p.firstName}`}
+          className="absolute top-6 right-4 z-30 rounded-full bg-midnight/75 backdrop-blur-md border border-champagne/40 px-4 min-h-[44px] text-xs font-medium tracking-wide text-ivory hover:border-rosegold/70 hover:bg-midnight/90 transition-colors shadow-[0_6px_24px_rgba(16,9,31,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+        >
+          Full Profile
+        </button>
+
+        {/* Minimal Name & Age overlay near bottom of photograph */}
         <div className="absolute bottom-0 inset-x-0 p-6 z-20 pointer-events-none">
-          <div className="flex items-end justify-between gap-3 pointer-events-auto">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="font-display text-3xl sm:text-4xl text-ivory drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] truncate">
-                  {p.firstName}, {p.age}
-                </h2>
-                {p.verified && <Badge tone="green">✓ Verified</Badge>}
-              </div>
-              <p className="text-ivory-dim mt-1 flex items-center gap-1.5 text-sm">
-                <span className="text-rosegold">✧</span> {p.city}
-              </p>
-              {p.relationshipIntent && (
-                <p className="text-sm text-champagne/90 mt-1.5 italic">
-                  “{p.relationshipIntent}”
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onView}
-              className="shrink-0 rounded-full btn-ghost px-4 min-h-[44px] text-xs backdrop-blur hover:border-rosegold/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-            >
-              Full profile
-            </button>
-          </div>
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-ivory tracking-wide leading-tight drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
+            {p.firstName}, {p.age}
+          </h2>
         </div>
-      </div>
-
-      {/* Details - Essential highlights; full depth in Full Profile */}
-      <div className="p-5 pt-4 relative">
-        <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-burgundy/40 blur-[90px] pointer-events-none" />
-        {p.bio && (
-          <p className="text-ivory-dim leading-relaxed text-sm line-clamp-2">
-            {p.bio}
-          </p>
-        )}
-        {p.interests.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {p.interests.slice(0, 3).map((t) => (
-              <span
-                key={t}
-                className="rounded-full border border-champagne/30 bg-champagne/10 px-2.5 py-0.5 text-[0.72rem] text-champagne"
-              >
-                {t}
-              </span>
-            ))}
-            {p.interests.length > 3 && (
-              <button
-                type="button"
-                onClick={onView}
-                className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[0.72rem] text-mist hover:text-ivory transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-              >
-                +{p.interests.length - 3} more
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-5 mt-6">
-          <motion.button
-            type="button"
-            whileTap={reducedMotion ? undefined : { scale: 0.85 }}
-            onClick={onPass}
-            disabled={busy}
-            aria-label={`Pass on ${p.firstName}`}
-            className="h-16 w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-          >
-            ✕
-          </motion.button>
-          <motion.button
-            type="button"
-            whileTap={reducedMotion ? undefined : { scale: 0.85 }}
-            onClick={onSave}
-            disabled={busy}
-            aria-label={saved ? `Remove ${p.firstName} from saved` : `Save ${p.firstName}'s profile`}
-            className={`h-12 w-12 rounded-full glass-strong border flex items-center justify-center text-lg transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne ${
-              saved
-                ? "border-champagne/60 text-champagne shadow-[0_0_20px_rgba(197,164,255,0.35)]"
-                : "border-white/15 text-mist hover:text-ivory"
-            }`}
-          >
-            {saved ? "★" : "☆"}
-          </motion.button>
-          <motion.button
-            type="button"
-            whileTap={reducedMotion ? undefined : { scale: 0.82 }}
-            onClick={onLike}
-            disabled={busy}
-            aria-label={`Like ${p.firstName}`}
-            className="h-20 w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-          >
-            <motion.span
-              key={p.id}
-              initial={reducedMotion ? false : { scale: 0.6 }}
-              animate={reducedMotion ? undefined : { scale: [0.6, 1.15, 1] }}
-              transition={{ type: "spring", damping: 10, stiffness: 300 }}
-              className={`text-ivory ${reducedMotion ? "" : "animate-heartbeat"}`}
-            >
-              ♥
-            </motion.span>
-          </motion.button>
-        </div>
-        <p className="text-center text-xs text-mist/70 mt-4">
-          {photos.length > 1
-            ? "Tap photo edges to browse · Drag or tap ♥ / ✕ · Keys: ← / →"
-            : "Drag card or tap ♥ / ✕ · Keyboard: ← / → / Space"}
-        </p>
       </div>
     </motion.div>
   );
@@ -864,12 +759,12 @@ export default function Discover() {
           }
         />
       ) : current ? (
-        <div className="max-w-md mx-auto">
+        <div className="max-w-md mx-auto pb-4">
           <div className="relative">
             {/* Peeking next card */}
             {next && next.profile.id !== current.profile.id && (
-              <div className="absolute inset-0 translate-y-4 scale-[0.94] opacity-40 pointer-events-none rounded-[2rem] overflow-hidden glass">
-                <div className="h-[380px] sm:h-[430px] bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
+              <div className="absolute inset-0 translate-y-3 scale-[0.94] opacity-40 pointer-events-none rounded-[2rem] overflow-hidden glass">
+                <div className="h-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               </div>
             )}
             <AnimatePresence initial={false} custom={dir} mode="wait">
@@ -890,10 +785,6 @@ export default function Discover() {
                 <ProfileCard
                   key={current.profile.id}
                   entry={current}
-                  saved={saved.has(current.profile.id)}
-                  onLike={() => swipe(1, current.profile.id, current.profile.firstName)}
-                  onPass={() => swipe(-1, current.profile.id, current.profile.firstName)}
-                  onSave={() => toggleSave(current.profile.id)}
                   onView={() => void openProfile(current.profile)}
                   onSwipe={(d) => swipe(d, current.profile.id, current.profile.firstName)}
                   busy={busyAction}
@@ -901,7 +792,57 @@ export default function Discover() {
               </motion.div>
             </AnimatePresence>
           </div>
-          <p className="text-center text-xs text-mist/70 mt-5">
+
+          {/* Stationary Pass / Save / Like controls below the card */}
+          <div className="flex items-center justify-center gap-6 mt-6">
+            <motion.button
+              type="button"
+              whileTap={reducedMotion ? undefined : { scale: 0.85 }}
+              onClick={() => swipe(-1, current.profile.id, current.profile.firstName)}
+              disabled={busyAction}
+              aria-label={`Pass on ${current.profile.firstName}`}
+              className="h-16 w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+            >
+              ✕
+            </motion.button>
+            <motion.button
+              type="button"
+              whileTap={reducedMotion ? undefined : { scale: 0.85 }}
+              onClick={() => toggleSave(current.profile.id)}
+              disabled={busyAction}
+              aria-label={
+                saved.has(current.profile.id)
+                  ? `Remove ${current.profile.firstName} from saved`
+                  : `Save ${current.profile.firstName}'s profile`
+              }
+              className={`h-12 w-12 rounded-full glass-strong border flex items-center justify-center text-lg transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne ${
+                saved.has(current.profile.id)
+                  ? "border-champagne/60 text-champagne shadow-[0_0_20px_rgba(197,164,255,0.35)]"
+                  : "border-white/15 text-mist hover:text-ivory"
+              }`}
+            >
+              {saved.has(current.profile.id) ? "★" : "☆"}
+            </motion.button>
+            <motion.button
+              type="button"
+              whileTap={reducedMotion ? undefined : { scale: 0.82 }}
+              onClick={() => swipe(1, current.profile.id, current.profile.firstName)}
+              disabled={busyAction}
+              aria-label={`Like ${current.profile.firstName}`}
+              className="h-20 w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+            >
+              <motion.span
+                key={current.profile.id}
+                initial={reducedMotion ? false : { scale: 0.6 }}
+                animate={reducedMotion ? undefined : { scale: [0.6, 1.15, 1] }}
+                transition={{ type: "spring", damping: 10, stiffness: 300 }}
+                className={`text-ivory ${reducedMotion ? "" : "animate-heartbeat"}`}
+              >
+                ♥
+              </motion.span>
+            </motion.button>
+          </div>
+          <p className="text-center text-xs text-mist/70 mt-4">
             {visibleDeck.length} {visibleDeck.length === 1 ? "profile" : "profiles"} remaining
           </p>
         </div>

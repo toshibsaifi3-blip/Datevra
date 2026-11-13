@@ -235,6 +235,45 @@ describe("DATEVRA TINDER-STYLE UX UPGRADE VERIFICATION SUITE", () => {
       assert.match(discoverSrc, /activeEl\.closest\('\[role="dialog"\]'\)/, "Keyboard shortcut modal guard present");
       assert.match(discoverSrc, /Reset all filters/, "Filter reset action present");
     });
+
+    it("enforces classic minimal Tinder-style ProfileCard (photo, name, age, Full Profile button only)", () => {
+      const discoverSrc = fs.readFileSync("src/pages/user/Discover.tsx", "utf-8");
+      const cardSlice = discoverSrc.slice(
+        discoverSrc.indexOf("function ProfileCard("),
+        discoverSrc.indexOf("interface DeckData"),
+      );
+      assert.match(cardSlice, /\{p\.firstName\},\s*\{p\.age\}/, "Card renders member name and age");
+      assert.match(cardSlice, />[\s\n]*Full Profile[\s\n]*<\/button>/, "Card renders clearly visible Full Profile button");
+      assert.match(cardSlice, /onPointerDown=\{\(e\) => e\.stopPropagation\(\)\}/, "Full Profile button isolates pointer events from card drag");
+
+      for (const forbidden of [
+        "p.bio",
+        "p.city",
+        "p.interests",
+        "p.hobbies",
+        "p.lifestyle",
+        "p.relationshipIntent",
+        "entry.score",
+        "p.verified",
+        "CompatBar",
+      ]) {
+        assert.equal(cardSlice.includes(forbidden), false, `Main card must exclude ${forbidden}`);
+      }
+
+      // Full Profile modal still displays all member details
+      for (const requiredModalField of [
+        "viewing.photos",
+        "viewing.bio",
+        "viewing.city",
+        "viewing.interests",
+        "viewing.hobbies",
+        "viewing.lifestyle",
+        "viewing.relationshipIntent",
+        "<CompatBar",
+      ]) {
+        assert.ok(discoverSrc.includes(requiredModalField), `Full Profile modal preserves ${requiredModalField}`);
+      }
+    });
   });
 
   /* -------------------------------------------------------------

@@ -117,20 +117,25 @@ assert(
 // ----------------------------------------------------------------------------
 console.log("\nTest 4: Screenshot Requirement E — Discovery Card vs Full Profile Separation");
 
-// Discovery Card should NOT render the long list of 8 tags or the verbose CompatBar
-assert(
-  !discoverContent.includes('[...p.interests, ...p.hobbies].slice(0, 8)'),
-  "Discovery Card no longer duplicates 8 interest & hobby tags"
+// Discovery Card should render only photo, name, age, and Full Profile button (no bio, tags, or CompatBar)
+const profileCardSlice = discoverContent.slice(
+  discoverContent.indexOf("function ProfileCard("),
+  discoverContent.indexOf("interface DeckData"),
 );
 
 assert(
-  discoverContent.includes('p.interests.slice(0, 3)'),
-  "Discovery Card displays up to 3 concise highlight chips"
+  !profileCardSlice.includes('[...p.interests, ...p.hobbies].slice(0, 8)') &&
+    !profileCardSlice.includes('p.interests.slice(0, 3)') &&
+    !profileCardSlice.includes('{p.bio}') &&
+    !profileCardSlice.includes('{p.city}') &&
+    !profileCardSlice.includes('{entry.score}'),
+  "Discovery Card displays minimal Tinder-style photo, name, age, and Full Profile button only"
 );
 
 assert(
-  discoverContent.includes('line-clamp-2'),
-  "Discovery Card limits bio to a clean concise preview to avoid card overflow"
+  profileCardSlice.includes('{p.firstName}, {p.age}') &&
+    profileCardSlice.includes('Full Profile'),
+  "Discovery Card includes name, age overlay and clearly visible Full Profile button"
 );
 
 // Full Profile modal must still contain the full information
