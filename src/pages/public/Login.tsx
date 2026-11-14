@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Field, Logo, inputCls } from "../../components/ui";
-import { useAuth } from "../../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 
 export default function Login() {
-  const { login, session } = useAuth();
+  const { login, session, ready } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -18,6 +18,10 @@ export default function Login() {
       navigate(session.role === "admin" ? "/admin" : "/app", { replace: true });
     }
   }, [session, navigate]);
+
+  if ((!ready && hasStoredAuthHint()) || session) {
+    return null;
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

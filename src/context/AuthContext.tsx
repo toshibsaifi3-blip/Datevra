@@ -32,6 +32,34 @@ import { getSupabase, isSupabaseConfigured } from "../lib/supabase";
 import { backendMode, type Session } from "../lib/data";
 import type { UserProfile } from "../lib/types";
 
+export const DESIGNATED_ADMIN_ONLY_USER_ID = "e0934a1e-cbf4-434d-93f1-56ead67e8df7";
+
+export function isDesignatedAdminSession(session: Session | null): boolean {
+  return Boolean(
+    session &&
+      session.role === "admin" &&
+      session.userId === DESIGNATED_ADMIN_ONLY_USER_ID,
+  );
+}
+
+export function hasStoredAuthHint(): boolean {
+  try {
+    if (typeof localStorage === "undefined") return false;
+    if (!isSupabaseConfigured) {
+      return Boolean(localStorage.getItem("datevra-session-v1"));
+    }
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("sb-") && k.endsWith("-auth-token")) {
+        return Boolean(localStorage.getItem(k));
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export type AuthResult =
   | { ok: true; notice?: string }
   | { ok: false; error: string };
@@ -40,6 +68,7 @@ interface AuthContextValue {
   session: Session | null;
   user: UserProfile | null;
   isAdmin: boolean;
+  isDesignatedAdminOnly: boolean;
   ready: boolean;
   mode: "demo" | "supabase";
   login: (email: string, password: string) => Promise<AuthResult>;
@@ -196,13 +225,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    setSession(null);
+    setUser(null);
     if (!isSupabaseConfigured) {
       mockLogout();
     } else {
       await supaSignOut();
     }
-    setSession(null);
-    setUser(null);
   }, []);
 
   const sendPasswordReset = useCallback(async (email: string): Promise<AuthResult> => {
@@ -221,9 +250,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      session, user, isAdmin: session?.role === "admin", ready, mode,
-      login, register, verifySignupOtp, resendSignupOtp, updatePassword,
-      logout, refresh, sendPasswordReset,
+      session,
+      user,
+      isAdmin: session?.role === "admin",
+      isDesignatedAdminOnly: isDesignatedAdminSession(session),
+      ready,
+      mode,
+      login,
+      register,
+      verifySignupOtp,
+      resendSignupOtp,
+      updatePassword,
+      logout,
+      refresh,
+      sendPasswordReset,
     }),
     [session, user, ready, mode, login, register, verifySignupOtp, resendSignupOtp, updatePassword, logout, refresh, sendPasswordReset],
   );

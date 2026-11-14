@@ -1,14 +1,17 @@
-import { useAuth } from "../context/AuthContext";
+import { Navigate } from "react-router-dom";
+import { hasStoredAuthHint, useAuth } from "../context/AuthContext";
 import DiscoverPublic from "./public/DiscoverPublic";
 import Discover from "./user/Discover";
 
 /**
  * /discover — dual-mode page.
- * Logged-out visitors see the teaser; members get the full swipe/match interface.
+ * Logged-out visitors see the teaser; members and non-designated Admins in Member View get the full swipe/match interface.
  */
 export default function DiscoverPage() {
-  const { user } = useAuth();
-  if (!user) return <DiscoverPublic />;
+  const { user, isDesignatedAdminOnly, ready } = useAuth();
+  if (!ready && hasStoredAuthHint()) return null;
+  if (ready && isDesignatedAdminOnly) return <Navigate to="/admin" replace />;
+  if (!user || isDesignatedAdminOnly) return <DiscoverPublic />;
   return (
     <div className="pt-[72px]">
       <Discover />

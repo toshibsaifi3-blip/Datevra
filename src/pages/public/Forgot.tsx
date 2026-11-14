@@ -1,15 +1,26 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Field, Logo, inputCls, useToast } from "../../components/ui";
-import { useAuth } from "../../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 
 export default function Forgot() {
   const { toast } = useToast();
-  const { sendPasswordReset } = useAuth();
+  const { sendPasswordReset, isDesignatedAdminOnly, ready } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (ready && isDesignatedAdminOnly) {
+      navigate("/admin", { replace: true });
+    }
+  }, [ready, isDesignatedAdminOnly, navigate]);
+
+  if ((!ready && hasStoredAuthHint()) || (ready && isDesignatedAdminOnly)) {
+    return null;
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

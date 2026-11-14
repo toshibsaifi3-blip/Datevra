@@ -26,14 +26,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  ArrowUpRight,
   LogOut,
   UserCheck,
   Menu,
   X,
+  ArrowUpRight,
   type LucideIcon,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../context/AuthContext";
 import { Logo, GlowOrbs, PetalField, Badge } from "./ui";
 import { useBackend, useAsync } from "../lib/data";
 import { partnerOf } from "../pages/user/shared";
@@ -60,7 +60,7 @@ const PUBLIC_LINKS = [
 ];
 
 export function PublicNav() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, isAdmin, isDesignatedAdminOnly, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const loc = useLocation();
@@ -95,31 +95,35 @@ export function PublicNav() {
           {open ? "×" : "☰"}
         </button>
         {/* Mobile: centered script logo */}
-        <Link to="/" aria-label="Datevra home" className="lg:hidden absolute left-1/2 -translate-x-1/2 max-w-[44vw] min-h-[44px] flex items-center justify-center">
+        <Link to={isDesignatedAdminOnly ? "/admin" : "/"} aria-label={isDesignatedAdminOnly ? "Datevra Admin" : "Datevra home"} className="lg:hidden absolute left-1/2 -translate-x-1/2 max-w-[44vw] min-h-[44px] flex items-center justify-center">
           <span className="font-display text-[1.18rem] min-[360px]:text-[1.45rem] min-[400px]:text-[1.65rem] tracking-[0.08em] min-[360px]:tracking-[0.12em] sm:tracking-[0.14em] text-gradient-dream whitespace-nowrap truncate">
             Datevra
           </span>
         </Link>
         {/* Mobile: search + notifications right (min 44x44 touch target) */}
         <div className="lg:hidden flex items-center gap-0.5 sm:gap-1 -mr-1.5 sm:-mr-2 shrink-0">
-          <Link
-            to="/discover"
-            aria-label="Search"
-            className="text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
-          >
-            ⌕
-          </Link>
-          <Link
-            to={user ? "/notifications" : "/login"}
-            aria-label="Notifications"
-            className="relative text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
-          >
-            ◉
-            {user && <NotifDot />}
-          </Link>
+          {!isDesignatedAdminOnly && (
+            <>
+              <Link
+                to="/discover"
+                aria-label="Search"
+                className="text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
+              >
+                ⌕
+              </Link>
+              <Link
+                to={user ? "/notifications" : "/login"}
+                aria-label="Notifications"
+                className="relative text-ivory-dim/90 hover:text-ivory min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl active:bg-white/10 text-xl transition-colors touch-manipulation"
+              >
+                ◉
+                {user && <NotifDot />}
+              </Link>
+            </>
+          )}
         </div>
         {/* Desktop: logo left */}
-        <Link to="/" aria-label="Datevra home" className="hidden lg:block">
+        <Link to={isDesignatedAdminOnly ? "/admin" : "/"} aria-label={isDesignatedAdminOnly ? "Datevra Admin" : "Datevra home"} className="hidden lg:block">
           <Logo size={36} />
         </Link>
         <nav className="hidden lg:flex items-center gap-7" aria-label="Primary">
@@ -278,16 +282,29 @@ export function Footer() {
 }
 
 export function PublicLayout() {
-  const { user } = useAuth();
+  const { user, isDesignatedAdminOnly, ready } = useAuth();
+  if (!ready && hasStoredAuthHint()) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <Logo size={48} withWordmark={false} />
+        <p className="text-xs font-mono uppercase tracking-widest text-champagne/70 animate-pulse">
+          Verifying authorization…
+        </p>
+      </div>
+    );
+  }
+  if (ready && isDesignatedAdminOnly) {
+    return <Navigate to="/admin" replace />;
+  }
   return (
-    <div className={`min-h-screen flex flex-col overflow-x-clip ${user ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
+    <div className={`min-h-screen flex flex-col overflow-x-clip ${user && !isDesignatedAdminOnly ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
       <GlowOrbs />
       <PublicNav />
       <main className="flex-1 relative min-w-0">
         <Outlet />
       </main>
       <Footer />
-      {user && <BottomNav />}
+      {user && !isDesignatedAdminOnly && <BottomNav />}
     </div>
   );
 }
@@ -295,7 +312,7 @@ export function PublicLayout() {
 /* ============================== Route guards ============================== */
 
 export function ProtectedRoute({ admin = false }: { admin?: boolean }) {
-  const { session, ready } = useAuth();
+  const { session, isDesignatedAdminOnly, ready } = useAuth();
   if (!ready) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
@@ -308,6 +325,7 @@ export function ProtectedRoute({ admin = false }: { admin?: boolean }) {
   }
   if (!session) return <Navigate to="/login" replace />;
   if (admin && session.role !== "admin") return <Navigate to="/app" replace />;
+  if (!admin && isDesignatedAdminOnly) return <Navigate to="/admin" replace />;
   return <Outlet />;
 }
 
@@ -490,7 +508,7 @@ function Bell() {
 }
 
 export function UserShell() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, isDesignatedAdminOnly, logout } = useAuth();
   const db = useBackend();
   const reducedMotion = useReducedMotion();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -547,10 +565,18 @@ export function UserShell() {
           );
         })}
       </nav>
-      <div className="p-4 border-t hairline">
+      <div className="p-4 border-t hairline space-y-1">
+        {isAdmin && !isDesignatedAdminOnly && (
+          <Link
+            to="/admin"
+            className="block w-full text-left px-4 py-2.5 rounded-xl text-sm text-champagne hover:text-rosegold hover:bg-white/5 transition-colors"
+          >
+            ← Admin panel
+          </Link>
+        )}
         <button
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
             nav("/");
           }}
           className="w-full text-left px-4 py-2.5 rounded-xl text-sm text-mist hover:text-ivory hover:bg-white/5 transition-colors"
@@ -707,7 +733,7 @@ function AdminBell() {
 }
 
 export function AdminShell() {
-  const { logout, user } = useAuth();
+  const { logout, user, isDesignatedAdminOnly } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -850,7 +876,7 @@ export function AdminShell() {
           collapsed ? "justify-center px-2" : "justify-between px-5"
         }`}
       >
-        <Link to="/" className="flex items-center gap-2 overflow-hidden group">
+        <Link to={isDesignatedAdminOnly ? "/admin" : "/"} className="flex items-center gap-2 overflow-hidden group">
           <Logo size={28} withWordmark={!collapsed} />
         </Link>
         {!collapsed && (
@@ -865,29 +891,31 @@ export function AdminShell() {
 
       {/* Footer Utility Actions */}
       <div className={`border-t hairline bg-black/20 ${collapsed ? "p-2 space-y-1" : "p-3 space-y-1"}`}>
-        {/* Switch to member view */}
-        <Link
-          to="/app"
-          className={`flex items-center rounded-xl text-ivory-dim/80 hover:text-ivory hover:bg-white/5 transition-colors group/tooltip relative ${
-            collapsed ? "justify-center h-10 w-10 mx-auto" : "px-3 py-2 text-xs gap-2.5"
-          }`}
-          title={collapsed ? "Switch to Member View" : undefined}
-        >
-          <ArrowUpRight size={16} className="text-mist group-hover/tooltip:text-rosegold transition-colors shrink-0" />
-          {!collapsed && <span className="font-medium">Switch to Member View</span>}
-          {collapsed && (
-            <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover/tooltip:block z-[70]">
-              <div className="px-2.5 py-1 rounded-lg bg-onyx text-ivory text-xs whitespace-nowrap shadow-xl border hairline">
-                Switch to Member View
+        {/* Switch to Member View — available only to non-designated Admins */}
+        {!isDesignatedAdminOnly && (
+          <Link
+            to="/app"
+            className={`w-full flex items-center rounded-xl text-ivory-dim hover:text-champagne hover:bg-white/5 transition-colors group/tooltip relative ${
+              collapsed ? "justify-center h-10 w-10 mx-auto" : "px-3 py-2 text-xs gap-2.5 text-left"
+            }`}
+            title={collapsed ? "Switch to Member View" : undefined}
+          >
+            <ArrowUpRight size={16} className="text-rosegold/90 group-hover/tooltip:text-champagne transition-colors shrink-0" />
+            {!collapsed && <span className="font-medium">Switch to Member View</span>}
+            {collapsed && (
+              <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 hidden group-hover/tooltip:block z-[70]">
+                <div className="px-2.5 py-1 rounded-lg bg-onyx text-ivory text-xs whitespace-nowrap shadow-xl border hairline">
+                  Switch to Member View
+                </div>
               </div>
-            </div>
-          )}
-        </Link>
+            )}
+          </Link>
+        )}
 
         {/* Sign out */}
         <button
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
             nav("/");
           }}
           className={`w-full flex items-center rounded-xl text-mist hover:text-rose-300 hover:bg-rose-500/10 transition-colors group/tooltip relative ${
@@ -927,7 +955,7 @@ export function AdminShell() {
     <div className="flex flex-col h-full bg-[#0d0718] text-ivory">
       {/* Mobile Header */}
       <div className="flex items-center justify-between px-5 h-[68px] border-b hairline">
-        <Link to="/" className="flex items-center gap-2">
+        <Link to={isDesignatedAdminOnly ? "/admin" : "/"} className="flex items-center gap-2">
           <Logo size={28} />
         </Link>
         <button
@@ -944,16 +972,18 @@ export function AdminShell() {
 
       {/* Mobile Footer */}
       <div className="p-4 border-t hairline space-y-2 bg-black/20">
-        <Link
-          to="/app"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-ivory-dim hover:text-ivory hover:bg-white/5 font-medium"
-        >
-          <ArrowUpRight size={16} className="text-rosegold" />
-          Switch to Member View
-        </Link>
+        {!isDesignatedAdminOnly && (
+          <Link
+            to="/app"
+            className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl text-sm text-ivory-dim hover:text-champagne hover:bg-white/5 font-medium"
+          >
+            <ArrowUpRight size={16} className="text-rosegold/90" />
+            Switch to Member View
+          </Link>
+        )}
         <button
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
             nav("/");
           }}
           className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-xl text-sm text-mist hover:text-rose-300 hover:bg-white/5 font-medium"

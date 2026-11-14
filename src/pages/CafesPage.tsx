@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../context/AuthContext";
 import { PageHero } from "../components/ui";
 import CafesPublic from "./public/CafesPublic";
 import SavedCafes from "./user/SavedCafes";
@@ -14,11 +15,13 @@ const TABS: { id: Tab; label: string }[] = [
 
 /**
  * /cafes — dual-mode page.
- * Logged-out visitors see partner listings; members also get a Saved tab.
+ * Logged-out visitors see partner listings; members and non-designated Admins in Member View also get Saved tab.
  */
 export default function CafesPage() {
-  const { user } = useAuth();
-  if (!user) return <CafesPublic />;
+  const { user, isDesignatedAdminOnly, ready } = useAuth();
+  if (!ready && hasStoredAuthHint()) return null;
+  if (ready && isDesignatedAdminOnly) return <Navigate to="/admin" replace />;
+  if (!user || isDesignatedAdminOnly) return <CafesPublic />;
   return <MemberCafes />;
 }
 

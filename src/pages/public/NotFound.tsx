@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Logo, PetalField } from "../../components/ui";
+import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 
 export default function NotFound() {
+  const { isDesignatedAdminOnly, ready } = useAuth();
+  if (!ready && hasStoredAuthHint()) {
+    return null;
+  }
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 sm:px-5 py-16 sm:py-20 relative overflow-x-clip">
       <PetalField count={10} />
@@ -45,12 +50,20 @@ export default function NotFound() {
           transition={{ delay: 0.65, duration: 0.6 }}
           className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4"
         >
-          <Link to="/" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base font-semibold inline-flex items-center justify-center min-h-[44px]">
-            Back to home
-          </Link>
-          <Link to="/experiences" className="btn-ghost rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base inline-flex items-center justify-center min-h-[44px]">
-            Explore experiences
-          </Link>
+          {isDesignatedAdminOnly ? (
+            <Link to="/admin" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base font-semibold inline-flex items-center justify-center min-h-[44px]">
+              Back to Admin Panel
+            </Link>
+          ) : (
+            <>
+              <Link to="/" className="btn-gold rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base font-semibold inline-flex items-center justify-center min-h-[44px]">
+                Back to home
+              </Link>
+              <Link to="/experiences" className="btn-ghost rounded-full px-8 sm:px-10 py-3.5 sm:py-4 text-base inline-flex items-center justify-center min-h-[44px]">
+                Explore experiences
+              </Link>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

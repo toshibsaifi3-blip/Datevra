@@ -2,8 +2,19 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Field, Logo, inputCls } from "../../components/ui";
-import { useAuth } from "../../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 import { getSupabase } from "../../lib/supabase";
+
+function hasRecoveryParamsInUrl(): boolean {
+  try {
+    const hash = window.location.hash || "";
+    const search = window.location.search || "";
+    const combined = `${search}&${hash}`;
+    return /type=recovery|code=|token_hash=/i.test(combined);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Completes the password-recovery flow. Supabase redirects the reset link
@@ -12,7 +23,7 @@ import { getSupabase } from "../../lib/supabase";
  * a new password via auth.updateUser.
  */
 export default function ResetPassword() {
-  const { updatePassword, session, ready } = useAuth();
+  const { updatePassword, session, isDesignatedAdminOnly, ready } = useAuth();
   const navigate = useNavigate();
 
   const [password, setPassword] = useState("");
@@ -22,12 +33,22 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
   const [checking, setChecking] = useState(true);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState<boolean>(() => hasRecoveryParamsInUrl());
 
   useEffect(() => {
+    const c = getSupabase();
+    const sub = c
+      ? c.auth.onAuthStateChange((event) => {
+          if (event === "PASSWORD_RECOVERY") {
+            setIsRecoveryFlow(true);
+            setHasRecoverySession(true);
+          }
+        })
+      : null;
+
     // Give supabase-js a moment to ingest the recovery tokens from the URL.
     const t = setTimeout(async () => {
       try {
-        const c = getSupabase();
         const { data } = c ? await c.auth.getSession() : { data: { session: null } };
         setHasRecoverySession(Boolean(data.session));
       } catch {
@@ -36,8 +57,17 @@ export default function ResetPassword() {
         setChecking(false);
       }
     }, 800);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      sub?.data.subscription.unsubscribe();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!checking && ready && isDesignatedAdminOnly && !isRecoveryFlow && !done) {
+      navigate("/admin", { replace: true });
+    }
+  }, [checking, ready, isDesignatedAdminOnly, isRecoveryFlow, done, navigate]);
 
   useEffect(() => {
     if (done && session) {
@@ -48,6 +78,10 @@ export default function ResetPassword() {
       return () => clearTimeout(t);
     }
   }, [done, session, navigate]);
+
+  if ((!ready && hasStoredAuthHint()) || (!checking && ready && isDesignatedAdminOnly && !isRecoveryFlow && !done)) {
+    return null;
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,9 +134,11 @@ export default function ResetPassword() {
               <p className="text-sm text-champagne bg-champagne/10 border border-champagne/30 rounded-xl px-4 py-3">
                 Password updated successfully. Taking you to your account…
               </p>
-              <Link to="/login" className="text-sm text-champagne hover:text-rosegold">
-                Continue to sign in →
-              </Link>
+              {!isDesignatedAdminOnly && (
+                <Link to="/login" className="text-sm text-champagne hover:text-rosegold">
+                  Continue to sign in →
+                </Link>
+              )}
             </div>
           ) : !hasRecoverySession ? (
             <div className="space-y-5 text-center">

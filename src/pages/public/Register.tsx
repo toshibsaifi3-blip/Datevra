@@ -3,12 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Field, Logo, inputCls } from "../../components/ui";
 import { CITIES } from "../../data/seed";
-import { useAuth } from "../../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 import type { Gender, InterestedIn } from "../../lib/types";
 
 export default function Register() {
-  const { register, verifySignupOtp, resendSignupOtp } = useAuth();
+  const { register, verifySignupOtp, resendSignupOtp, isDesignatedAdminOnly, ready } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (ready && isDesignatedAdminOnly) {
+      navigate("/admin", { replace: true });
+    }
+  }, [ready, isDesignatedAdminOnly, navigate]);
 
   const [step, setStep] = useState<"details" | "otp">("details");
   const [firstName, setFirstName] = useState("");
@@ -35,6 +41,10 @@ export default function Register() {
     const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
+
+  if ((!ready && hasStoredAuthHint()) || (ready && isDesignatedAdminOnly)) {
+    return null;
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();

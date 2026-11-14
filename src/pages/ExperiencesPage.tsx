@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
+import { hasStoredAuthHint, useAuth } from "../context/AuthContext";
 import { PageHero } from "../components/ui";
 import ExperiencesPublic from "./public/ExperiencesPublic";
 import Applications from "./user/Applications";
@@ -16,12 +17,13 @@ const TABS: { id: Tab; label: string }[] = [
 
 /**
  * /experiences — dual-mode page.
- * Logged-out visitors see the curated listing; members get tabs for
- * exploring, their applications, and their bookings.
+ * Logged-out visitors see the curated listing; members and non-designated Admins in Member View get tabs.
  */
 export default function ExperiencesPage() {
-  const { user } = useAuth();
-  if (!user) return <ExperiencesPublic />;
+  const { user, isDesignatedAdminOnly, ready } = useAuth();
+  if (!ready && hasStoredAuthHint()) return null;
+  if (ready && isDesignatedAdminOnly) return <Navigate to="/admin" replace />;
+  if (!user || isDesignatedAdminOnly) return <ExperiencesPublic />;
   return <MemberExperiences />;
 }
 
