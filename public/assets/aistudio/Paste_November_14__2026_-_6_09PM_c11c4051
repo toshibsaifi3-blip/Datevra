@@ -1,0 +1,498 @@
+DATEVRA — ULTRA-DETAILED MIGRATION MASTER EXECUTION PROMPT
+
+For Google AI Studio • Based on the uploaded Datevra project ZIP • Repository audit, repair package, gated production runbook
+
+How to use this document
+
+Upload/extract the ZIP file datevra (2).zip into the existing Datevra Google AI Studio workspace (or import it as the project source). Then paste the entire prompt below into Gemini. If AI Studio already has a different working tree, tell Gemini to compare it with the ZIP and identify which is authoritative before editing anything.
+
+This prompt authorizes local repository inspection and carefully scoped local migration-artifact creation. It does NOT authorize connecting to or changing live Supabase, executing SQL, pushing GitHub, or deploying. Live database changes must be performed later by the user, one reviewed gate at a time.
+
+COPY THE COMPLETE PROMPT BELOW INTO GEMINI
+
+DATEVRA — ULTRA-DETAILED MIGRATION MASTER EXECUTION & RECONCILIATION
+
+You are the senior PostgreSQL/Supabase database migration engineer responsible for preparing a safe, complete, forward-only migration repair and execution package for the Datevra application.
+
+The user is a beginner. Your output must minimize manual file-by-file copying and guesswork. Inspect the uploaded ZIP/project repository directly. Do not ask the user to paste SQL files that are already present in the uploaded project. You must read the actual source files and compare them with the application code.
+
+0. PROJECT INPUT AND AUTHORITY
+
+The uploaded project archive is `datevra (2).zip`. Inspect its actual extracted contents. It includes (among other files) `db/schema.sql`, three `db/000_full_setup*.sql` bootstrap files, `db/migrations/`, `datevra_migration_package/`, `DATEVRA_MIGRATION_PREFLIGHT.sql`, `DATEVRA_MIGRATION_AUDIT.md`, `DATEVRA_MIGRATION_EXECUTION_PLAN.md`, `DATEVRA_COMPLETE_MIGRATION_HANDOVER.md`, `DATEVRA_MIGRATION_STATUS.csv`, and application/Edge Function source.
+
+Use actual source code as the authority for file contents. Treat previous audit documents and pasted live-database results as evidence/context, not as substitutes for source inspection. If the AI Studio workspace differs from the ZIP, report both versions and ask which should be authoritative before changing files. Never silently overwrite newer workspace work with the ZIP.
+
+Known exact migration filenames visible in the uploaded ZIP include:
+- `db/migrations/010_passes_proposals.sql`
+- `db/migrations/011_membership_passes.sql`
+- `db/migrations/012_proposal_block_protection.sql`
+- `db/migrations/013_proposal_block_decline_persistence.sql`
+- `db/migrations/014_match_proposal_integrity.sql`
+- `db/migrations/015_matchmaking_pair_serialization.sql`
+- `db/migrations/016_matchmaking_lock_order_hardening.sql`
+- `db/migrations/017_atomic_report_status_audit.sql`
+- `db/migrations/018_verification_status_and_rpc.sql`
+- `db/migrations/019_verification_defense_in_depth.sql`
+- `db/migrations/020_enforce_audited_report_status.sql`
+- `db/migrations/021_atomic_payment_operations.sql`
+- `db/migrations/022_subscription_admin_operations.sql`
+- `db/migrations/023_reports_audit_privilege_correction.sql`
+- `db/migrations/024_subscription_operations_lock_order_and_cancellation_fix.sql`
+- `db/migrations/025_admin_consolidated_security_and_integrity.sql`
+- `db/migrations/026_verify_seed_delhi_cafes.sql`
+- `db/migrations/026_seed_delhi_cafes.sql`
+- `db/migrations/027_seed_curated_experiences.sql`
+
+The ZIP also contains these package files:
+- `datevra_migration_package/01_010_passes_proposals.sql`
+- `datevra_migration_package/02_014_match_proposal_integrity.sql`
+- `datevra_migration_package/03_015_matchmaking_pair_serialization.sql`
+- `datevra_migration_package/04_016_matchmaking_lock_order_hardening.sql`
+- `datevra_migration_package/05_011_membership_passes.sql`
+- `datevra_migration_package/06_post_011_reconciliation.sql`
+- `datevra_migration_package/07_027_seed_curated_experiences.sql`
+
+Always use full exact filenames. Do not invent names, renumber files, or assume numeric order equals safe dependency order.
+
+1. NON-NEGOTIABLE SAFETY BOUNDARIES
+
+This assignment is local preparation only.
+
+ABSOLUTELY DO NOT:
+1. Connect to the live Supabase project, Supabase SQL Editor, Supabase CLI remote, database URL, or any external database.
+2. Execute SQL against any database, including “testing” against production.
+3. Run `supabase db push`, `supabase migration up`, `supabase link`, remote reset, remote repair, or any command that can mutate a remote database.
+4. Use credentials, environment secrets, service-role keys, passwords, tokens, or API keys. Do not print or request them.
+5. Modify production data, auth users, admin roles, subscriptions, payments, passes, reports, or storage.
+6. Push/commit to GitHub, deploy to Vercel/Hostinger, or change production settings.
+7. Run bootstrap/admin creation functions. In particular, NEVER invoke `public.bootstrap_first_admin(text)`.
+8. Execute or recommend running a full bootstrap file (`db/000_full_setup.sql`, `db/000_full_setup_LATEST_2026-10-04.sql`, or `db/000_full_setup_LATEST_2026-10-04_v2.sql`) against the existing live database.
+9. Rewrite or delete historical migration files just to make the history look clean.
+10. Claim that a migration is applied merely because a file exists or a function is present.
+11. fabricate test results, live schema state, successful execution, or gateway payment confirmation.
+
+You MAY:
+- Read all project files.
+- Run local static analysis, TypeScript checks, tests, and build if available and safe.
+- Create a separate, clearly named `datevra_migration_repair_package/` directory containing proposed forward-only SQL files and documentation.
+- Create read-only preflight SQL.
+- Create local test fixtures or static tests that do not contact external services.
+- Edit only the newly created repair-package files and handover documents. Do not alter original historical migrations or app code in this assignment unless the user explicitly authorizes a separate implementation task.
+
+2. KNOWN LIVE DATABASE BASELINE — HISTORICAL EVIDENCE, NOT LIVE VERIFICATION
+
+The following was supplied from earlier read-only Supabase SQL Editor checks. Use it as the last known baseline; explicitly mark it “user-supplied historical baseline — must be refreshed before production execution.”
+
+- `pgcrypto` exists in schema `extensions`, version 1.3.
+- `datevra_internal` schema was absent.
+- `daily_action_limits` exists.
+- `complimentary_passes`, `match_proposals`, and `membership_passes` were absent.
+- `datevra_internal.generate_secure_pass_code()` was absent.
+- `public._has_active_membership(uuid)` exists as SECURITY DEFINER with `search_path=public`.
+- `public.blocked_pair(uuid,uuid)` and `public.is_admin()` exist.
+- `public.bootstrap_first_admin(text)` exists; DO NOT invoke it.
+- `public.admin_cancel_subscription(uuid,text)`, `public.admin_extend_subscription(uuid,integer,text)`, `public.admin_refund_payment(uuid,text)`, `public.admin_verify_payment(uuid)`, `public.set_report_status(uuid,text)`, `public.set_user_verified(uuid,boolean,text)`, `public.redeem_pass(text)`, `public.respond_to_proposal(uuid,boolean)`, `public.redeem_membership_pass(text)`, and membership pass RPCs were absent in the earlier inspection.
+- `profiles` lacked `verification_status`, `verification_reviewed_at`, `verification_reviewed_by`, and `verification_note`.
+- `subscriptions` had `id,user_id,plan_id,status,started_at,expires_at`; it lacked `payment_id` and `auto_renew`. The presence of `created_at` and `updated_at` was not established by that specific column listing; do not assume either way.
+- `payments` had `id,user_id,kind,amount,plan_id,status,razorpay_order_id,razorpay_payment_id,method,created_at,updated_at`.
+- `cafes` lacked `menu`.
+- `experiences` had `id,title,kind,city,description,image,price_from,duration_mins,eligibility,slots,elite_only,created_at,updated_at`.
+- `date_applications.experience_id` references `experiences.id`.
+- `matches` had unique `(user_a,user_b)`; `conversations.match_id` was unique.
+- 52 profiles, no subscription rows, one pending Elite payment of ₹1199, no completed/failed payment rows at that time.
+- Plans `connect`, `plus`, `elite` existed.
+- Café Hot Stag and Karma La Cafe rows existed; their `cafes.experiences` arrays were empty.
+- Six experience rows existed at the time.
+- No Datevra-specific migration tracker was found. `supabase_migrations.schema_migrations` did not exist.
+- Existing trigger functions included `protect_profile_fields`, `enforce_application_rules`, `freeze_match_participants`, `freeze_message_content` reported as SECURITY INVOKER without a configured search_path in the earlier inspection. Do not alter these without a source-based threat analysis and a dedicated safe patch.
+- There was no automatic payment-to-subscription activation trigger in the earlier inspection.
+
+Never treat the above as current truth without fresh read-only preflight. Data may have changed.
+
+3. REQUIRED FIRST TASK: FULL SOURCE RECONCILIATION
+
+Inspect every SQL file, not just the latest migrations:
+- all `db/000_full_setup*.sql`
+- `db/schema.sql`
+- every `db/migrations/*.sql`
+- `db/realtime_setup.sql`
+- every `datevra_migration_package/*.sql`
+- existing migration audit, status, preflight, execution-plan, and handover docs.
+
+Also inspect application and Edge Function source:
+- all Supabase `.from(...)` calls
+- all `supabase.rpc(...)` calls
+- membership, pass, verification, report, payment, subscription, admin, matchmaking, notification workflows
+- `supabase/functions/verify-payment/index.ts`
+- `supabase/functions/razorpay-webhook/index.ts`
+- `supabase/functions/_shared/supabase.ts` (or actual shared client path)
+- frontend membership/payment/pass/verification/report/admin screens
+- types and generated database schema types, if present.
+
+Produce a source evidence ledger: exact path, line ranges, what it proves, and whether independently confirmed.
+
+4. MIGRATION-BY-MIGRATION ANALYSIS
+
+For every migration, record:
+- exact full path and filename
+- purpose
+- DDL and DML effects
+- objects created/replaced/dropped
+- required prior objects
+- dependencies on later migrations
+- transaction boundaries and failure behavior
+- idempotency/re-run behavior
+- lock order and concurrency characteristics
+- RLS/policy/grant impact
+- SECURITY DEFINER/INVOKER and `search_path`
+- data-loss or privilege-escalation risk
+- app compatibility
+- whether superseded, duplicate, unsafe, or conditionally required
+- exact correction needed.
+
+Resolve filename collisions and numbering anomalies, especially the two `026` files. Never rename historical files. Identify which 026 file is verification-only and which is data-seeding, based on actual contents.
+
+Compare raw migrations with package copies. Detect semantic differences, missing SQL, drift, and changed behavior. Do not call the package copies authoritative unless proven.
+
+5. MUST RESOLVE THESE KNOWN HIGH-RISK ISSUES
+
+Investigate each from actual source and design a safe correction:
+
+### A. Subscription schema compatibility
+- `auto_renew` is referenced by migration/package code but absent from last-known live subscriptions schema.
+- `payment_id` is introduced by Migration 021 but absent from last-known live schema.
+- `created_at` and `updated_at` must be explicitly checked in the preflight before any migration that depends on them.
+- Do not blindly add columns. Determine whether app code, UI, Edge Functions, and business rules require them.
+- Decide whether a column is truly required, what type/default/nullability is correct, backfill requirements, and whether an index/FK/unique constraint is justified.
+- Do not make `payment_id` unique unless the actual payment/subscription business model proves one-to-one cardinality.
+- Verify all INSERT/UPDATE statements in migrations against the actual table definition and constraints.
+
+### B. Membership pass-code generation
+- Both raw Migration 011 and package `05_011_membership_passes.sql` use alphabet `23456789ABCDEFGHJKMNPQRSTUVWXYZ` with `% 32 + 1`.
+- Count the alphabet exactly. If it has 31 characters, `% 32` can yield an empty substring.
+- Propose unbiased rejection sampling or another mathematically correct approach.
+- Ensure output format exactly matches `src/pages/.../Membership.tsx` (locate actual file and regex; don't assume path).
+- Add deterministic tests for alphabet length, every index, output length, allowed characters, and regex compatibility.
+
+### C. Payment verification / Razorpay integrity
+- Inspect `db/migrations/021_atomic_payment_operations.sql` (actual filename in ZIP).
+- Never allow a pending payment to become verified without independently verified Razorpay evidence.
+- Investigate any fabricated `razorpay_payment_id` fallback.
+- Confirm webhook signature verification, order ID, payment ID, amount, currency, merchant/account context, duplicate webhook idempotency, and payment status transitions.
+- Inspect Edge Functions that update `payments.verified_at`; confirm whether that column exists in schema/migrations.
+- Inspect subscriptions.payment_id linkage and refund reconciliation. Do not allow refund fallback to revoke an unrelated subscription.
+- Distinguish database ledger status changes from actual Razorpay gateway refunds. Never claim a gateway refund occurs unless a gateway API call is present and verified.
+- Do not weaken signature verification or grant broad service access.
+- Do not test with live payment credentials or initiate charges/refunds.
+
+### D. protect_profile_fields and verification trigger ordering
+- Analyze Migration 011, 018, 019, and package 05/06.
+- Determine whether replacing `protect_profile_fields()` changes the trigger column list or security behavior.
+- Migration 018 may replace function body without recreating the trigger. Verify the actual trigger definition and its `UPDATE OF` columns.
+- Ensure all protected columns (admin, plan, verification, email and any other existing protected fields) remain protected.
+- Ensure plan intent consumption cannot be forged/replayed and is restricted to intended transactions.
+- Check trigger execution privilege semantics and SECURITY DEFINER ownership.
+- Provide one final, authoritative forward-only reconciliation that preserves protections, without running historical migrations out of order.
+
+### E. Matchmaking concurrency and blocking
+- Inspect 010 and 012–016 plus package 01–04.
+- Validate reciprocal-like race, block/unblock races, proposal accept/decline races, pair lock ordering, duplicate pending pairs, and match uniqueness.
+- Ensure all operations that affect a user pair acquire the same canonical advisory lock in the same order.
+- Check that `blocked_pair()` is checked under the lock immediately before match creation.
+- Validate `p_accept IS NOT NULL`, one-time response semantics, and duplicate match prevention.
+- Ensure helper function privileges are minimal and application RPCs retain required access.
+- Do not break existing matches/conversations/notifications.
+
+### F. Reports security and audit trail
+- Inspect 017, 020, 023, 025 and `src/pages/admin/Reports.tsx`.
+- Verify `set_report_status()` exists before privilege grants.
+- Check trigger guard and audit-log behavior.
+- Check table-level AND column-level grants for reports, payments, subscriptions.
+- Do not revoke INSERT/SELECT needed by the app.
+- Ensure admin status changes remain possible only through the audited RPC.
+- Ensure RLS and table grants are both correct; policies do not grant privileges by themselves.
+- Check that all RPC grants and function security settings are intentional.
+
+### G. Subscription lifecycle and locking
+- Inspect 022 and 024 fully.
+- Compare lock order for verify, refund, cancel, extend, pass redemption, and profile updates.
+- Establish a single documented lock order and apply it consistently.
+- Confirm cancellation/extension do not deadlock with redemption/payment operations.
+- Check intent-table inserts satisfy NOT NULL and FK constraints.
+- Do not run broken Migration 022; design a forward-only safe correction if 024 does not fully resolve its effects.
+
+### H. Seeds
+- Inspect `db/migrations/026_verify_seed_delhi_cafes.sql`, `db/migrations/026_seed_delhi_cafes.sql`, `db/migrations/027_seed_curated_experiences.sql`, and package 07.
+- Determine if café seed 026 is already applied based on known evidence; do not infer from file existence.
+- Confirm café IDs/names/partner status before seeding experiences.
+- Confirm experience IDs and all fields. Avoid `ON CONFLICT DO NOTHING` silently preserving incorrect rows; compare and either no-op only on exact match or fail with clear diagnostics.
+- Do not fabricate image URLs, café details, or experience content.
+- Make seed migrations safe to rerun only when exact data matches.
+
+6. BUILD A REAL DEPENDENCY GRAPH AND EXECUTION PLAN
+
+Build a dependency graph from actual DDL/function references, not filename order. Identify:
+- baseline schema/bootstrap prerequisites
+- 010 and 011
+- 012–016 proposal/matchmaking chain
+- 017/020/023 report chain
+- 018/019 verification chain
+- 021 payment chain
+- 022/024 subscription operations chain
+- 025 final grants/security hardening
+- 026/027 seed chain
+- realtime setup if required.
+
+Explicitly list:
+- required migrations
+- superseded migrations
+- migrations that must never be run on this existing database
+- migrations that should be replaced by a new forward-only repair
+- migrations that are safe only after specific preflight conditions.
+
+Do not instruct the user to run the three `000_full_setup` files on the existing live database.
+
+7. CREATE A NEW, REVIEWABLE, FORWARD-ONLY REPAIR PACKAGE
+
+Create a new directory:
+`datevra_migration_repair_package/`
+
+Do not change historical migration files or the original package.
+
+Create only the necessary, individually numbered SQL files. Number them in actual dependency order, with descriptive exact filenames. Each file must:
+- use `BEGIN;` and `COMMIT;` where transaction-safe and supported
+- include a clear header, purpose, prerequisites, expected effects, and postconditions
+- use explicit schema qualification
+- use safe `SET search_path` for SECURITY DEFINER functions (prefer `pg_catalog, public, pg_temp` or another justified fixed path; schema-qualify extension/private objects)
+- revoke EXECUTE from PUBLIC/anon where appropriate and grant only required roles
+- preserve necessary service-role/postgres internal access without exposing internal helpers
+- preserve RLS and grants
+- include precondition checks that fail clearly if assumptions are false
+- be forward-only and avoid destructive operations
+- avoid blind `DROP ... CASCADE`
+- avoid silently swallowing errors
+- avoid relying on `CREATE OR REPLACE` where return type/signature incompatibility exists
+- avoid unsafe assumptions about owner, grants, column defaults, or existing data
+- be safe to run once; if rerun-safe, prove it and document exactly how.
+
+For schema alignment, prefer additive, validated changes. Before adding NOT NULL or constraints, check existing rows and provide explicit backfill only when justified. Do not add `auto_renew`, timestamps, FKs, unique constraints, or columns without source-backed rationale.
+
+Every proposed migration must be reviewed against:
+- actual baseline schema
+- all later function definitions
+- app source calls and types
+- RLS/grants
+- lock order
+- data integrity
+- idempotency.
+
+If any issue cannot be safely resolved without fresh live facts, do NOT create executable SQL for that part. Instead create a read-only preflight and mark the gate BLOCKED.
+
+8. CREATE READ-ONLY PREFLIGHTS
+
+Create:
+- `datevra_migration_repair_package/00_READ_ONLY_PREFLIGHT.sql`
+- `datevra_migration_repair_package/00_PREFLIGHT_EXPECTED_RESULTS.md`
+
+The SQL must only SELECT/inspect catalog metadata and data. It must contain no DDL, DML, GRANT, REVOKE, function calls with side effects, or transaction that writes.
+
+It must check at minimum:
+- exact table columns/types/defaults/nullability for profiles, subscriptions, payments, reports, cafes, experiences, matches, conversations, notifications, date_applications, membership_plans
+- required indexes, constraints, FK definitions
+- migration tracking metadata (without assuming Supabase internal migration tables are Datevra's tracker)
+- presence and definitions of all required functions, including SECURITY DEFINER, owner, config/search_path, ACLs
+- all trigger definitions and UPDATE OF column lists
+- RLS enabled/forced status and policy definitions
+- table-level and column-level grants for authenticated, anon, PUBLIC
+- pass code alphabet/function definition if present
+- payment status distribution, subscriptions distribution, profiles plan distribution (aggregate only; do not reveal personal data)
+- pending/verified/refunded payment aggregate and linkage counts
+- data consistency checks for verification status, active subscriptions, linked payments, duplicate matches/proposals, and seed IDs
+- exact café IDs/names/partner status and target experience ID collisions
+- extension schemas and required functions.
+
+Preflight must be safe for the user to run in Supabase SQL Editor. Label each section read-only. Do not include secret values, personal records, email addresses, payment IDs, or user IDs in output. Aggregate counts only unless an exact non-personal identifier is essential for a structural check.
+
+If a query might fail because an object is missing, guard it using catalog checks or separate clearly labeled queries. Do not write one monolithic query that aborts halfway through.
+
+9. TESTS AND STATIC VALIDATION
+
+Create local tests or validation scripts that check:
+- every migration file referenced in the plan exists
+- no filename ambiguity
+- dependency order is valid
+- all SQL function signatures referenced by GRANT/REVOKE exist at that point in the package
+- all column references exist at the point used
+- pass generator output length/character set
+- no fabricated Razorpay IDs
+- no payment verification without gateway evidence
+- refund only targets exact payment-linked entitlement
+- protected profile fields remain protected
+- all pair mutations follow lock ordering
+- no direct client ledger UPDATE/DELETE remains after final hardening
+- reports status update audit cannot be bypassed
+- seed data exact-match behavior
+- SQL files are transactional where possible.
+
+Run only local tests/builds that do not connect to Supabase or external payment providers. Report exact commands, exit codes, counts, and warnings. If a test cannot be run, mark NOT RUN.
+
+10. REQUIRED DELIVERABLES
+
+Create these files in the project workspace:
+
+1. `DATEVRA_MIGRATION_MASTER_EXECUTION_PLAN.md`
+   - complete human-readable plan and exact gate sequence.
+
+2. `DATEVRA_MIGRATION_REPAIR_AUDIT.md`
+   - source-backed findings, line references, risk register, unresolved questions.
+
+3. `DATEVRA_MIGRATION_PREFLIGHT_GUIDE.md`
+   - how beginner runs read-only preflight and shares results.
+
+4. `datevra_migration_repair_package/00_READ_ONLY_PREFLIGHT.sql`
+
+5. `datevra_migration_repair_package/00_PREFLIGHT_EXPECTED_RESULTS.md`
+
+6. One SQL file per independently safe repair gate, only where source and known evidence justify it.
+
+7. `DATEVRA_MIGRATION_TEST_REPORT.md`
+   - commands/results, pass/fail/not-run.
+
+8. `DATEVRA_MIGRATION_ROLLBACK_AND_RECOVERY.md`
+   - per migration what can be reversed, what cannot, data backup requirement, recovery strategy. Do not promise rollback of irreversible data changes.
+
+9. `DATEVRA_MIGRATION_OPERATOR_CHECKLIST.md`
+   - one-step-at-a-time checklist, exact full filenames, expected result after each gate.
+
+10. `DATEVRA_MIGRATION_STATUS.csv`
+   - migration_number, exact_filename, purpose, dependencies, known_live_status, review_status, critical_issues, execution_readiness.
+
+11. `DATEVRA_FINAL_HANDOVER_FOR_CHATGPT.md`
+   - exact current checkpoint, what was inspected, what was created, unresolved facts, and the single next action ChatGPT should guide the user through.
+
+Do not create empty placeholder deliverables. If something is blocked, document why.
+
+11. EXECUTION GATES — NEVER SKIP OR COMBINE
+
+Design the plan with these gates:
+
+GATE 0 — Source integrity and backup:
+- Confirm ZIP/workspace source version.
+- Confirm no uncommitted user changes will be overwritten.
+- Explain required Supabase backup/snapshot before writes.
+- No production SQL yet.
+
+GATE 1 — Read-only live preflight:
+- User runs only the generated SELECT-only preflight.
+- ChatGPT reviews the returned output.
+- If output differs from historical baseline, update plan.
+- No write SQL until gate is approved.
+
+GATE 2 — Schema compatibility repairs:
+- Only add columns/constraints proven necessary.
+- Verify defaults, backfill, FK/index, application compatibility.
+- One SQL file at a time.
+
+GATE 3 — Matchmaking and passes:
+- Resolve exact dependencies and lock behavior.
+- Install only reviewed components.
+- Verify RPCs, constraints, grants, RLS after each file.
+
+GATE 4 — Membership and verification:
+- Ensure pass generator is mathematically correct.
+- Preserve 9-column profile protection and trigger definition.
+- Confirm pass redemption transaction behavior.
+- Verify profile/plan state.
+
+GATE 5 — Payment and subscription lifecycle:
+- Require genuine Razorpay verification.
+- Never fabricate gateway identifiers.
+- Confirm exact payment-to-subscription linkage.
+- Verify cancel, extend, refund, and redemption lock order.
+
+GATE 6 — Reports and final privilege hardening:
+- Confirm audited report RPC and trigger.
+- Revoke direct mutations only after replacement workflows work.
+- Verify column and table grants.
+
+GATE 7 — Seeds/realtime:
+- Only seed if exact preflight says needed.
+- Exact-match checks for seed conflicts.
+- Realtime only if required and verified.
+
+GATE 8 — Final verification:
+- Re-run read-only preflight.
+- Test app workflows in local/staging with test accounts and no real payments.
+- Do not claim production correctness based only on SQL success.
+
+At every gate, user must see:
+1. Exact full filename to run (or explicitly state no SQL is to be run).
+2. What it changes in plain English.
+3. Preconditions.
+4. Expected success output.
+5. How to verify.
+6. What to do if it errors.
+7. Whether the next gate is unlocked.
+
+Never instruct the beginner to paste several migrations into SQL Editor together. One reviewed file per gate.
+
+12. IMPORTANT BUSINESS AND SECURITY RULES
+
+- Preserve the existing Datevra visual theme and application behavior; this is a database project, do not redesign frontend.
+- Do not grant admin to any user, alter roles, or invoke bootstrap admin functions.
+- Do not change payment amounts, payment IDs, plan prices, or membership entitlements.
+- Do not grant membership based on a pending payment.
+- Do not create fake users, fake payments, fake subscriptions, fake passes, or fake seed records.
+- Do not remove RLS or weaken policy conditions.
+- Do not expose internal schema tables/functions to anon/authenticated.
+- Do not grant broad `service_role` usage to client code.
+- Never include real personal data in reports.
+- Do not alter the pending ₹1199 payment as part of migration testing.
+- Do not issue a real Razorpay refund or charge.
+- Preserve all existing matches, conversations, messages, reports, payments, profiles, and café records.
+
+13. FINAL RESPONSE TO THE USER
+
+When the audit and package preparation are complete, report concisely but with enough detail:
+- which exact ZIP/project version was inspected
+- total SQL files and exact migration inventory
+- discrepancies between ZIP and current workspace
+- all deliverables created with exact paths
+- all critical issues found and which are fixed in proposed package vs still blocked
+- exact local tests run and their outcomes
+- what was NOT done (no live Supabase connection, no SQL execution, no push/deploy)
+- the one single next action the user should take.
+
+Do not ask the beginner to manually paste SQL files already present in the ZIP. Ask for missing live preflight results only when needed.
+
+14. STOP CONDITIONS
+
+Stop and mark a gate BLOCKED if:
+- source files disagree and authority is unclear
+- a prerequisite column/table/function cannot be verified
+- a payment workflow would grant entitlement without verified gateway evidence
+- a function's security/owner/ACL cannot be determined
+- lock-order safety is unresolved
+- a seed conflict contains different existing data
+- a destructive or irreversible change appears necessary
+- a preflight query returns unexpected results
+- you cannot prove the SQL is safe against the known schema.
+
+Do not “make it work” by disabling constraints, RLS, triggers, or security checks.
+
+15. FINAL QUALITY BAR
+
+The work is complete only when:
+- every migration and package file has been inspected
+- raw migrations and package copies are compared
+- every application database call is mapped
+- dependency order is proven
+- proposed SQL is forward-only and separately gated
+- preflight is SELECT-only and beginner-safe
+- local tests cover the critical defects
+- rollback/recovery limits are honest
+- all exact filenames are correct
+- unresolved items are explicitly BLOCKED
+- final handover is sufficient for ChatGPT to continue without asking the user to repaste source files.
+
+Begin by inspecting the uploaded ZIP and the current workspace. Do not modify anything until you have confirmed which source tree is authoritative. Then perform the audit and create the deliverables listed above. Do not connect to or modify live Supabase.
