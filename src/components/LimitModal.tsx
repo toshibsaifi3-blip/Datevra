@@ -77,7 +77,7 @@ export function DailyLimitCounters({
     const done = used >= limit;
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs backdrop-blur-md ${
+        className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full border px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs backdrop-blur-md whitespace-nowrap ${
           done
             ? "border-rosegold/60 bg-rosegold/15 text-blush"
             : "border-champagne/25 bg-white/[0.04] text-ivory-dim"
@@ -89,7 +89,7 @@ export function DailyLimitCounters({
     );
   };
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${compact ? "" : "mt-3"}`}>
+    <div className={`flex flex-wrap items-center gap-1.5 sm:gap-2 ${compact ? "" : "mt-2 sm:mt-3"}`}>
       {pill("likes", likesUsed, likeLimit, "♥")}
       {pill("interests", interestsUsed, interestLimit, "✦")}
     </div>

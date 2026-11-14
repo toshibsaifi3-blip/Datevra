@@ -354,3 +354,12 @@ button, a, input, select, textarea, [role="button"], [role="tab"] {
     scroll-behavior: auto;
   }
 }
+
+/* Portrait mobile full-viewport budget for member Discover (between 72px top nav and 68px + safe-area bottom nav) */
+@media (max-width: 1023px) and (min-height: 500px) {
+  .discover-mobile-viewport {
+    height: calc(100dvh - 72px - 68px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 72px - 68px - env(safe-area-inset-bottom));
+  }
+}
+

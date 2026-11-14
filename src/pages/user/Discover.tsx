@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   AnimatePresence,
   motion,
@@ -163,29 +163,29 @@ function ProfileCard({
         if (info.offset.x > 110) onSwipe(1);
         else if (info.offset.x < -110) onSwipe(-1);
       }}
-      className="glass-strong glow-border rounded-[2rem] overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-y select-none shadow-[0_24px_60px_-18px_rgba(16,9,31,0.85)]"
+      className="glass-strong glow-border rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden relative cursor-grab active:cursor-grabbing touch-pan-y select-none shadow-[0_24px_60px_-18px_rgba(16,9,31,0.85)] h-full flex flex-col lg:block"
     >
       {/* Drag stamps */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-16 left-6 z-30 rotate-[-14deg] rounded-xl border-4 border-rosegold bg-rosegold/15 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-rosegold pointer-events-none"
+        className="absolute top-14 left-5 sm:top-16 sm:left-6 z-30 rotate-[-14deg] rounded-xl border-4 border-rosegold bg-rosegold/15 backdrop-blur px-3.5 py-1 sm:px-4 sm:py-1.5 font-display text-xl sm:text-2xl tracking-[0.2em] text-rosegold pointer-events-none"
       >
         LIKE
       </motion.div>
       <motion.div
         style={{ opacity: passOpacity }}
-        className="absolute top-16 right-6 z-30 rotate-[14deg] rounded-xl border-4 border-mist bg-midnight/40 backdrop-blur px-4 py-1.5 font-display text-2xl tracking-[0.2em] text-mist pointer-events-none"
+        className="absolute top-14 right-5 sm:top-16 sm:right-6 z-30 rotate-[14deg] rounded-xl border-4 border-mist bg-midnight/40 backdrop-blur px-3.5 py-1 sm:px-4 sm:py-1.5 font-display text-xl sm:text-2xl tracking-[0.2em] text-mist pointer-events-none"
       >
         NOPE
       </motion.div>
 
       {/* Classic Tinder-style full-card photograph with multi-photo tap navigation */}
-      <div className="relative h-[min(56dvh,440px)] min-h-[320px] sm:h-[530px] overflow-hidden">
+      <div className="relative flex-1 min-h-[200px] sm:min-h-[280px] h-full lg:flex-none lg:h-[530px] overflow-hidden">
         {/* Segmented photo indicators at top */}
         {photos.length > 1 && (
           <div
             aria-hidden="true"
-            className="absolute top-3 inset-x-4 z-30 flex items-center gap-1.5 pointer-events-none"
+            className="absolute top-2.5 sm:top-3 inset-x-4 z-30 flex items-center gap-1.5 pointer-events-none"
           >
             {photos.map((_, i) => (
               <div
@@ -273,14 +273,14 @@ function ProfileCard({
             onView();
           }}
           aria-label={`Full Profile of ${p.firstName}`}
-          className="absolute top-6 right-4 z-30 rounded-full bg-midnight/75 backdrop-blur-md border border-champagne/40 px-4 min-h-[44px] text-xs font-medium tracking-wide text-ivory hover:border-rosegold/70 hover:bg-midnight/90 transition-colors shadow-[0_6px_24px_rgba(16,9,31,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+          className="absolute top-4 right-3 sm:top-6 sm:right-4 z-30 rounded-full bg-midnight/75 backdrop-blur-md border border-champagne/40 px-3.5 sm:px-4 min-h-[40px] sm:min-h-[44px] text-xs font-medium tracking-wide text-ivory hover:border-rosegold/70 hover:bg-midnight/90 transition-colors shadow-[0_6px_24px_rgba(16,9,31,0.65)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
         >
           Full Profile
         </button>
 
         {/* Minimal Name & Age overlay near bottom of photograph */}
-        <div className="absolute bottom-0 inset-x-0 p-6 z-20 pointer-events-none">
-          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-ivory tracking-wide leading-tight drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
+        <div className="absolute bottom-0 inset-x-0 p-4 sm:p-6 z-20 pointer-events-none">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-ivory tracking-wide leading-tight drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
             {p.firstName}, {p.age}
           </h2>
         </div>
@@ -300,9 +300,17 @@ export default function Discover() {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { key: locationKey } = useLocation();
   const db = useBackend();
   const reducedMotion = useReducedMotion();
   const tick = useDbRefresh("likes", "matches", "blocks", "profiles");
+
+  // Always start Discover at the top when navigating via BottomNav (even on repeat taps)
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [locationKey]);
 
   const [dir, setDir] = useState<1 | -1>(1);
   const [celebration, setCelebration] = useState<MatchCelebration | null>(null);
@@ -671,108 +679,117 @@ export default function Discover() {
     : null;
 
   return (
-    <div className="max-w-3xl mx-auto px-0 sm:px-4 py-2 sm:py-6 overflow-x-clip">
+    <div className="discover-mobile-viewport max-w-3xl w-full mx-auto px-3 sm:px-4 pt-1 pb-1.5 sm:py-6 flex flex-col lg:block overflow-hidden lg:overflow-visible overflow-x-clip">
       <div className="sr-only" aria-live="polite">
         {liveStatus || (current ? `Showing ${current.profile.firstName}, ${current.profile.age}` : "")}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4 sm:mb-5">
-        <div className="min-w-0">
-          <p className="text-[0.72rem] uppercase tracking-[0.28em] text-rosegold">
-            Discover
-          </p>
-          <h1 className="font-display text-3xl text-ivory mt-1">
-            Meet someone <span className="text-gradient-dream">new</span>
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={openFilters}
-          className="btn-ghost rounded-full px-5 min-h-[44px] text-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-        >
-          ⚙ Filters{filterTags.length > 0 ? ` (${filterTags.length})` : ""}
-        </button>
-      </div>
-
-      {filterTags.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 mb-5">
-          {filterTags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-ivory-dim"
-            >
-              {tag}
-            </span>
-          ))}
+      <div className="shrink-0">
+        <div className="flex items-center justify-between gap-2 mb-1 sm:mb-4">
+          <div className="min-w-0">
+            <p className="text-[0.65rem] sm:text-[0.72rem] uppercase tracking-[0.24em] sm:tracking-[0.28em] text-rosegold leading-none">
+              Discover
+            </p>
+            <h1 className="font-display text-2xl sm:text-3xl text-ivory mt-0.5 sm:mt-1 leading-tight truncate">
+              Meet someone <span className="text-gradient-dream">new</span>
+            </h1>
+          </div>
           <button
             type="button"
-            onClick={resetFilters}
-            className="text-xs text-rosegold hover:text-champagne underline underline-offset-4 px-2 py-1"
+            onClick={openFilters}
+            className="btn-ghost rounded-full px-3.5 sm:px-5 min-h-[38px] sm:min-h-[44px] text-xs sm:text-sm shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
           >
-            Reset filters
+            ⚙ Filters{filterTags.length > 0 ? ` (${filterTags.length})` : ""}
           </button>
         </div>
-      )}
 
-      {usage && (
-        <DailyLimitCounters
-          likesUsed={usage.likesUsed}
-          interestsUsed={usage.interestsUsed}
-          likeLimit={usage.likeLimit}
-          interestLimit={usage.interestLimit}
-          isPaid={usage.isPaid}
-        />
-      )}
-
-      {loading ? (
-        <div className="max-w-md mx-auto">
-          <Skeleton className="h-[min(56dvh,440px)] min-h-[320px] sm:h-[560px] rounded-[2rem]" />
-        </div>
-      ) : error ? (
-        <EmptyState
-          title="Couldn't load discovery"
-          body={error}
-          action={
+        {filterTags.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar sm:flex-wrap sm:gap-2 mb-1.5 sm:mb-4">
+            {filterTags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs text-ivory-dim whitespace-nowrap shrink-0"
+              >
+                {tag}
+              </span>
+            ))}
             <button
               type="button"
-              onClick={refresh}
-              className="btn-gold rounded-full px-6 min-h-[44px] text-sm"
+              onClick={resetFilters}
+              className="text-[11px] sm:text-xs text-rosegold hover:text-champagne underline underline-offset-4 px-1.5 py-0.5 sm:px-2 sm:py-1 whitespace-nowrap shrink-0"
             >
-              Try again
+              Reset filters
             </button>
-          }
-        />
-      ) : visibleDeck.length === 0 ? (
-        <EmptyState
-          title="You've seen everyone"
-          body="No more profiles fit your current preferences. Widen your filters or check back later — new members join every day."
-          action={
-            <div className="flex flex-wrap justify-center gap-3">
+          </div>
+        )}
+
+        {usage && (
+          <div className="mb-1.5 sm:mb-4">
+            <DailyLimitCounters
+              likesUsed={usage.likesUsed}
+              interestsUsed={usage.interestsUsed}
+              likeLimit={usage.likeLimit}
+              interestLimit={usage.interestLimit}
+              isPaid={usage.isPaid}
+              compact
+            />
+          </div>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="max-w-md w-full mx-auto flex-1 min-h-0 flex flex-col lg:block">
+          <Skeleton className="w-full flex-1 min-h-[200px] sm:min-h-[280px] lg:h-[560px] rounded-[1.75rem] sm:rounded-[2rem]" />
+        </div>
+      ) : error ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center lg:block">
+          <EmptyState
+            title="Couldn't load discovery"
+            body={error}
+            action={
               <button
                 type="button"
-                onClick={openFilters}
+                onClick={refresh}
                 className="btn-gold rounded-full px-6 min-h-[44px] text-sm"
               >
-                Adjust preferences
+                Try again
               </button>
-              {filterTags.length > 0 && (
+            }
+          />
+        </div>
+      ) : visibleDeck.length === 0 ? (
+        <div className="flex-1 min-h-0 flex items-center justify-center lg:block">
+          <EmptyState
+            title="You've seen everyone"
+            body="No more profiles fit your current preferences. Widen your filters or check back later — new members join every day."
+            action={
+              <div className="flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  onClick={resetFilters}
-                  className="btn-ghost rounded-full px-6 min-h-[44px] text-sm"
+                  onClick={openFilters}
+                  className="btn-gold rounded-full px-6 min-h-[44px] text-sm"
                 >
-                  Reset filters
+                  Adjust preferences
                 </button>
-              )}
-            </div>
-          }
-        />
+                {filterTags.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="btn-ghost rounded-full px-6 min-h-[44px] text-sm"
+                  >
+                    Reset filters
+                  </button>
+                )}
+              </div>
+            }
+          />
+        </div>
       ) : current ? (
-        <div className="max-w-md mx-auto pb-4">
-          <div className="relative">
+        <div className="max-w-md w-full mx-auto flex-1 min-h-0 flex flex-col lg:block lg:pb-4">
+          <div className="relative flex-1 min-h-0 flex flex-col lg:block lg:max-h-none max-h-[530px]">
             {/* Peeking next card */}
             {next && next.profile.id !== current.profile.id && (
-              <div className="absolute inset-0 translate-y-3 scale-[0.94] opacity-40 pointer-events-none rounded-[2rem] overflow-hidden glass">
+              <div className="absolute inset-0 translate-y-2 sm:translate-y-3 scale-[0.94] opacity-40 pointer-events-none rounded-[1.75rem] sm:rounded-[2rem] overflow-hidden glass">
                 <div className="h-full bg-gradient-to-br from-coal via-burgundy-deep to-midnight" />
               </div>
             )}
@@ -789,7 +806,7 @@ export default function Discover() {
                     ? { duration: 0.08 }
                     : { type: "spring", damping: 28, stiffness: 260 }
                 }
-                className="relative"
+                className="relative flex-1 min-h-0 flex flex-col lg:block h-full"
               >
                 <ProfileCard
                   key={current.profile.id}
@@ -803,57 +820,59 @@ export default function Discover() {
           </div>
 
           {/* Stationary Pass / Save / Like controls below the card */}
-          <div className="flex items-center justify-center gap-4 sm:gap-6 mt-4 sm:mt-6">
-            <motion.button
-              type="button"
-              whileTap={reducedMotion ? undefined : { scale: 0.85 }}
-              onClick={() => swipe(-1, current.profile.id, current.profile.firstName)}
-              disabled={busyAction}
-              aria-label={`Pass on ${current.profile.firstName}`}
-              className="h-14 w-14 sm:h-16 sm:w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-            >
-              ✕
-            </motion.button>
-            <motion.button
-              type="button"
-              whileTap={reducedMotion ? undefined : { scale: 0.85 }}
-              onClick={() => toggleSave(current.profile.id)}
-              disabled={busyAction}
-              aria-label={
-                saved.has(current.profile.id)
-                  ? `Remove ${current.profile.firstName} from saved`
-                  : `Save ${current.profile.firstName}'s profile`
-              }
-              className={`h-12 w-12 rounded-full glass-strong border flex items-center justify-center text-lg transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne ${
-                saved.has(current.profile.id)
-                  ? "border-champagne/60 text-champagne shadow-[0_0_20px_rgba(197,164,255,0.35)]"
-                  : "border-white/15 text-mist hover:text-ivory"
-              }`}
-            >
-              {saved.has(current.profile.id) ? "★" : "☆"}
-            </motion.button>
-            <motion.button
-              type="button"
-              whileTap={reducedMotion ? undefined : { scale: 0.82 }}
-              onClick={() => swipe(1, current.profile.id, current.profile.firstName)}
-              disabled={busyAction}
-              aria-label={`Like ${current.profile.firstName}`}
-              className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-2xl sm:text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
-            >
-              <motion.span
-                key={current.profile.id}
-                initial={reducedMotion ? false : { scale: 0.6 }}
-                animate={reducedMotion ? undefined : { scale: [0.6, 1.15, 1] }}
-                transition={{ type: "spring", damping: 10, stiffness: 300 }}
-                className={`text-ivory ${reducedMotion ? "" : "animate-heartbeat"}`}
+          <div className="shrink-0 pt-2.5 sm:pt-0">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 mt-0 sm:mt-6">
+              <motion.button
+                type="button"
+                whileTap={reducedMotion ? undefined : { scale: 0.85 }}
+                onClick={() => swipe(-1, current.profile.id, current.profile.firstName)}
+                disabled={busyAction}
+                aria-label={`Pass on ${current.profile.firstName}`}
+                className="h-12 w-12 sm:h-16 sm:w-16 rounded-full glass-strong border border-white/15 flex items-center justify-center text-xl sm:text-2xl text-mist hover:text-ivory hover:border-white/40 transition-colors shadow-[0_0_24px_rgba(154,143,184,0.25)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
               >
-                ♥
-              </motion.span>
-            </motion.button>
+                ✕
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={reducedMotion ? undefined : { scale: 0.85 }}
+                onClick={() => toggleSave(current.profile.id)}
+                disabled={busyAction}
+                aria-label={
+                  saved.has(current.profile.id)
+                    ? `Remove ${current.profile.firstName} from saved`
+                    : `Save ${current.profile.firstName}'s profile`
+                }
+                className={`h-11 w-11 sm:h-12 sm:w-12 rounded-full glass-strong border flex items-center justify-center text-base sm:text-lg transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne ${
+                  saved.has(current.profile.id)
+                    ? "border-champagne/60 text-champagne shadow-[0_0_20px_rgba(197,164,255,0.35)]"
+                    : "border-white/15 text-mist hover:text-ivory"
+                }`}
+              >
+                {saved.has(current.profile.id) ? "★" : "☆"}
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={reducedMotion ? undefined : { scale: 0.82 }}
+                onClick={() => swipe(1, current.profile.id, current.profile.firstName)}
+                disabled={busyAction}
+                aria-label={`Like ${current.profile.firstName}`}
+                className="h-14 w-14 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-rosegold via-burgundy to-burgundy-deep border border-champagne/50 flex items-center justify-center text-xl sm:text-3xl shadow-[0_0_44px_rgba(255,61,154,0.45)] hover:shadow-[0_0_64px_rgba(255,61,154,0.65)] transition-shadow disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-champagne"
+              >
+                <motion.span
+                  key={current.profile.id}
+                  initial={reducedMotion ? false : { scale: 0.6 }}
+                  animate={reducedMotion ? undefined : { scale: [0.6, 1.15, 1] }}
+                  transition={{ type: "spring", damping: 10, stiffness: 300 }}
+                  className={`text-ivory ${reducedMotion ? "" : "animate-heartbeat"}`}
+                >
+                  ♥
+                </motion.span>
+              </motion.button>
+            </div>
+            <p className="text-center text-[11px] sm:text-xs text-mist/70 mt-1.5 sm:mt-4 leading-tight">
+              {visibleDeck.length} {visibleDeck.length === 1 ? "profile" : "profiles"} remaining
+            </p>
           </div>
-          <p className="text-center text-xs text-mist/70 mt-4">
-            {visibleDeck.length} {visibleDeck.length === 1 ? "profile" : "profiles"} remaining
-          </p>
         </div>
       ) : null}
 

@@ -43,7 +43,9 @@ import { partnerOf } from "../pages/user/shared";
 export function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [pathname]);
   return null;
 }
@@ -283,6 +285,7 @@ export function Footer() {
 
 export function PublicLayout() {
   const { user, isDesignatedAdminOnly, ready } = useAuth();
+  const loc = useLocation();
   if (!ready && hasStoredAuthHint()) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -296,14 +299,29 @@ export function PublicLayout() {
   if (ready && isDesignatedAdminOnly) {
     return <Navigate to="/admin" replace />;
   }
+  const isMemberDiscover = Boolean(user && !isDesignatedAdminOnly && loc.pathname === "/discover");
   return (
-    <div className={`min-h-screen flex flex-col overflow-x-clip ${user && !isDesignatedAdminOnly ? "pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}>
+    <div
+      className={`min-h-screen flex flex-col overflow-x-clip ${
+        user && !isDesignatedAdminOnly
+          ? isMemberDiscover
+            ? "pb-[calc(68px+env(safe-area-inset-bottom))] lg:pb-0"
+            : "pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0"
+          : ""
+      }`}
+    >
       <GlowOrbs />
       <PublicNav />
-      <main className="flex-1 relative min-w-0">
+      <main className={isMemberDiscover ? "flex-1 relative min-w-0 flex flex-col lg:block" : "flex-1 relative min-w-0"}>
         <Outlet />
       </main>
-      <Footer />
+      {isMemberDiscover ? (
+        <div className="hidden lg:block">
+          <Footer />
+        </div>
+      ) : (
+        <Footer />
+      )}
       {user && !isDesignatedAdminOnly && <BottomNav />}
     </div>
   );
@@ -425,6 +443,11 @@ function BottomNav({ badges }: { badges?: MemberBadges }) {
             <NavLink
               key={t.to}
               to={t.to}
+              onClick={() => {
+                window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+              }}
               aria-label={badgeCount > 0 ? `${t.label}, ${badgeCount} new` : t.label}
               className={({ isActive }) =>
                 `relative min-w-0 min-h-[44px] px-0.5 flex flex-col items-center justify-center gap-1 text-[0.62rem] sm:text-[0.66rem] tracking-wide transition-colors ${

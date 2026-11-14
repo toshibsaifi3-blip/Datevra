@@ -13,7 +13,7 @@ export default function DiscoverPage() {
   if (ready && isDesignatedAdminOnly) return <Navigate to="/admin" replace />;
   if (!user || isDesignatedAdminOnly) return <DiscoverPublic />;
   return (
-    <div className="pt-[72px]">
+    <div className="pt-[72px] flex-1 min-h-0 flex flex-col lg:block">
       <Discover />
     </div>
   );
