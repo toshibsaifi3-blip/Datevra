@@ -6,6 +6,15 @@ import type {
 } from "./types";
 
 /**
+ * Authoritative minimum compatibility percentage required to form a match.
+ * Centralized single source of truth across UI indicators and matchmaking logic.
+ */
+export const MIN_COMPATIBILITY_SCORE = 75;
+
+export const COMPATIBILITY_THRESHOLD_MESSAGE =
+  `Not quite a match yet! You need at least ${MIN_COMPATIBILITY_SCORE}% compatibility to create a match. Keep discovering and find someone who connects with you better.`;
+
+/**
  * Transparent compatibility scoring.
  * Score is derived ONLY from real, visible factors — never fabricated.
  * Returns a 0–100 score plus human-readable reasons shown in the UI.
@@ -13,6 +22,51 @@ import type {
 export interface CompatibilityResult {
   score: number;
   factors: string[];
+}
+
+export interface MatchEligibilityResult {
+  eligible: boolean;
+  score: number | null;
+  factors: string[];
+}
+
+/**
+ * Strict threshold check: only finite scores >= MIN_COMPATIBILITY_SCORE (75) are eligible.
+ * Null, undefined, or non-finite scores fail closed (return false).
+ */
+export function isCompatibilityEligible(score: number | null | undefined): boolean {
+  if (typeof score !== "number" || !Number.isFinite(score)) return false;
+  return score >= MIN_COMPATIBILITY_SCORE;
+}
+
+/**
+ * Evaluates whether two profiles meet the minimum compatibility threshold (75%).
+ * Fails closed when either profile or required numeric fields are unavailable.
+ */
+export function evaluateMatchEligibility(
+  me: UserProfile | null | undefined,
+  them: UserProfile | null | undefined,
+  prefs: MatchPreferences | null | undefined,
+): MatchEligibilityResult {
+  if (
+    !me ||
+    !them ||
+    typeof me.age !== "number" ||
+    !Number.isFinite(me.age) ||
+    typeof them.age !== "number" ||
+    !Number.isFinite(them.age) ||
+    typeof them.profileComplete !== "number" ||
+    !Number.isFinite(them.profileComplete)
+  ) {
+    return { eligible: false, score: null, factors: [] };
+  }
+  const result = computeCompatibility(me, them, prefs ?? null);
+  const score = Number.isFinite(result.score) ? result.score : null;
+  return {
+    eligible: isCompatibilityEligible(score),
+    score,
+    factors: result.factors,
+  };
 }
 
 export function computeCompatibility(

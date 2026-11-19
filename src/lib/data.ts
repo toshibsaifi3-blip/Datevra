@@ -29,6 +29,7 @@ import type {
   PlanId,
   PlatformSettings,
   Report,
+  SendLikeResult,
   Subscription,
   UserProfile,
   RevokeComplimentaryPassResult,
@@ -83,7 +84,7 @@ export interface Backend {
   savePrefs(userId: string, prefs: MatchPreferences): Promise<void>;
   hasLiked(from: string, to: string): Promise<boolean>;
   hasPassed(from: string, to: string): Promise<boolean>;
-  sendLike(from: string, to: string): Promise<{ match: Match | null }>;
+  sendLike(from: string, to: string): Promise<SendLikeResult>;
   sendPass(from: string, to: string): Promise<void>;
   /** Today's like/interest usage for the free-tier daily caps. */
   getDailyUsage(userId: string): Promise<DailyUsage>;

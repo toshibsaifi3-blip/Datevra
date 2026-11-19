@@ -137,7 +137,12 @@ CREATE INDEX IF NOT EXISTS idx_complimentary_passes_cafe
   ON public.complimentary_passes(cafe_id);
 
 ALTER TABLE public.complimentary_passes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.complimentary_passes
+FROM PUBLIC, anon, authenticated;
 
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE public.complimentary_passes
+TO authenticated;
 DROP POLICY IF EXISTS "passes_admin_all" ON public.complimentary_passes;
 CREATE POLICY "passes_admin_all" ON public.complimentary_passes
   FOR ALL TO authenticated
@@ -183,7 +188,12 @@ COMMENT ON INDEX public.idx_match_proposals_unique_pending_pair IS
   'Guarantees at most one pending proposal exists per member pair regardless of A/B ordering.';
 
 ALTER TABLE public.match_proposals ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.match_proposals
+FROM PUBLIC, anon, authenticated;
 
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLE public.match_proposals
+TO authenticated;
 DROP POLICY IF EXISTS "proposals_admin_all" ON public.match_proposals;
 CREATE POLICY "proposals_admin_all" ON public.match_proposals
   FOR ALL TO authenticated
@@ -281,7 +291,42 @@ COMMENT ON FUNCTION public.lock_matchmaking_pair(uuid, uuid) IS
   'Internal pair advisory lock helper. Revoked from PUBLIC, anon, and authenticated to prevent lock-squatting DoS.';
 
 REVOKE ALL ON FUNCTION public.lock_matchmaking_pair(uuid, uuid) FROM PUBLIC, anon, authenticated;
+-- Serialize block changes with matchmaking operations for the same user pair.
+CREATE OR REPLACE FUNCTION public.lock_block_pair_changes()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    PERFORM public.lock_matchmaking_pair(NEW.blocker_id, NEW.blocked_id);
+    RETURN NEW;
 
+  ELSIF TG_OP = 'DELETE' THEN
+    PERFORM public.lock_matchmaking_pair(OLD.blocker_id, OLD.blocked_id);
+    RETURN OLD;
+
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF OLD.blocker_id IS DISTINCT FROM NEW.blocker_id
+       OR OLD.blocked_id IS DISTINCT FROM NEW.blocked_id THEN
+      RAISE EXCEPTION 'Block pair endpoints cannot be changed. Delete and insert instead.';
+    END IF;
+
+    PERFORM public.lock_matchmaking_pair(NEW.blocker_id, NEW.blocked_id);
+    RETURN NEW;
+  END IF;
+
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_lock_block_pair_changes ON public.blocks;
+
+CREATE TRIGGER trg_lock_block_pair_changes
+BEFORE INSERT OR UPDATE OR DELETE ON public.blocks
+FOR EACH ROW
+EXECUTE FUNCTION public.lock_block_pair_changes();
 -- ----------------------------------------------------------------------------
 -- 5. Proposal Integrity Trigger Function & Trigger (from 014 + 015)
 -- ----------------------------------------------------------------------------

@@ -22,12 +22,17 @@ import type {
   MembershipPass,
   RedeemMembershipPassResult,
   Report,
+  SendLikeResult,
   Subscription,
   UserProfile,
   RevokeComplimentaryPassResult,
 } from "./types";
 import { DEMO_PROFILES, SEED_CAFES, SEED_EXPERIENCES } from "../data/seed";
-import { computeCompatibility } from "./compat";
+import {
+  computeCompatibility,
+  evaluateMatchEligibility,
+  MIN_COMPATIBILITY_SCORE,
+} from "./compat";
 import { isDemoCafe, DEMO_CAFE_IDS, sanitizeCafeList } from "./cafeFilter";
 
 /* =====================================================================
@@ -779,18 +784,37 @@ export function hasPassed(from: string, to: string): boolean {
   return load().passes.some((p) => p.from === from && p.to === to);
 }
 
-export function sendLike(fromUserId: string, toUserId: string): { match: Match | null } {
+export function sendLike(fromUserId: string, toUserId: string): SendLikeResult {
   const db = load();
   if (fromUserId === toUserId) return { match: null };
   if (db.blocks.some((b) => (b.blockerId === fromUserId && b.blockedId === toUserId) || (b.blockerId === toUserId && b.blockedId === fromUserId)))
     return { match: null };
+
+  const existing = db.matches.find(
+    (m) =>
+      (m.userA === fromUserId && m.userB === toUserId) ||
+      (m.userA === toUserId && m.userB === fromUserId),
+  );
+  if (existing) return { match: existing };
+
+  const reciprocal = db.likes.some((l) => l.fromUserId === toUserId && l.toUserId === fromUserId);
+  if (reciprocal) {
+    const me = db.users.find((u) => u.id === fromUserId);
+    const them = db.users.find((u) => u.id === toUserId);
+    const prefs = db.prefs[fromUserId] ?? null;
+    const eligibility = evaluateMatchEligibility(me, them, prefs);
+    if (!eligibility.eligible) {
+      return {
+        match: null,
+        compatibilityBlocked: true,
+        compatibility: eligibility.score,
+        minCompatibility: MIN_COMPATIBILITY_SCORE,
+      };
+    }
+  }
+
   if (hasLiked(fromUserId, toUserId)) {
-    const existing = db.matches.find(
-      (m) =>
-        (m.userA === fromUserId && m.userB === toUserId) ||
-        (m.userA === toUserId && m.userB === fromUserId),
-    );
-    return { match: existing ?? null };
+    return { match: null };
   }
   // Free-user daily like cap (20/day, IST reset). Paid members bypass.
   // Duplicate/self/blocked likes above return before consuming any allowance.
@@ -812,20 +836,29 @@ export function sendLike(fromUserId: string, toUserId: string): { match: Match |
     createdAt: new Date().toISOString(),
   });
 
-  // mutual?
-  const reciprocal = db.likes.some((l) => l.fromUserId === toUserId && l.toUserId === fromUserId);
+  // mutual? (Already verified >= MIN_COMPATIBILITY_SCORE above; re-verify defensively.)
   let match: Match | null = null;
   if (reciprocal) {
-    const me = db.users.find((u) => u.id === fromUserId)!;
-    const them = db.users.find((u) => u.id === toUserId)!;
-    const prefs = db.prefs[fromUserId];
-    const c = computeCompatibility(me, them, prefs ?? null);
+    const me = db.users.find((u) => u.id === fromUserId);
+    const them = db.users.find((u) => u.id === toUserId);
+    const prefs = db.prefs[fromUserId] ?? null;
+    const eligibility = evaluateMatchEligibility(me, them, prefs);
+    if (!eligibility.eligible || eligibility.score === null || !me || !them) {
+      save(db);
+      emit("likes", { fromUserId, toUserId, match: null });
+      return {
+        match: null,
+        compatibilityBlocked: true,
+        compatibility: eligibility.score,
+        minCompatibility: MIN_COMPATIBILITY_SCORE,
+      };
+    }
     match = {
       id: uid("m"),
       userA: fromUserId,
       userB: toUserId,
-      compatibility: c.score,
-      factors: c.factors,
+      compatibility: eligibility.score,
+      factors: eligibility.factors,
       createdAt: new Date().toISOString(),
     };
     db.matches.push(match);

@@ -85,6 +85,13 @@ export interface Match {
   createdAt: string;
 }
 
+export interface SendLikeResult {
+  match: Match | null;
+  compatibilityBlocked?: boolean;
+  compatibility?: number | null;
+  minCompatibility?: number;
+}
+
 export interface Message {
   id: string;
   conversationId: string;

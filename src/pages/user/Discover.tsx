@@ -13,6 +13,8 @@ import {
   activeFilterLabels,
   BROAD_DEFAULT_PREFS,
   computeCompatibility,
+  isCompatibilityEligible,
+  MIN_COMPATIBILITY_SCORE,
   rankCandidates,
 } from "../../lib/compat";
 import { CITIES, RELATIONSHIP_INTENTS } from "../../data/seed";
@@ -28,6 +30,7 @@ import {
 } from "../../components/ui";
 import MatchOverlay, { type MatchCelebration } from "../../components/MatchOverlay";
 import { LimitReachedModal, DailyLimitCounters } from "../../components/LimitModal";
+import { CompatibilityBlockedModal } from "../../components/CompatibilityBlockedModal";
 import { excludedIdsFor, useDbRefresh } from "./shared";
 import type { DailyUsage, MatchPreferences, UserProfile } from "../../lib/types";
 
@@ -42,11 +45,23 @@ const REPORT_REASONS = [
 
 function CompatBar({ score, factors }: { score: number; factors: string[] }) {
   const reducedMotion = useReducedMotion();
+  const eligible = isCompatibilityEligible(score);
   return (
     <div>
-      <div className="flex justify-between text-xs text-mist mb-1.5">
+      <div className="flex justify-between items-center text-xs text-mist mb-1.5 gap-2">
         <span className="uppercase tracking-[0.18em]">Compatibility</span>
-        <span className="text-champagne font-semibold">{score}%</span>
+        <span className="flex items-center gap-2">
+          <span
+            className={`text-[0.68rem] ${
+              eligible ? "text-emerald-300/90" : "text-mist/80"
+            }`}
+          >
+            {eligible
+              ? `✓ Meets ${MIN_COMPATIBILITY_SCORE}%+ match threshold`
+              : `Below ${MIN_COMPATIBILITY_SCORE}% match threshold`}
+          </span>
+          <span className="text-champagne font-semibold">{score}%</span>
+        </span>
       </div>
       <div className="h-2 rounded-full bg-white/10 overflow-hidden">
         <motion.div
@@ -330,6 +345,10 @@ export default function Discover() {
     ids: new Set(),
   });
   const [limitKind, setLimitKind] = useState<"likes" | "interests" | null>(null);
+  const [compatBlocked, setCompatBlocked] = useState<{
+    name?: string;
+    score?: number | null;
+  } | null>(null);
   const [busyAction, setBusyAction] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
   const busyActionRef = useRef(false);
@@ -467,15 +486,23 @@ export default function Discover() {
       busyActionRef.current = true;
       setBusyAction(true);
       try {
-        const { match } = await db.sendLike(me.id, id);
+        const res = await db.sendLike(me.id, id);
         markActed(id);
         refresh();
         void refreshUsage();
-        if (match) {
+        if (res.compatibilityBlocked) {
+          const score = typeof res.compatibility === "number" ? res.compatibility : null;
+          setLiveStatus(
+            name
+              ? `Not quite a match with ${name} yet (${score ?? "below"}% vs ${MIN_COMPATIBILITY_SCORE}% required)`
+              : "Compatibility below match threshold",
+          );
+          setCompatBlocked({ name, score });
+        } else if (res.match) {
           // Honest mutual-match check: confirm the returned match really exists
           // in this user's mutual matches before celebrating anything.
           const mutuals = await db.matchesFor(me.id);
-          const real = mutuals.find((m) => m.id === match.id);
+          const real = mutuals.find((m) => m.id === res.match!.id);
           if (real) {
             const convs = await db.conversationsFor(me.id);
             const conv = convs.find((c) => c.matchId === real.id);
@@ -534,7 +561,7 @@ export default function Discover() {
           activeEl.isContentEditable ||
           Boolean(activeEl.closest('[role="dialog"]')));
       if (isFormOrDialogControl) return;
-      if (viewing || filtersOpen || reportFor || limitKind || celebration) return;
+      if (viewing || filtersOpen || reportFor || limitKind || celebration || compatBlocked) return;
       if (!current || busyActionRef.current) return;
 
       if (e.key === "ArrowLeft") {
@@ -558,7 +585,7 @@ export default function Discover() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [current, viewing, filtersOpen, reportFor, limitKind, celebration, swipe, openProfile]);
+  }, [current, viewing, filtersOpen, reportFor, limitKind, celebration, compatBlocked, swipe, openProfile]);
 
   if (!user) return null;
   const me = user;
@@ -1266,7 +1293,11 @@ export default function Discover() {
             </Field>
             {draftCompatPreview && (
               <p className="text-xs text-mist">
-                Preview: your current top profile would score {draftCompatPreview.score}% with these filters.
+                Preview: your current top profile would score {draftCompatPreview.score}% with these filters (
+                {isCompatibilityEligible(draftCompatPreview.score)
+                  ? "eligible to match"
+                  : `below ${MIN_COMPATIBILITY_SCORE}% match threshold`}
+                ).
               </p>
             )}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -1304,6 +1335,12 @@ export default function Discover() {
           onClose={() => setLimitKind(null)}
         />
       )}
+      <CompatibilityBlockedModal
+        open={!!compatBlocked}
+        onClose={() => setCompatBlocked(null)}
+        name={compatBlocked?.name}
+        score={compatBlocked?.score}
+      />
     </div>
   );
 }

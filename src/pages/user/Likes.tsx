@@ -6,8 +6,13 @@ import { useAsync, useBackend } from "../../lib/data";
 import { Avatar, Badge, EmptyState, Modal, Reveal, Skeleton, useToast } from "../../components/ui";
 import MatchOverlay, { type MatchCelebration } from "../../components/MatchOverlay";
 import { LimitReachedModal } from "../../components/LimitModal";
+import { CompatibilityBlockedModal } from "../../components/CompatibilityBlockedModal";
 import { partnerOf, timeAgo, useDbRefresh } from "./shared";
-import { computeCompatibility } from "../../lib/compat";
+import {
+  computeCompatibility,
+  isCompatibilityEligible,
+  MIN_COMPATIBILITY_SCORE,
+} from "../../lib/compat";
 import type { Like, MatchPreferences, UserProfile } from "../../lib/types";
 
 type Tab = "received" | "sent";
@@ -40,6 +45,10 @@ export default function Likes() {
   const [tab, setTab] = useState<Tab>("received");
   const [celebration, setCelebration] = useState<MatchCelebration | null>(null);
   const [limitKind, setLimitKind] = useState<"likes" | "interests" | null>(null);
+  const [compatBlocked, setCompatBlocked] = useState<{
+    name?: string;
+    score?: number | null;
+  } | null>(null);
   const [viewing, setViewing] = useState<ViewingLikeProfile | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [actedIds, setActedIds] = useState<Set<string>>(new Set());
@@ -106,15 +115,28 @@ export default function Likes() {
     busyRef.current = profileId;
     setBusyId(profileId);
     try {
-      const { match } = await db.sendLike(me.id, profileId);
+      const res = await db.sendLike(me.id, profileId);
+      if (res.compatibilityBlocked) {
+        const targetName =
+          viewing?.profile.id === profileId
+            ? viewing.profile.firstName
+            : data.received.find((r) => r.profile.id === profileId)?.profile.firstName;
+        if (viewing?.profile.id === profileId) setViewing(null);
+        refresh();
+        setCompatBlocked({
+          name: targetName,
+          score: typeof res.compatibility === "number" ? res.compatibility : null,
+        });
+        return;
+      }
       markActed(profileId);
       if (viewing?.profile.id === profileId) setViewing(null);
       refresh();
-      if (match) {
+      if (res.match) {
         // Honest mutual-match check: only celebrate if the returned match
         // really exists in this user's mutual matches.
         const mutuals = await db.matchesFor(me.id);
-        const real = mutuals.find((m) => m.id === match.id);
+        const real = mutuals.find((m) => m.id === res.match!.id);
         if (real) {
           const convs = await db.conversationsFor(me.id);
           const conv = convs.find((c) => c.matchId === real.id);
@@ -258,11 +280,28 @@ export default function Likes() {
                           <p className="text-xs text-mist/70 truncate">{timeAgo(like.createdAt)}</p>
                         </div>
                       </button>
-                      <div className="shrink-0 flex items-center gap-1.5 pt-0.5">
-                        <span className="text-[0.7rem] text-champagne font-semibold">
-                          ✦ {compat.score}%
+                      <div className="shrink-0 flex flex-col items-end gap-0.5 pt-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`text-[0.7rem] font-semibold ${
+                              isCompatibilityEligible(compat.score) ? "text-champagne" : "text-mist"
+                            }`}
+                          >
+                            ✦ {compat.score}%
+                          </span>
+                          <span className="text-rosegold text-lg">♥</span>
+                        </div>
+                        <span
+                          className={`text-[0.6rem] ${
+                            isCompatibilityEligible(compat.score)
+                              ? "text-emerald-300/80"
+                              : "text-mist/70"
+                          }`}
+                        >
+                          {isCompatibilityEligible(compat.score)
+                            ? "Match-ready"
+                            : `<${MIN_COMPATIBILITY_SCORE}% min`}
                         </span>
-                        <span className="text-rosegold text-lg">♥</span>
                       </div>
                     </div>
                     {profile.bio && (
@@ -355,8 +394,25 @@ export default function Likes() {
                         <p className="text-xs text-mist/70 truncate">Liked {timeAgo(like.createdAt)}</p>
                       </div>
                     </button>
-                    <div className="shrink-0 text-[0.7rem] text-champagne font-semibold pt-0.5">
-                      ✦ {compat.score}%
+                    <div className="shrink-0 flex flex-col items-end gap-0.5 pt-0.5">
+                      <span
+                        className={`text-[0.7rem] font-semibold ${
+                          isCompatibilityEligible(compat.score) ? "text-champagne" : "text-mist"
+                        }`}
+                      >
+                        ✦ {compat.score}%
+                      </span>
+                      <span
+                        className={`text-[0.6rem] ${
+                          isCompatibilityEligible(compat.score)
+                            ? "text-emerald-300/80"
+                            : "text-mist/70"
+                        }`}
+                      >
+                        {isCompatibilityEligible(compat.score)
+                          ? "Match-ready"
+                          : `<${MIN_COMPATIBILITY_SCORE}% min`}
+                      </span>
                     </div>
                   </div>
                   <p className="text-xs text-mist mt-4 break-words [overflow-wrap:anywhere] relative">
@@ -432,7 +488,12 @@ export default function Likes() {
                 <Badge tone="gold">{viewing.profile.relationshipIntent}</Badge>
               )}
               {viewingCompat && (
-                <Badge tone="rose">✦ {viewingCompat.score}% compatible</Badge>
+                <Badge tone={isCompatibilityEligible(viewingCompat.score) ? "green" : "rose"}>
+                  ✦ {viewingCompat.score}% ·{" "}
+                  {isCompatibilityEligible(viewingCompat.score)
+                    ? "Match-eligible"
+                    : `Below ${MIN_COMPATIBILITY_SCORE}%`}
+                </Badge>
               )}
             </div>
 
@@ -520,9 +581,22 @@ export default function Likes() {
 
             {viewingCompat && viewingCompat.factors.length > 0 && (
               <div>
-                <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist mb-2">
-                  Why you connect
-                </p>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <p className="text-[0.72rem] uppercase tracking-[0.2em] text-mist">
+                    Why you connect
+                  </p>
+                  <span
+                    className={`text-[0.7rem] ${
+                      isCompatibilityEligible(viewingCompat.score)
+                        ? "text-emerald-300/90"
+                        : "text-mist/80"
+                    }`}
+                  >
+                    {isCompatibilityEligible(viewingCompat.score)
+                      ? `✓ Meets ${MIN_COMPATIBILITY_SCORE}%+ match threshold`
+                      : `Below ${MIN_COMPATIBILITY_SCORE}% required`}
+                  </span>
+                </div>
                 <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-2.5">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-rosegold via-champagne to-rosegold"
@@ -589,6 +663,13 @@ export default function Likes() {
           onClose={() => setLimitKind(null)}
         />
       )}
+      <CompatibilityBlockedModal
+        open={!!compatBlocked}
+        onClose={() => setCompatBlocked(null)}
+        name={compatBlocked?.name}
+        score={compatBlocked?.score}
+        showDiscoverLink
+      />
     </div>
   );
 }

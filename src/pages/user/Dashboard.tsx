@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useBackend } from "../../lib/data";
-import { rankCandidates } from "../../lib/compat";
+import {
+  isCompatibilityEligible,
+  MIN_COMPATIBILITY_SCORE,
+  rankCandidates,
+} from "../../lib/compat";
 import { PLANS } from "../../data/seed";
 import {
   Avatar,
@@ -15,6 +19,7 @@ import {
   Reveal,
 } from "../../components/ui";
 import { LimitReachedModal } from "../../components/LimitModal";
+import { CompatibilityBlockedModal } from "../../components/CompatibilityBlockedModal";
 import {
   APP_STATUS_META,
   excludedIdsFor,
@@ -68,6 +73,10 @@ export default function Dashboard() {
   const { toast } = useToast();
   const db = useBackend();
   const [limitHit, setLimitHit] = useState(false);
+  const [compatBlocked, setCompatBlocked] = useState<{
+    name?: string;
+    score?: number | null;
+  } | null>(null);
   const tick = useDbRefresh(
     "likes",
     "matches",
@@ -173,12 +182,19 @@ export default function Dashboard() {
   if (!data) return null;
   const { me } = data;
 
-  const likeBack = async (profileId: string) => {
+  const likeBack = async (profileId: string, profileName?: string) => {
     try {
-      const { match } = await db.sendLike(me.id, profileId);
+      const res = await db.sendLike(me.id, profileId);
       refresh();
+      if (res.compatibilityBlocked) {
+        setCompatBlocked({
+          name: profileName,
+          score: typeof res.compatibility === "number" ? res.compatibility : null,
+        });
+        return;
+      }
       toast(
-        match ? "It's a mutual match! Open Chat to say hello." : "Liked back.",
+        res.match ? "It's a mutual match! Open Chat to say hello." : "Liked back.",
         "gold",
       );
     } catch (e) {
@@ -311,9 +327,11 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <div className="flex justify-between text-xs text-mist mb-1">
+                  <div className="flex justify-between text-xs text-mist mb-1 gap-2">
                     <span>Compatibility</span>
-                    <span className="text-champagne">{score}%</span>
+                    <span className={isCompatibilityEligible(score) ? "text-champagne" : "text-mist"}>
+                      {score}%{isCompatibilityEligible(score) ? " · Match-ready" : ` (<${MIN_COMPATIBILITY_SCORE}% min)`}
+                    </span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                     <div
@@ -359,7 +377,7 @@ export default function Dashboard() {
                         <p className="text-xs text-mist">{timeAgo(like.createdAt)}</p>
                       </div>
                       <button
-                        onClick={() => likeBack(profile.id)}
+                        onClick={() => likeBack(profile.id, profile.firstName)}
                         className="btn-ghost rounded-full px-4 min-h-[40px] text-xs shrink-0"
                       >
                         Like back
@@ -507,6 +525,13 @@ export default function Dashboard() {
       {limitHit && (
         <LimitReachedModal open={true} kind="likes" onClose={() => setLimitHit(false)} />
       )}
+      <CompatibilityBlockedModal
+        open={!!compatBlocked}
+        onClose={() => setCompatBlocked(null)}
+        name={compatBlocked?.name}
+        score={compatBlocked?.score}
+        showDiscoverLink
+      />
     </div>
   );
 }

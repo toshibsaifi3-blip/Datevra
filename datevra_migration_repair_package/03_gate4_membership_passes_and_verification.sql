@@ -114,9 +114,11 @@ CREATE INDEX IF NOT EXISTS idx_membership_passes_status_expires
 
 ALTER TABLE public.membership_passes ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON public.membership_passes FROM PUBLIC, anon;
-REVOKE INSERT, UPDATE, DELETE ON public.membership_passes FROM authenticated;
-GRANT SELECT ON public.membership_passes TO authenticated;
+REVOKE ALL ON TABLE public.membership_passes
+FROM PUBLIC, anon, authenticated;
+
+GRANT SELECT ON TABLE public.membership_passes
+TO authenticated;
 
 DROP POLICY IF EXISTS "membership_passes_admin_all" ON public.membership_passes;
 CREATE POLICY "membership_passes_admin_all" ON public.membership_passes

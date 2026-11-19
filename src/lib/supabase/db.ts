@@ -1,6 +1,11 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { getSupabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "../supabase";
-import { computeCompatibility } from "../compat";
+import {
+  computeCompatibility,
+  evaluateMatchEligibility,
+  MIN_COMPATIBILITY_SCORE,
+  type MatchEligibilityResult,
+} from "../compat";
 import { validatePhotoFile, extensionFor, storagePathFromUrl } from "../photos";
 import type {
   ActivityLog,
@@ -28,6 +33,7 @@ import type {
   PlanId,
   PlatformSettings,
   Report,
+  SendLikeResult,
   Subscription,
   UserProfile,
   RevokeComplimentaryPassResult,
@@ -291,10 +297,41 @@ async function findMatch(a: string, b: string): Promise<Match | null> {
   return res.data ? mapMatch(res.data as Record<string, unknown>) : null;
 }
 
-async function sendLike(fromUserId: string, toUserId: string): Promise<{ match: Match | null }> {
+async function evaluateMutualCompatibility(
+  fromUserId: string,
+  toUserId: string,
+): Promise<MatchEligibilityResult> {
+  try {
+    const [meP, themP, prefs] = await Promise.all([
+      getUser(fromUserId),
+      getUser(toUserId),
+      getPrefs(fromUserId).catch(() => null),
+    ]);
+    return evaluateMatchEligibility(meP, themP, prefs);
+  } catch {
+    return { eligible: false, score: null, factors: [] };
+  }
+}
+
+async function sendLike(fromUserId: string, toUserId: string): Promise<SendLikeResult> {
   if (fromUserId === toUserId) return { match: null };
   const existing = await findMatch(fromUserId, toUserId);
   if (existing) return { match: existing };
+
+  // Pre-check reciprocal like so an ineligible mutual match attempt fails closed
+  // cleanly without creating a match or misleading like notification.
+  const reciprocalPre = await hasLiked(toUserId, fromUserId);
+  if (reciprocalPre) {
+    const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+    if (!eligibility.eligible) {
+      return {
+        match: null,
+        compatibilityBlocked: true,
+        compatibility: eligibility.score,
+        minCompatibility: MIN_COMPATIBILITY_SCORE,
+      };
+    }
+  }
 
   const ins = await sb().from("likes").insert({ from_user_id: fromUserId, to_user_id: toUserId });
   if (ins.error) {
@@ -302,16 +339,47 @@ async function sendLike(fromUserId: string, toUserId: string): Promise<{ match: 
     if (ins.error.message.includes("DAILY_LIKE_LIMIT_REACHED")) {
       throw new Error("DAILY_LIKE_LIMIT_REACHED");
     }
-    // Already liked (unique conflict) — check for a match anyway.
+    // Already liked (unique conflict) — check for a match or threshold block.
     if (ins.error.message.includes("duplicate") || ins.error.code === "23505") {
-      return { match: await findMatch(fromUserId, toUserId) };
+      const dupMatch = await findMatch(fromUserId, toUserId);
+      if (dupMatch) return { match: dupMatch };
+      const reciprocalDup = await hasLiked(toUserId, fromUserId);
+      if (reciprocalDup) {
+        const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+        if (!eligibility.eligible) {
+          return {
+            match: null,
+            compatibilityBlocked: true,
+            compatibility: eligibility.score,
+            minCompatibility: MIN_COMPATIBILITY_SCORE,
+          };
+        }
+      }
+      return { match: null };
     }
     throw new Error(`Could not send like: ${ins.error.message}`);
   }
 
-  // The handle_mutual_like trigger creates the match + conversation server-side.
+  // The handle_mutual_like trigger creates the match + conversation server-side
+  // only when pair compatibility >= MIN_COMPATIBILITY_SCORE (75%).
   const match = await findMatch(fromUserId, toUserId);
-  if (match && match.compatibility === 0) {
+  if (!match) {
+    const reciprocalPost = await hasLiked(toUserId, fromUserId);
+    if (reciprocalPost) {
+      const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+      if (!eligibility.eligible) {
+        return {
+          match: null,
+          compatibilityBlocked: true,
+          compatibility: eligibility.score,
+          minCompatibility: MIN_COMPATIBILITY_SCORE,
+        };
+      }
+    }
+    return { match: null };
+  }
+
+  if (match && (match.compatibility === 0 || match.factors.length === 0)) {
     try {
       const [meP, themP] = await Promise.all([getUser(fromUserId), getUser(toUserId)]);
       const prefs = await getPrefs(fromUserId);

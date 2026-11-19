@@ -4,7 +4,12 @@ import { AlertCircle, AlertTriangle, Heart, Info, Loader2, ShieldAlert, ShieldCh
 import type { Match, MatchPreferences, MatchProposal, UserProfile } from "../../lib/types";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
-import { evaluatePairwiseCompatibility, type PairwiseCompatibilityAssessment } from "../../lib/compat";
+import {
+  evaluatePairwiseCompatibility,
+  isCompatibilityEligible,
+  MIN_COMPATIBILITY_SCORE,
+  type PairwiseCompatibilityAssessment,
+} from "../../lib/compat";
 import { Avatar, Badge, EmptyState, Field, Modal, SectionHead, Skeleton, Stat, inputCls, useToast } from "../../components/ui";
 import { fmtDate, rowCls, tdCls, thCls } from "./_util";
 
@@ -774,6 +779,18 @@ export default function Matchmaking() {
 
                 <p className="text-xs text-white/70 leading-relaxed">
                   {compatibilityAssessment.summary}
+                </p>
+
+                <p
+                  className={`text-[0.72rem] font-medium ${
+                    isCompatibilityEligible(compatibilityAssessment.score)
+                      ? "text-emerald-300/90"
+                      : "text-amber-200/85"
+                  }`}
+                >
+                  {isCompatibilityEligible(compatibilityAssessment.score)
+                    ? `✓ Meets the ${MIN_COMPATIBILITY_SCORE}%+ automatic match threshold.`
+                    : `Below ${MIN_COMPATIBILITY_SCORE}% automatic match threshold — curated proposals are advisory and still require dual consent.`}
                 </p>
 
                 {/* Missing Profile Information Notice */}

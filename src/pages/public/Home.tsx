@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { DreamField } from "../../components/dream";
 import { Skeleton, useToast } from "../../components/ui";
 import { LimitReachedModal } from "../../components/LimitModal";
+import { CompatibilityBlockedModal } from "../../components/CompatibilityBlockedModal";
 import { useAuth } from "../../context/AuthContext";
 import { useBackend, useAsync } from "../../lib/data";
 import type { UserProfile } from "../../lib/types";
@@ -479,6 +480,10 @@ function SuggestedCard({ profile }: { profile: UserProfile }) {
   const [liked, setLiked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [limitHit, setLimitHit] = useState(false);
+  const [compatBlocked, setCompatBlocked] = useState<{
+    name?: string;
+    score?: number | null;
+  } | null>(null);
 
   const like = async () => {
     if (!user) {
@@ -488,9 +493,16 @@ function SuggestedCard({ profile }: { profile: UserProfile }) {
     if (busy || liked) return;
     setBusy(true);
     try {
-      const { match } = await db.sendLike(user.id, profile.id);
+      const res = await db.sendLike(user.id, profile.id);
+      if (res.compatibilityBlocked) {
+        setCompatBlocked({
+          name: profile.firstName,
+          score: typeof res.compatibility === "number" ? res.compatibility : null,
+        });
+        return;
+      }
       setLiked(true);
-      toast(match ? `It's a match with ${profile.firstName}! Say hello in Matches.` : `You liked ${profile.firstName} ♥`);
+      toast(res.match ? `It's a match with ${profile.firstName}! Say hello in Matches.` : `You liked ${profile.firstName} ♥`);
     } catch (e) {
       if (e instanceof Error && e.message.includes("DAILY_LIKE_LIMIT_REACHED")) {
         setLimitHit(true);
@@ -549,6 +561,13 @@ function SuggestedCard({ profile }: { profile: UserProfile }) {
       {limitHit && (
         <LimitReachedModal open={true} kind="likes" onClose={() => setLimitHit(false)} />
       )}
+      <CompatibilityBlockedModal
+        open={!!compatBlocked}
+        onClose={() => setCompatBlocked(null)}
+        name={compatBlocked?.name}
+        score={compatBlocked?.score}
+        showDiscoverLink
+      />
     </div>
   );
 }
