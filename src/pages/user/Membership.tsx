@@ -143,7 +143,6 @@ export default function Membership() {
           selectedPlan.id,
           (result) => {
             const activatedPlan = PLANS.find((x) => x.id === result.planId);
-            refresh();
             refreshData();
             toast(`Payment verified — welcome to ${activatedPlan?.name ?? selectedPlan.name}.`, "gold");
           },
