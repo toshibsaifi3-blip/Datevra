@@ -401,6 +401,9 @@ BEGIN
 
   IF v_payment.kind = 'membership' AND v_payment.plan_id IS NOT NULL AND v_payment.user_id IS NOT NULL THEN
     PERFORM 1 FROM public.profiles WHERE id = v_payment.user_id FOR UPDATE;
+    PERFORM 1 FROM public.subscriptions
+    WHERE user_id = v_payment.user_id AND status = 'active'
+    FOR UPDATE;
     UPDATE public.subscriptions SET status = 'expired', updated_at = v_start
     WHERE user_id = v_payment.user_id AND status = 'active';
 
