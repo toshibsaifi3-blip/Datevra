@@ -137,13 +137,12 @@ serve(async (req) => {
         await finish("ignored", "payment.failed event missing order_id");
         return json({ ok: true, skipped: true });
       }
-      const { error } = await db.from("payments")
-        .update({ status: "failed" })
-        .eq("razorpay_order_id", orderId)
-        .eq("status", "pending");
-      if (error) throw error;
-      await finish("processed");
-      return json({ ok: true });
+      // Razorpay can emit payment.failed for one attempt while the same order
+      // remains payable and a later attempt succeeds. Do not fail the Datevra
+      // order here: doing so would block the subsequent payment.captured event.
+      // The webhook event itself is retained in payment_webhook_events for audit.
+      await finish("processed", "Failed payment attempt recorded; order remains pending for retry or later capture.");
+      return json({ ok: true, paymentAttemptFailed: true, orderStatusUnchanged: true });
     }
 
     if ((eventType === "refund.processed" || eventType === "payment.refunded") && razorpayPaymentId) {
