@@ -15,6 +15,7 @@ import MembershipCelebrationOverlay, {
   type MembershipCelebrationPayload,
 } from "../../components/MembershipCelebrationOverlay";
 import { fmtDate, fmtExpiry, inr, timeAgo, useDbRefresh } from "./shared";
+import { startRazorpayMembershipCheckout } from "../../lib/razorpayCheckout";
 import type { Payment, PlanId, Subscription } from "../../lib/types";
 
 const CELEBRATION_KEY_PREFIX = "datevra:celebration_shown:";
@@ -132,13 +133,36 @@ export default function Membership() {
 
   const confirmPurchase = async () => {
     if (!termsPlan || !agreed) return;
+    const selectedPlan = termsPlan;
+    setTermsFor(null);
+    setAgreed(false);
+
+    if (db.mode === "supabase") {
+      try {
+        await startRazorpayMembershipCheckout(
+          selectedPlan.id,
+          (result) => {
+            const activatedPlan = PLANS.find((x) => x.id === result.planId);
+            refresh();
+            refreshData();
+            toast(`Payment verified — welcome to ${activatedPlan?.name ?? selectedPlan.name}.`, "gold");
+          },
+          (message) => toast(message, "rose"),
+        );
+      } catch (e) {
+        toast(
+          e instanceof Error ? e.message : "Payments aren't available right now.",
+          "rose",
+        );
+      }
+      return;
+    }
+
     try {
-      const payment = await db.purchaseMembership(me.id, termsPlan.id, termsPlan.price);
+      const payment = await db.purchaseMembership(me.id, selectedPlan.id, selectedPlan.price);
       setPending(payment);
-      setTermsFor(null);
-      setAgreed(false);
       refreshData();
-      toast("Order created. Complete the test payment to activate.", "gold");
+      toast("Demo order created. Complete the simulated payment to activate.", "gold");
     } catch (e) {
       toast(
         e instanceof Error ? e.message : "Payments aren't available right now.",
@@ -348,7 +372,7 @@ export default function Membership() {
           </Reveal>
 
           {/* Pending payment */}
-          {pending && (
+          {pending && db.mode === "demo" && (
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
