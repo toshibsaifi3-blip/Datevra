@@ -97,16 +97,9 @@ serve(async (req) => {
     });
     return json({ error: "Payment verification failed. Please contact support." }, 402);
   }
-  if (payment.status === "verified") {
-    return json({
-      ok: true,
-      already: true,
-      paymentId: payment.id,
-      planId: payment.plan_id,
-      verifiedAt: payment.verified_at,
-    });
-  }
-  if (payment.status !== "pending") {
+  // Allow verified rows through the atomic RPC as well: it confirms that
+  // the original Razorpay payment ID matches and that a linked subscription exists.
+  if (payment.status !== "pending" && payment.status !== "verified") {
     return json({ error: `Payment is ${payment.status}` }, 409);
   }
 
