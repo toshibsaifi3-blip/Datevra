@@ -168,13 +168,6 @@ BEGIN
     RAISE EXCEPTION 'INVALID_MEMBERSHIP_PAYMENT';
   END IF;
 
-  SELECT price INTO v_plan_price
-  FROM public.membership_plans WHERE id = v_payment.plan_id;
-
-  IF NOT FOUND OR v_payment.amount IS DISTINCT FROM v_plan_price THEN
-    RAISE EXCEPTION 'PAYMENT_PLAN_AMOUNT_MISMATCH';
-  END IF;
-
   IF v_payment.razorpay_order_id IS NULL
      OR btrim(v_payment.razorpay_order_id) = ''
      OR v_payment.razorpay_order_id LIKE 'order_pending_%' THEN
@@ -213,6 +206,15 @@ BEGIN
 
   IF v_payment.status <> 'pending' THEN
     RAISE EXCEPTION 'INVALID_PAYMENT_STATUS: %', v_payment.status;
+  END IF;
+
+  -- Current plan pricing is enforced for new activations. Existing verified
+  -- payments remain idempotent even if the published plan price later changes.
+  SELECT price INTO v_plan_price
+  FROM public.membership_plans WHERE id = v_payment.plan_id;
+
+  IF NOT FOUND OR v_payment.amount IS DISTINCT FROM v_plan_price THEN
+    RAISE EXCEPTION 'PAYMENT_PLAN_AMOUNT_MISMATCH';
   END IF;
 
   UPDATE public.payments
@@ -307,7 +309,8 @@ BEGIN
   UPDATE public.payments SET status = 'refunded', updated_at = now()
   WHERE id = v_payment.id;
 
-  IF v_payment.user_id IS NOT NULL THEN
+  -- Only membership refunds affect subscription/profile entitlements.
+  IF v_payment.kind = 'membership' AND v_payment.user_id IS NOT NULL THEN
     PERFORM 1 FROM public.profiles WHERE id = v_payment.user_id FOR UPDATE;
     UPDATE public.subscriptions SET status = 'cancelled', updated_at = now()
     WHERE payment_id = v_payment.id AND status = 'active';
@@ -328,11 +331,15 @@ BEGIN
       UPDATE public.profiles SET plan_id = NULL, plan_expires_at = NULL
       WHERE id = v_payment.user_id;
     END IF;
+  END IF;
 
+  IF v_payment.user_id IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, kind, title, body, link)
-    VALUES (v_payment.user_id, 'payment', 'Payment refunded',
-      'Your payment of ₹' || v_payment.amount::text ||
-      ' has been refunded and your membership status updated.', '/membership');
+    VALUES (
+      v_payment.user_id, 'payment', 'Payment refunded',
+      'Your payment of ₹' || v_payment.amount::text || ' has been refunded.',
+      CASE WHEN v_payment.kind = 'membership' THEN '/membership' ELSE NULL END
+    );
   END IF;
 
   INSERT INTO public.activity_logs (actor_role, action, detail)
