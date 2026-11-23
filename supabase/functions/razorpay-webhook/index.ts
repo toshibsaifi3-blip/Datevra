@@ -146,9 +146,32 @@ serve(async (req) => {
     }
 
     if ((eventType === "refund.processed" || eventType === "payment.refunded") && razorpayPaymentId) {
+      // Never revoke a membership for a partial refund. Razorpay amounts are
+      // in paise; Datevra stores INR as whole rupees. If the payload does not
+      // prove a full refund, hold it for manual reconciliation.
+      const { data: refundPayment, error: refundLookupError } = await db
+        .from("payments")
+        .select("id, amount")
+        .eq("razorpay_payment_id", razorpayPaymentId)
+        .maybeSingle();
+      if (refundLookupError) throw refundLookupError;
+      if (!refundPayment) {
+        await finish("ignored", "Refund payment record not found");
+        return json({ ok: true, skipped: true });
+      }
+
+      const refundedPaise = Number(
+        refund?.amount ?? payment?.amount_refunded ?? 0,
+      );
+      const expectedPaise = Math.round(Number(refundPayment.amount) * 100);
+      if (!Number.isFinite(refundedPaise) || refundedPaise !== expectedPaise) {
+        await finish("ignored", `Partial or unverified refund amount (${refundedPaise} paise; full refund requires ${expectedPaise} paise). Held for manual review.`);
+        return json({ ok: true, held: true, reason: "partial_or_unverified_refund" });
+      }
+
       const result = await reconcileRefundedPayment(db, razorpayPaymentId, `Webhook ${eventType} (${eventId})`);
       if (result.reconciled !== true) {
-        await finish("ignored", "Refund payment record not found");
+        await finish("ignored", "Refund payment record not found during reconciliation");
         return json({ ok: true, skipped: true });
       }
       await finish("processed");
