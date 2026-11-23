@@ -37,6 +37,7 @@ const Onboarding = lazy(() => import("./pages/user/Onboarding"));
 const Profile = lazy(() => import("./pages/user/Profile"));
 const Likes = lazy(() => import("./pages/user/Likes"));
 const Matches = lazy(() => import("./pages/user/Matches"));
+const Bookings = lazy(() => import("./pages/user/Bookings"));
 const MyPasses = lazy(() => import("./pages/user/MyPasses"));
 const Chat = lazy(() => import("./pages/user/Chat"));
 const Notifications = lazy(() => import("./pages/user/Notifications"));
@@ -57,8 +58,11 @@ const AdminInvestors = lazy(() => import("./pages/admin/Investors"));
 const AdminCommissions = lazy(() => import("./pages/admin/Commissions"));
 const AdminApplications = lazy(() => import("./pages/admin/Applications"));
 const AdminBookings = lazy(() => import("./pages/admin/Bookings"));
+const AdminDateOffers = lazy(() => import("./pages/admin/DateOffers"));
+const AdminInvitations = lazy(() => import("./pages/admin/Invitations"));
 const AdminCafes = lazy(() => import("./pages/admin/Cafes"));
 const AdminPasses = lazy(() => import("./pages/admin/Passes"));
+const AdminVouchers = lazy(() => import("./pages/admin/Vouchers"));
 const AdminPartnerships = lazy(() => import("./pages/admin/Partnerships"));
 const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
 const AdminCms = lazy(() => import("./pages/admin/Cms"));
@@ -139,6 +143,7 @@ export default function App() {
                   <Route path="app" element={<Dashboard />} />
                   <Route path="likes" element={<Likes />} />
                   <Route path="matches" element={<Matches />} />
+                  <Route path="bookings" element={<Bookings />} />
                   <Route path="passes" element={<MyPasses />} />
                   <Route path="chat" element={<Chat />} />
                   <Route path="notifications" element={<Notifications />} />
@@ -165,8 +170,11 @@ export default function App() {
                   <Route path="admin/commissions" element={<AdminCommissions />} />
                   <Route path="admin/applications" element={<AdminApplications />} />
                   <Route path="admin/bookings" element={<AdminBookings />} />
+                  <Route path="admin/date-offers" element={<AdminDateOffers />} />
+                  <Route path="admin/invitations" element={<AdminInvitations />} />
                   <Route path="admin/cafes" element={<AdminCafes />} />
                   <Route path="admin/passes" element={<AdminPasses />} />
+                  <Route path="admin/vouchers" element={<AdminVouchers />} />
                   <Route path="admin/partnerships" element={<AdminPartnerships />} />
                   <Route path="admin/notifications" element={<AdminNotifications />} />
                   <Route path="admin/cms" element={<AdminCms />} />

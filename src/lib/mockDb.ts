@@ -1,16 +1,24 @@
 import type {
   ActivityLog,
   AppNotification,
+  AutoDateOfferSummary,
+  AutomaticDateOffer,
   Block,
   Cafe,
   CmsPage,
   ComplimentaryPass,
   Conversation,
+  CreateDateInvitationInput,
+  CreateManualDateOfferInput,
   DailyUsage,
   DateApplication,
   DateBooking,
+  DateInvitation,
+  DateInvitationRecipient,
+  DateOfferEvent,
   InvestorRecord,
   Like,
+  ManualDateOffer,
   Match,
   MatchPreferences,
   MatchProposal,
@@ -25,6 +33,10 @@ import type {
   SendLikeResult,
   Subscription,
   UserProfile,
+  UserVoucher,
+  VoucherOtpChallengeResponse,
+  VoucherOtpStatusRecord,
+  VoucherSettings,
   RevokeComplimentaryPassResult,
 } from "./types";
 import { DEMO_PROFILES, SEED_CAFES, SEED_EXPERIENCES } from "../data/seed";
@@ -34,6 +46,11 @@ import {
   MIN_COMPATIBILITY_SCORE,
 } from "./compat";
 import { isDemoCafe, DEMO_CAFE_IDS, sanitizeCafeList } from "./cafeFilter";
+import {
+  DEFAULT_EXCLUDED_VOUCHER_CITIES,
+  generateUnbiasedCode,
+  isMemberEligibleForOutsideDelhiVoucher,
+} from "./voucherPolicy";
 
 /* =====================================================================
  * Demo data adapter.
@@ -79,6 +96,25 @@ interface DbShape {
   complimentaryPasses: ComplimentaryPass[];
   membershipPasses: MembershipPass[];
   matchProposals: MatchProposal[];
+  autoDateOfferBatch: {
+    id: string;
+    batchKey: string;
+    thresholdTarget: number;
+    targetOfferCount: number;
+    eligibleMatchCount: number;
+    createdOfferCount: number;
+    shortfallCount: number;
+    status: "processing" | "completed" | "failed";
+    completedAt: string | null;
+    createdAt: string;
+  } | null;
+  automaticDateOffers: AutomaticDateOffer[];
+  manualDateOffers: ManualDateOffer[];
+  dateOfferEvents: DateOfferEvent[];
+  dateInvitations: DateInvitation[];
+  voucherSettings: VoucherSettings;
+  userVouchers: UserVoucher[];
+  voucherOtpChallenges: Array<VoucherOtpStatusRecord & { otpCode: string }>;
 }
 
 export interface DailyLimitRow {
@@ -329,6 +365,25 @@ function seed(): DbShape {
     complimentaryPasses: [],
     membershipPasses: [],
     matchProposals: [],
+    autoDateOfferBatch: null,
+    automaticDateOffers: [],
+    manualDateOffers: [],
+    dateOfferEvents: [],
+    dateInvitations: [],
+    voucherSettings: {
+      enabled: false,
+      voucherValueInr: null,
+      maxClaimsPerUser: 1,
+      maxTotalVouchers: null,
+      expiryDays: 30,
+      excludedCities: [...DEFAULT_EXCLUDED_VOUCHER_CITIES],
+      ncrPolicyNote:
+        "Excludes NCT of Delhi (Delhi, New Delhi). Delhi-NCR cities (Noida, Gurugram, Faridabad, Ghaziabad) are treated as outside-Delhi unless explicitly added to excluded cities.",
+      usageRules:
+        "Limited-value, non-cash-withdrawable Datevra credit. Single-use only. Valid for eligible members registered outside Delhi after OTP verification.",
+    },
+    userVouchers: [],
+    voucherOtpChallenges: [],
     payments: [
       {
         id: "pay-seed-aarav",
@@ -491,6 +546,27 @@ function load(): DbShape {
       if (parsed && Array.isArray(parsed.users)) {
         if (!Array.isArray(parsed.membershipPasses)) parsed.membershipPasses = [];
         if (!Array.isArray(parsed.matchProposals)) parsed.matchProposals = [];
+        if (parsed.autoDateOfferBatch === undefined) parsed.autoDateOfferBatch = null;
+        if (!Array.isArray(parsed.automaticDateOffers)) parsed.automaticDateOffers = [];
+        if (!Array.isArray(parsed.manualDateOffers)) parsed.manualDateOffers = [];
+        if (!Array.isArray(parsed.dateOfferEvents)) parsed.dateOfferEvents = [];
+        if (!Array.isArray(parsed.dateInvitations)) parsed.dateInvitations = [];
+        if (!parsed.voucherSettings) {
+          parsed.voucherSettings = {
+            enabled: false,
+            voucherValueInr: null,
+            maxClaimsPerUser: 1,
+            maxTotalVouchers: null,
+            expiryDays: 30,
+            excludedCities: [...DEFAULT_EXCLUDED_VOUCHER_CITIES],
+            ncrPolicyNote:
+              "Excludes NCT of Delhi (Delhi, New Delhi). Delhi-NCR cities are treated as outside-Delhi unless explicitly added to excluded cities.",
+            usageRules:
+              "Limited-value, non-cash-withdrawable Datevra credit. Single-use only.",
+          };
+        }
+        if (!Array.isArray(parsed.userVouchers)) parsed.userVouchers = [];
+        if (!Array.isArray(parsed.voucherOtpChallenges)) parsed.voucherOtpChallenges = [];
         if (!Array.isArray(parsed.cafes)) {
           parsed.cafes = SEED_CAFES;
         } else {
@@ -667,7 +743,9 @@ export function updateUser(id: string, patch: Partial<UserProfile>): UserProfile
   const db = load();
   const u = db.users.find((x) => x.id === id);
   if (!u) return undefined;
+  const originalRegisteredCity = u.registeredCity ?? u.city;
   Object.assign(u, patch);
+  u.registeredCity = originalRegisteredCity;
   // recompute completeness
   const fields = [u.bio, u.relationshipIntent, u.city];
   const filled = fields.filter((f) => f && f.length > 0).length;
@@ -813,28 +891,31 @@ export function sendLike(fromUserId: string, toUserId: string): SendLikeResult {
     }
   }
 
-  if (hasLiked(fromUserId, toUserId)) {
+  const alreadyLiked = hasLiked(fromUserId, toUserId);
+  if (alreadyLiked && !reciprocal) {
     return { match: null };
   }
-  // Free-user daily like cap (20/day, IST reset). Paid members bypass.
-  // Duplicate/self/blocked likes above return before consuming any allowance.
-  if (!consumeDailyAction(db, fromUserId, "like")) {
-    throw new Error("DAILY_LIKE_LIMIT_REACHED");
-  }
-  db.likes.push({ id: uid("lk"), fromUserId, toUserId, createdAt: new Date().toISOString() });
+  if (!alreadyLiked) {
+    // Free-user daily like cap (20/day, IST reset). Paid members bypass.
+    // Duplicate/self/blocked likes above return before consuming any allowance.
+    if (!consumeDailyAction(db, fromUserId, "like")) {
+      throw new Error("DAILY_LIKE_LIMIT_REACHED");
+    }
+    db.likes.push({ id: uid("lk"), fromUserId, toUserId, createdAt: new Date().toISOString() });
 
-  // notify the liked user
-  const from = db.users.find((u) => u.id === fromUserId);
-  db.notifications.push({
-    id: uid("n"),
-    userId: toUserId,
-    kind: "like",
-    title: `${from?.firstName ?? "Someone"} liked your profile`,
-    body: "Take a look — maybe it's mutual.",
-    link: "/likes",
-    read: false,
-    createdAt: new Date().toISOString(),
-  });
+    // notify the liked user
+    const from = db.users.find((u) => u.id === fromUserId);
+    db.notifications.push({
+      id: uid("n"),
+      userId: toUserId,
+      kind: "like",
+      title: `${from?.firstName ?? "Someone"} liked your profile`,
+      body: "Take a look — maybe it's mutual.",
+      link: "/likes",
+      read: false,
+      createdAt: new Date().toISOString(),
+    });
+  }
 
   // mutual? (Already verified >= MIN_COMPATIBILITY_SCORE above; re-verify defensively.)
   let match: Match | null = null;
@@ -862,14 +943,16 @@ export function sendLike(fromUserId: string, toUserId: string): SendLikeResult {
       createdAt: new Date().toISOString(),
     };
     db.matches.push(match);
-    const convo: Conversation = {
-      id: uid("c"),
-      matchId: match.id,
-      participantIds: [fromUserId, toUserId],
-      lastMessageAt: new Date().toISOString(),
-      unread: { [fromUserId]: 0, [toUserId]: 0 },
-    };
-    db.conversations.push(convo);
+    if (!db.conversations.some((c) => c.matchId === match!.id)) {
+      const convo: Conversation = {
+        id: uid("c"),
+        matchId: match.id,
+        participantIds: [fromUserId, toUserId],
+        lastMessageAt: new Date().toISOString(),
+        unread: { [fromUserId]: 0, [toUserId]: 0 },
+      };
+      db.conversations.push(convo);
+    }
     for (const uidX of [fromUserId, toUserId]) {
       const other = uidX === fromUserId ? them : me;
       db.notifications.push({
@@ -897,6 +980,9 @@ export function sendLike(fromUserId: string, toUserId: string): SendLikeResult {
     }
   }
   save(db);
+  if (match) {
+    evaluateInitialAutoDateOffers();
+  }
   emit("likes", { fromUserId, toUserId, match });
   return { match };
 }
@@ -1259,7 +1345,65 @@ export function allBookings(): DateBooking[] {
 }
 export function createBooking(input: Omit<DateBooking, "id" | "createdAt">, actorId: string): DateBooking {
   const db = load();
-  const b: DateBooking = { ...input, id: uid("bk"), createdAt: new Date().toISOString() };
+  const adminUser = db.users.find((u) => u.id === actorId);
+  if (!actorId || (actorId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  if (!input.userId) {
+    throw new Error("INVALID_USER: Primary member is required.");
+  }
+  if (input.partnerId && input.partnerId === input.userId) {
+    throw new Error("INVALID_PAIR: Booking participants must be two distinct members.");
+  }
+  if (!input.experienceId || !input.experienceId.trim()) {
+    throw new Error("EXPERIENCE_REQUIRED: A valid curated experience is required.");
+  }
+  validateScheduleInMockDb(input.date, input.time);
+  if (typeof input.amount !== "number" || !Number.isFinite(input.amount) || input.amount < 0) {
+    throw new Error("INVALID_AMOUNT: Booking amount must be zero or greater.");
+  }
+  if (!db.users.some((u) => u.id === input.userId)) {
+    throw new Error("PROFILE_NOT_FOUND: Selected member does not exist.");
+  }
+  if (input.partnerId) {
+    if (!db.users.some((u) => u.id === input.partnerId)) {
+      throw new Error("PROFILE_NOT_FOUND: Both booking participants must exist.");
+    }
+    if (isPairBlockedInDb(db, input.userId, input.partnerId)) {
+      throw new Error("PAIR_BLOCKED: Cannot create a booking between blocked members.");
+    }
+    const existingActive = findActiveBookingForPairInDb(db, input.userId, input.partnerId);
+    if (existingActive) {
+      throw new Error(
+        `ACTIVE_BOOKING_EXISTS: An active booking (${existingActive.id}) already exists for this pair.`,
+      );
+    }
+  }
+  if (!SEED_EXPERIENCES.some((e) => e.id === input.experienceId.trim())) {
+    throw new Error("EXPERIENCE_NOT_FOUND: Selected experience does not exist.");
+  }
+  if (input.cafeId && !db.cafes.some((c) => c.id === input.cafeId)) {
+    throw new Error("CAFE_NOT_FOUND: Selected café does not exist.");
+  }
+  const cafe = input.cafeId ? db.cafes.find((c) => c.id === input.cafeId) : undefined;
+  const venue = input.venue.trim() || (cafe ? `${cafe.name}, ${cafe.city}` : "Curated Venue");
+  const normalizedStatus: DateBooking["status"] =
+    input.status === "upcoming" || (input.status as string) === "confirmed" || (input.status as string) === "pending"
+      ? "upcoming"
+      : (() => {
+          throw new Error("INVALID_STATUS: New bookings must start in pending, confirmed, or upcoming status.");
+        })();
+
+  const b: DateBooking = {
+    ...input,
+    experienceId: input.experienceId.trim(),
+    date: input.date.trim(),
+    time: input.time.trim(),
+    venue,
+    status: normalizedStatus,
+    id: uid("bk"),
+    createdAt: new Date().toISOString(),
+  };
   db.bookings.push(b);
   for (const uidX of [b.userId, b.partnerId].filter(Boolean) as string[]) {
     db.notifications.push({
@@ -1268,22 +1412,51 @@ export function createBooking(input: Omit<DateBooking, "id" | "createdAt">, acto
       kind: "booking",
       title: "Your date is confirmed",
       body: `${b.venue} — ${b.date} at ${b.time}`,
-      link: "/experiences",
+      link: "/bookings",
       read: false,
       createdAt: new Date().toISOString(),
     });
   }
   logActivity(actorId, "booking.create", `Booking ${b.id} at ${b.venue} on ${b.date}`);
   save(db);
+  emit("bookings");
   return b;
 }
 export function setBookingStatus(id: string, status: DateBooking["status"], actorId: string) {
   const db = load();
+  const adminUser = db.users.find((u) => u.id === actorId);
+  if (!actorId || (actorId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
   const b = db.bookings.find((x) => x.id === id);
-  if (!b) return;
+  if (!b) {
+    throw new Error("BOOKING_NOT_FOUND: Booking not found.");
+  }
+  if (!(["upcoming", "completed", "cancelled"] as string[]).includes(status)) {
+    throw new Error(`INVALID_STATUS: Unsupported booking status "${status}".`);
+  }
+  if (b.status === status) return;
+  if ((b.status === "completed" || b.status === "cancelled") && status === "upcoming") {
+    throw new Error(`INVALID_STATUS_TRANSITION: Cannot transition a ${b.status} booking to ${status}.`);
+  }
   b.status = status;
+  if (status === "cancelled") {
+    for (const uidX of [b.userId, b.partnerId].filter(Boolean) as string[]) {
+      db.notifications.push({
+        id: uid("n"),
+        userId: uidX,
+        kind: "booking",
+        title: "Booking cancelled",
+        body: `Your booking at ${b.venue} on ${b.date} at ${b.time} has been cancelled.`,
+        link: "/bookings",
+        read: false,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
   logActivity(actorId, "booking.status", `Booking ${id} → ${status}`);
   save(db);
+  emit("bookings");
 }
 
 /* ---------------- cafes ---------------- */
@@ -2055,6 +2228,7 @@ export function verifyPayment(paymentId: string, actorId: string): Payment | und
   }
   if (p.status !== "pending") return p;
   p.status = "verified";
+  p.verifiedAt = new Date().toISOString();
   p.razorpayPaymentId = p.razorpayPaymentId || `pay_demo_${Date.now().toString(36)}`;
   if (p.kind === "membership" && p.planId) {
     // expire old, activate new
@@ -2384,3 +2558,1268 @@ export function revenueSummary() {
 export function experienceById(id: string) {
   return SEED_EXPERIENCES.find((e) => e.id === id);
 }
+
+/* =====================================================================
+ * Automatic Date Offers (Req 3 — One-Time 100-Match Threshold -> 10 Offers)
+ * ===================================================================== */
+
+function canonicalPair(a: string, b: string): [string, string] {
+  return a < b ? [a, b] : [b, a];
+}
+
+function isPairBlockedInDb(db: DbShape, a: string, b: string): boolean {
+  return db.blocks.some(
+    (bl) => (bl.blockerId === a && bl.blockedId === b) || (bl.blockerId === b && bl.blockedId === a),
+  );
+}
+
+function isEligibleMutualMatchInDb(db: DbShape, m: Match): boolean {
+  if (m.compatibility < MIN_COMPATIBILITY_SCORE) return false;
+  if (isPairBlockedInDb(db, m.userA, m.userB)) return false;
+  if (!db.users.some((u) => u.id === m.userA) || !db.users.some((u) => u.id === m.userB)) return false;
+  const ab = db.likes.some((l) => l.fromUserId === m.userA && l.toUserId === m.userB);
+  const ba = db.likes.some((l) => l.fromUserId === m.userB && l.toUserId === m.userA);
+  return ab && ba;
+}
+
+function pairHasActiveOfferOrBookingInDb(db: DbShape, a: string, b: string): boolean {
+  const [ua, ub] = canonicalPair(a, b);
+  const now = Date.now();
+  const hasAuto = db.automaticDateOffers.some(
+    (o) => o.userA === ua && o.userB === ub && o.status === "pending" && new Date(o.expiresAt).getTime() > now,
+  );
+  const hasManual = db.manualDateOffers.some(
+    (o) => o.userA === ua && o.userB === ub && o.status === "pending" && new Date(o.expiresAt).getTime() > now,
+  );
+  const hasBooking = db.bookings.some(
+    (bk) =>
+      bk.status === "upcoming" &&
+      ((bk.userId === a && bk.partnerId === b) || (bk.userId === b && bk.partnerId === a)),
+  );
+  return hasAuto || hasManual || hasBooking;
+}
+
+function expireStaleOffers(db: DbShape) {
+  const now = Date.now();
+  for (const o of db.automaticDateOffers) {
+    if (o.status === "pending" && new Date(o.expiresAt).getTime() <= now) {
+      o.status = "expired";
+    }
+  }
+  for (const o of db.manualDateOffers) {
+    if (o.status === "pending" && new Date(o.expiresAt).getTime() <= now) {
+      o.status = "expired";
+    }
+  }
+}
+
+export function evaluateInitialAutoDateOffers(): Record<string, unknown> {
+  const db = load();
+  expireStaleOffers(db);
+
+  if (db.autoDateOfferBatch && db.autoDateOfferBatch.status === "completed") {
+    return {
+      triggered: false,
+      already_completed: true,
+      batch_id: db.autoDateOfferBatch.id,
+      eligible_matches: db.autoDateOfferBatch.eligibleMatchCount,
+      created_offers: db.autoDateOfferBatch.createdOfferCount,
+      shortfall: db.autoDateOfferBatch.shortfallCount,
+    };
+  }
+
+  const eligibleMatches = db.matches.filter((m) => isEligibleMutualMatchInDb(db, m));
+  if (eligibleMatches.length < 100) {
+    return {
+      triggered: false,
+      already_completed: false,
+      threshold_target: 100,
+      eligible_matches: eligibleMatches.length,
+      remaining_to_threshold: 100 - eligibleMatches.length,
+    };
+  }
+
+  const batchId = db.autoDateOfferBatch?.id ?? uid("adb");
+  const candidates = eligibleMatches
+    .filter((m) => {
+      const [ua, ub] = canonicalPair(m.userA, m.userB);
+      if (pairHasActiveOfferOrBookingInDb(db, ua, ub)) return false;
+      return !db.automaticDateOffers.some((ao) => ao.userA === ua && ao.userB === ub);
+    })
+    .sort((a, b) => b.compatibility - a.compatibility || a.createdAt.localeCompare(b.createdAt))
+    .slice(0, 10);
+
+  const exp = SEED_EXPERIENCES[0];
+  const suggestedDate = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
+  const expiresAt = new Date(Date.now() + 7 * 86400000).toISOString();
+  let created = 0;
+
+  for (const m of candidates) {
+    const [ua, ub] = canonicalPair(m.userA, m.userB);
+    const userA = db.users.find((u) => u.id === ua);
+    const userB = db.users.find((u) => u.id === ub);
+    const cafe = db.cafes[0];
+    const venue = cafe ? `${cafe.name}, ${cafe.city}` : "Curated Partner Venue";
+    const offer: AutomaticDateOffer = {
+      id: uid("ado"),
+      batchId,
+      matchId: m.id,
+      userA: ua,
+      userB: ub,
+      userAName: userA?.firstName ?? null,
+      userBName: userB?.firstName ?? null,
+      experienceId: exp?.id ?? "e-golden-hour",
+      cafeId: cafe?.id ?? null,
+      suggestedDate,
+      suggestedTime: "19:30",
+      venue,
+      message:
+        "Congratulations on being selected in Datevra's milestone 100-match curated date celebration. Both partners must accept to confirm.",
+      status: "pending",
+      userAResponse: null,
+      userBResponse: null,
+      expiresAt,
+      bookingId: null,
+      createdAt: new Date().toISOString(),
+    };
+    db.automaticDateOffers.unshift(offer);
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "automatic",
+      offerId: offer.id,
+      actorId: null,
+      actorRole: "system",
+      eventType: "created",
+      detail: "Created in initial 100-match automatic date offer batch.",
+      createdAt: offer.createdAt,
+    });
+    created++;
+  }
+
+  const shortfall = Math.max(0, 10 - created);
+  db.autoDateOfferBatch = {
+    id: batchId,
+    batchKey: "initial_100_match_batch",
+    thresholdTarget: 100,
+    targetOfferCount: 10,
+    eligibleMatchCount: eligibleMatches.length,
+    createdOfferCount: created,
+    shortfallCount: shortfall,
+    status: "completed",
+    completedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+
+  save(db);
+  emit("date_offers");
+  return {
+    triggered: true,
+    already_completed: false,
+    batch_id: batchId,
+    eligible_matches: eligibleMatches.length,
+    created_offers: created,
+    shortfall,
+  };
+}
+
+export function getAutoDateOfferSummary(): AutoDateOfferSummary {
+  const db = load();
+  expireStaleOffers(db);
+  const eligible = db.matches.filter((m) => isEligibleMutualMatchInDb(db, m));
+  const remaining = eligible.filter((m) => {
+    const [ua, ub] = canonicalPair(m.userA, m.userB);
+    return (
+      !pairHasActiveOfferOrBookingInDb(db, ua, ub) &&
+      !db.automaticDateOffers.some((ao) => ao.userA === ua && ao.userB === ub)
+    );
+  });
+  return {
+    thresholdTarget: 100,
+    targetOfferCount: 10,
+    totalEligibleMatches: eligible.length,
+    remainingEligiblePairs: remaining.length,
+    batchStatus: db.autoDateOfferBatch?.status ?? "not_triggered",
+    batchId: db.autoDateOfferBatch?.id ?? null,
+    batchCompletedAt: db.autoDateOfferBatch?.completedAt ?? null,
+    shortfallCount: db.autoDateOfferBatch?.shortfallCount ?? 0,
+    offersCreated: db.automaticDateOffers.length,
+    offersPending: db.automaticDateOffers.filter((o) => o.status === "pending").length,
+    offersAccepted: db.automaticDateOffers.filter((o) => o.status === "accepted").length,
+    offersDeclined: db.automaticDateOffers.filter((o) => o.status === "declined").length,
+    offersExpired: db.automaticDateOffers.filter((o) => o.status === "expired").length,
+  };
+}
+
+export function listAutomaticDateOffers(): AutomaticDateOffer[] {
+  const db = load();
+  expireStaleOffers(db);
+  return db.automaticDateOffers.map((o) => ({
+    ...o,
+    userAName: o.userAName ?? db.users.find((u) => u.id === o.userA)?.firstName ?? null,
+    userBName: o.userBName ?? db.users.find((u) => u.id === o.userB)?.firstName ?? null,
+  }));
+}
+
+export function myAutomaticDateOffers(userId: string): AutomaticDateOffer[] {
+  return listAutomaticDateOffers().filter((o) => o.userA === userId || o.userB === userId);
+}
+
+export function respondToAutomaticDateOffer(
+  offerId: string,
+  userId: string,
+  accept: boolean,
+): AutomaticDateOffer {
+  const db = load();
+  const offer = db.automaticDateOffers.find((o) => o.id === offerId);
+  if (!offer) throw new Error("OFFER_NOT_FOUND: Automatic date offer not found.");
+  if (offer.userA !== userId && offer.userB !== userId) {
+    throw new Error("PERMISSION_DENIED: Only participants may respond to this date offer.");
+  }
+  if (offer.status === "pending" && new Date(offer.expiresAt).getTime() <= Date.now()) {
+    offer.status = "expired";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "automatic",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "system",
+      eventType: "expired",
+      detail: "Offer expired before response.",
+      createdAt: new Date().toISOString(),
+    });
+    save(db);
+    emit("date_offers");
+    return { ...offer };
+  }
+  if (offer.status !== "pending") {
+    throw new Error(`OFFER_NOT_PENDING: Offer is already ${offer.status}.`);
+  }
+  if (accept && isPairBlockedInDb(db, offer.userA, offer.userB)) {
+    offer.status = "cancelled";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "automatic",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "system",
+      eventType: "cancelled_blocked",
+      detail: "Offer cancelled due to an active block between participants.",
+      createdAt: new Date().toISOString(),
+    });
+    save(db);
+    emit("date_offers");
+    return { ...offer };
+  }
+
+  const nowIso = new Date().toISOString();
+  if (offer.userA === userId) {
+    offer.userAResponse = accept;
+    offer.userARespondedAt = nowIso;
+  } else {
+    offer.userBResponse = accept;
+    offer.userBRespondedAt = nowIso;
+  }
+
+  if (!accept) {
+    offer.status = "declined";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "automatic",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "user",
+      eventType: "declined",
+      detail: "Participant declined automatic date offer.",
+      createdAt: nowIso,
+    });
+  } else if (offer.userAResponse && offer.userBResponse) {
+    if (!offer.bookingId) {
+      const existingActive = findActiveBookingForPairInDb(db, offer.userA, offer.userB);
+      if (existingActive) {
+        offer.status = "cancelled";
+        db.dateOfferEvents.unshift({
+          id: uid("doe"),
+          offerSource: "automatic",
+          offerId: offer.id,
+          actorId: userId,
+          actorRole: "system",
+          eventType: "cancelled_active_booking_exists",
+          detail: `Active booking ${existingActive.id} already exists for this pair; duplicate booking prevented.`,
+          createdAt: nowIso,
+        });
+        save(db);
+        emit("date_offers");
+        return { ...offer };
+      }
+      const bk: DateBooking = {
+        id: uid("bk"),
+        userId: offer.userA,
+        partnerId: offer.userB,
+        experienceId: offer.experienceId,
+        cafeId: offer.cafeId,
+        date: offer.suggestedDate,
+        time: offer.suggestedTime,
+        venue: offer.venue,
+        status: "upcoming",
+        amount: 0,
+        paymentStatus: "pending",
+        createdAt: nowIso,
+      };
+      db.bookings.unshift(bk);
+      offer.bookingId = bk.id;
+    }
+    offer.status = "accepted";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "automatic",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "user",
+      eventType: "accepted_booking_created",
+      detail: `Both participants accepted; booking ${offer.bookingId} confirmed.`,
+      createdAt: nowIso,
+    });
+  }
+
+  save(db);
+  emit("date_offers");
+  return { ...offer };
+}
+
+/* =====================================================================
+ * Manual Date Offers (Req 4 — Admin-to-Pair)
+ * ===================================================================== */
+
+export function listManualDateOffers(): ManualDateOffer[] {
+  const db = load();
+  expireStaleOffers(db);
+  return db.manualDateOffers.map((o) => ({
+    ...o,
+    userAName: o.userAName ?? db.users.find((u) => u.id === o.userA)?.firstName ?? null,
+    userBName: o.userBName ?? db.users.find((u) => u.id === o.userB)?.firstName ?? null,
+  }));
+}
+
+export function myManualDateOffers(userId: string): ManualDateOffer[] {
+  return listManualDateOffers().filter((o) => o.userA === userId || o.userB === userId);
+}
+
+function findActiveBookingForPairInDb(
+  db: ReturnType<typeof load>,
+  userA: string,
+  userB: string,
+): DateBooking | undefined {
+  return db.bookings.find(
+    (b) =>
+      (["pending", "confirmed", "upcoming"] as string[]).includes(b.status) &&
+      ((b.userId === userA && b.partnerId === userB) || (b.userId === userB && b.partnerId === userA)),
+  );
+}
+
+function parseClockTimeSeconds(t: string): number | null {
+  const m24 = /^([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/.exec(t);
+  if (m24) {
+    return Number(m24[1]) * 3600 + Number(m24[2]) * 60 + Number(m24[3] ?? 0);
+  }
+  const m12 = /^(0?[1-9]|1[0-2]):([0-5]\d)\s*(AM|PM|am|pm)$/.exec(t);
+  if (m12) {
+    let h = Number(m12[1]) % 12;
+    if (m12[3].toUpperCase() === "PM") h += 12;
+    return h * 3600 + Number(m12[2]) * 60;
+  }
+  return null;
+}
+
+function validateScheduleInMockDb(dateStr: string, timeStr: string): void {
+  const d = (dateStr || "").trim();
+  const t = (timeStr || "").trim();
+  if (!d || !t) {
+    throw new Error("INVALID_SCHEDULE: Date and time are required.");
+  }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+  if (!m) {
+    throw new Error("INVALID_SCHEDULE: Date must use YYYY-MM-DD format.");
+  }
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const day = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, day));
+  if (
+    Number.isNaN(dt.getTime()) ||
+    dt.getUTCFullYear() !== y ||
+    dt.getUTCMonth() !== mo - 1 ||
+    dt.getUTCDate() !== day
+  ) {
+    throw new Error(`INVALID_SCHEDULE: Date "${d}" is not a valid calendar date.`);
+  }
+  const seconds = t.length <= 20 ? parseClockTimeSeconds(t) : null;
+  if (seconds === null) {
+    throw new Error(`INVALID_SCHEDULE: Time "${t}" must be a valid time.`);
+  }
+
+  const now = new Date();
+  const todayUtc = now.toISOString().slice(0, 10);
+  if (d < todayUtc) {
+    throw new Error(`INVALID_SCHEDULE: Date "${d}" cannot be in the past.`);
+  }
+  if (d === todayUtc) {
+    const nowSeconds = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+    if (seconds <= nowSeconds) {
+      throw new Error(`INVALID_SCHEDULE: Time "${t}" on today's date cannot be in the past.`);
+    }
+  }
+}
+
+export function createManualDateOffer(
+  input: CreateManualDateOfferInput,
+  adminId: string,
+): ManualDateOffer {
+  const db = load();
+  expireStaleOffers(db);
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  if (!input.userAId || !input.userBId || input.userAId === input.userBId) {
+    throw new Error("INVALID_PAIR: Two distinct members must be selected.");
+  }
+  validateScheduleInMockDb(input.date, input.time);
+  const [ua, ub] = canonicalPair(input.userAId, input.userBId);
+  if (isPairBlockedInDb(db, ua, ub)) {
+    throw new Error("PAIR_BLOCKED: Cannot create a manual date offer between blocked members.");
+  }
+  const duplicate = db.manualDateOffers.some(
+    (o) =>
+      o.userA === ua &&
+      o.userB === ub &&
+      o.suggestedDate === input.date.trim() &&
+      o.status === "pending",
+  );
+  if (duplicate) {
+    throw new Error(`DUPLICATE_ACTIVE_OFFER: An active manual date offer already exists for this pair on ${input.date}.`);
+  }
+
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 5 * 86400000).toISOString();
+  if (new Date(expiresAt).getTime() <= Date.now()) {
+    throw new Error("INVALID_EXPIRY: Offer expiry must be in the future.");
+  }
+
+  const userA = db.users.find((u) => u.id === ua);
+  const userB = db.users.find((u) => u.id === ub);
+  const match = db.matches.find(
+    (m) => (m.userA === ua && m.userB === ub) || (m.userA === ub && m.userB === ua),
+  );
+  const nowIso = new Date().toISOString();
+
+  const offer: ManualDateOffer = {
+    id: uid("mdo"),
+    userA: ua,
+    userB: ub,
+    userAName: userA?.firstName ?? null,
+    userBName: userB?.firstName ?? null,
+    matchId: match?.id ?? null,
+    experienceId: input.experienceId,
+    cafeId: input.cafeId ?? null,
+    suggestedDate: input.date.trim(),
+    suggestedTime: input.time.trim(),
+    venue: input.venue.trim() || "Curated Partner Venue",
+    message: input.message?.trim() || null,
+    status: "pending",
+    userAResponse: null,
+    userBResponse: null,
+    expiresAt,
+    bookingId: null,
+    createdByAdminId: adminId,
+    createdAt: nowIso,
+  };
+
+  db.manualDateOffers.unshift(offer);
+  db.dateOfferEvents.unshift({
+    id: uid("doe"),
+    offerSource: "manual",
+    offerId: offer.id,
+    actorId: adminId,
+    actorRole: "admin",
+    eventType: "created",
+    detail: `Admin created manual date offer at ${offer.venue} on ${offer.suggestedDate}.`,
+    createdAt: nowIso,
+  });
+  logActivity(adminId, "manual_date_offer.create", `Created manual date offer ${offer.id}`);
+  save(db);
+  emit("date_offers");
+  return { ...offer };
+}
+
+export function cancelManualDateOffer(
+  offerId: string,
+  reason: string | null,
+  adminId: string,
+): ManualDateOffer {
+  const db = load();
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  const offer = db.manualDateOffers.find((o) => o.id === offerId);
+  if (!offer) throw new Error("OFFER_NOT_FOUND: Manual date offer not found.");
+  if (offer.status !== "pending") {
+    throw new Error(`INVALID_STATUS: Only pending offers may be cancelled (current: ${offer.status}).`);
+  }
+  offer.status = "cancelled";
+  offer.cancelledByAdminId = adminId;
+  offer.cancelReason = reason?.trim() || null;
+  db.dateOfferEvents.unshift({
+    id: uid("doe"),
+    offerSource: "manual",
+    offerId: offer.id,
+    actorId: adminId,
+    actorRole: "admin",
+    eventType: "cancelled",
+    detail: reason?.trim() || "Cancelled by administrator.",
+    createdAt: new Date().toISOString(),
+  });
+  save(db);
+  emit("date_offers");
+  return { ...offer };
+}
+
+export function respondToManualDateOffer(
+  offerId: string,
+  userId: string,
+  accept: boolean,
+): ManualDateOffer {
+  const db = load();
+  const offer = db.manualDateOffers.find((o) => o.id === offerId);
+  if (!offer) throw new Error("OFFER_NOT_FOUND: Manual date offer not found.");
+  if (offer.userA !== userId && offer.userB !== userId) {
+    throw new Error("PERMISSION_DENIED: Only participants may respond to this date offer.");
+  }
+  if (offer.status === "pending" && new Date(offer.expiresAt).getTime() <= Date.now()) {
+    offer.status = "expired";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "manual",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "system",
+      eventType: "expired",
+      detail: "Manual offer expired before response.",
+      createdAt: new Date().toISOString(),
+    });
+    save(db);
+    emit("date_offers");
+    return { ...offer };
+  }
+  if (offer.status !== "pending") {
+    throw new Error(`OFFER_NOT_PENDING: Offer is already ${offer.status}.`);
+  }
+  if (accept && isPairBlockedInDb(db, offer.userA, offer.userB)) {
+    offer.status = "cancelled";
+    offer.cancelReason = "Blocked pair";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "manual",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "system",
+      eventType: "cancelled_blocked",
+      detail: "Cancelled due to active block between participants.",
+      createdAt: new Date().toISOString(),
+    });
+    save(db);
+    emit("date_offers");
+    return { ...offer };
+  }
+
+  const nowIso = new Date().toISOString();
+  if (offer.userA === userId) {
+    offer.userAResponse = accept;
+    offer.userARespondedAt = nowIso;
+  } else {
+    offer.userBResponse = accept;
+    offer.userBRespondedAt = nowIso;
+  }
+
+  if (!accept) {
+    offer.status = "declined";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "manual",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "user",
+      eventType: "declined",
+      detail: "Participant declined manual date offer.",
+      createdAt: nowIso,
+    });
+  } else if (offer.userAResponse && offer.userBResponse) {
+    if (!offer.bookingId) {
+      const existingActive = findActiveBookingForPairInDb(db, offer.userA, offer.userB);
+      if (existingActive) {
+        offer.status = "cancelled";
+        offer.cancelReason = "Active booking already exists for this pair";
+        db.dateOfferEvents.unshift({
+          id: uid("doe"),
+          offerSource: "manual",
+          offerId: offer.id,
+          actorId: userId,
+          actorRole: "system",
+          eventType: "cancelled_active_booking_exists",
+          detail: `Active booking ${existingActive.id} already exists for this pair; duplicate booking prevented.`,
+          createdAt: nowIso,
+        });
+        save(db);
+        emit("date_offers");
+        return { ...offer };
+      }
+      const bk: DateBooking = {
+        id: uid("bk"),
+        userId: offer.userA,
+        partnerId: offer.userB,
+        experienceId: offer.experienceId,
+        cafeId: offer.cafeId,
+        date: offer.suggestedDate,
+        time: offer.suggestedTime,
+        venue: offer.venue,
+        status: "upcoming",
+        amount: 0,
+        paymentStatus: "pending",
+        createdAt: nowIso,
+      };
+      db.bookings.unshift(bk);
+      offer.bookingId = bk.id;
+    }
+    offer.status = "accepted";
+    db.dateOfferEvents.unshift({
+      id: uid("doe"),
+      offerSource: "manual",
+      offerId: offer.id,
+      actorId: userId,
+      actorRole: "user",
+      eventType: "accepted_booking_created",
+      detail: `Both participants accepted; booking ${offer.bookingId} confirmed.`,
+      createdAt: nowIso,
+    });
+  }
+
+  save(db);
+  emit("date_offers");
+  return { ...offer };
+}
+
+export function listDateOfferEvents(offerId?: string): DateOfferEvent[] {
+  const all = load().dateOfferEvents;
+  return offerId ? all.filter((e) => e.offerId === offerId) : all;
+}
+
+/* =====================================================================
+ * Invitation Dates (Req 5 — Individual / Group / Pair with Privacy)
+ * ===================================================================== */
+
+export function listDateInvitations(): DateInvitation[] {
+  const db = load();
+  return db.dateInvitations.map((inv) => ({
+    ...inv,
+    recipients: inv.recipients.map((r) => {
+      const u = db.users.find((x) => x.id === r.userId);
+      return { ...r, userName: r.userName ?? u?.firstName ?? null, userCity: r.userCity ?? u?.city ?? null };
+    }),
+  }));
+}
+
+export function myDateInvitations(userId: string): DateInvitation[] {
+  // STRICT PRIVACY: Strip all other invitees' records before returning to member
+  return listDateInvitations()
+    .filter((inv) => inv.recipients.some((r) => r.userId === userId))
+    .map((inv) => ({
+      ...inv,
+      recipients: inv.recipients.filter((r) => r.userId === userId),
+    }));
+}
+
+export function createDateInvitation(
+  input: CreateDateInvitationInput,
+  adminId: string,
+): DateInvitation {
+  const db = load();
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  if (!input.invitationMode || !["individual", "group", "pair"].includes(input.invitationMode)) {
+    throw new Error("INVALID_MODE: Invitation mode must be individual, group, or pair.");
+  }
+  if (!input.title || !input.title.trim()) {
+    throw new Error("INVALID_TITLE: Invitation title is required.");
+  }
+  validateScheduleInMockDb(input.date, input.time);
+  const expId = input.experienceId?.trim() || null;
+  if (input.invitationMode === "pair" && !expId) {
+    throw new Error("EXPERIENCE_REQUIRED: Paired invitations must specify a valid experience.");
+  }
+  if (expId && !SEED_EXPERIENCES.some((e) => e.id === expId)) {
+    throw new Error("EXPERIENCE_NOT_FOUND: Selected experience does not exist.");
+  }
+  if (input.cafeId && !db.cafes.some((c) => c.id === input.cafeId)) {
+    throw new Error("CAFE_NOT_FOUND: Selected café does not exist.");
+  }
+  const uniqueIds = Array.from(new Set(input.userIds.filter(Boolean)));
+  if (uniqueIds.length === 0) throw new Error("NO_INVITEES: Select at least one member.");
+  if (input.invitationMode === "individual" && uniqueIds.length !== 1) {
+    throw new Error("INVALID_INVITEE_COUNT: Individual invitation must target exactly 1 member.");
+  }
+  if (input.invitationMode === "pair") {
+    if (uniqueIds.length !== 2) {
+      throw new Error("INVALID_INVITEE_COUNT: Paired invitation must target exactly 2 distinct members.");
+    }
+    if (isPairBlockedInDb(db, uniqueIds[0], uniqueIds[1])) {
+      throw new Error("PAIR_BLOCKED: Cannot invite blocked members as a pair.");
+    }
+    const [pairA, pairB] = canonicalPair(uniqueIds[0], uniqueIds[1]);
+    const nowMs = Date.now();
+    // Expire any stale overdue active paired invitations for this pair before duplicate check
+    for (const existingInv of db.dateInvitations) {
+      if (existingInv.invitationMode !== "pair" || existingInv.status !== "active") continue;
+      const matchesPair = existingInv.recipients.some(
+        (r) =>
+          (r.userId === pairA && r.partnerUserId === pairB) ||
+          (r.userId === pairB && r.partnerUserId === pairA),
+      );
+      if (!matchesPair) continue;
+      if (new Date(existingInv.expiresAt).getTime() <= nowMs) {
+        existingInv.status = "expired";
+        existingInv.recipients.forEach((r) => {
+          if (r.response === "pending") r.response = "expired";
+        });
+      }
+    }
+    const duplicatePairInvite = db.dateInvitations.some(
+      (existingInv) =>
+        existingInv.invitationMode === "pair" &&
+        existingInv.status === "active" &&
+        new Date(existingInv.expiresAt).getTime() > nowMs &&
+        existingInv.date === input.date.trim() &&
+        existingInv.recipients.some(
+          (r) =>
+            (r.userId === pairA && r.partnerUserId === pairB) ||
+            (r.userId === pairB && r.partnerUserId === pairA),
+        ),
+    );
+    if (duplicatePairInvite) {
+      throw new Error(
+        `DUPLICATE_ACTIVE_INVITATION: An active paired invitation already exists for this pair on ${input.date.trim()}.`,
+      );
+    }
+  }
+  for (const uidCheck of uniqueIds) {
+    if (!db.users.some((x) => x.id === uidCheck)) {
+      throw new Error("PROFILE_NOT_FOUND: One or more selected invitees do not exist.");
+    }
+  }
+  const expiresAt = input.expiresAt ?? new Date(Date.now() + 7 * 86400000).toISOString();
+  if (new Date(expiresAt).getTime() <= Date.now()) {
+    throw new Error("INVALID_EXPIRY: Invitation expiry must be in the future.");
+  }
+
+  const nowIso = new Date().toISOString();
+  const invId = uid("dinv");
+  const recipients: DateInvitationRecipient[] = uniqueIds.map((uId) => {
+    const u = db.users.find((x) => x.id === uId);
+    return {
+      id: uid("dir"),
+      invitationId: invId,
+      userId: uId,
+      userName: u?.firstName ?? null,
+      userCity: u?.city ?? null,
+      partnerUserId:
+        input.invitationMode === "pair"
+          ? uId === uniqueIds[0]
+            ? uniqueIds[1]
+            : uniqueIds[0]
+          : null,
+      response: "pending",
+      respondedAt: null,
+      bookingId: null,
+      createdAt: nowIso,
+    };
+  });
+
+  const inv: DateInvitation = {
+    id: invId,
+    invitationMode: input.invitationMode,
+    title: input.title.trim(),
+    experienceId: input.experienceId ?? null,
+    cafeId: input.cafeId ?? null,
+    date: input.date.trim(),
+    time: input.time.trim(),
+    venue: input.venue.trim() || "Curated Venue",
+    message: input.message?.trim() || null,
+    expiresAt,
+    status: "active",
+    createdByAdminId: adminId,
+    createdAt: nowIso,
+    recipients,
+  };
+
+  db.dateInvitations.unshift(inv);
+  logActivity(adminId, "date_invitation.create", `Created ${inv.invitationMode} invitation "${inv.title}"`);
+  save(db);
+  emit("invitations");
+  return { ...inv };
+}
+
+export function cancelDateInvitation(invitationId: string, adminId: string): DateInvitation {
+  const db = load();
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  const inv = db.dateInvitations.find((x) => x.id === invitationId);
+  if (!inv) {
+    throw new Error("INVITATION_NOT_ACTIVE: Active invitation not found.");
+  }
+  if (inv.status === "active" && new Date(inv.expiresAt).getTime() <= Date.now()) {
+    inv.status = "expired";
+    inv.recipients.forEach((r) => {
+      if (r.response === "pending") r.response = "expired";
+    });
+    save(db);
+    emit("invitations");
+    return { ...inv, recipients: inv.recipients.map((r) => ({ ...r })) };
+  }
+  if (inv.status !== "active") {
+    throw new Error("INVITATION_NOT_ACTIVE: Active invitation not found.");
+  }
+  const nowIso = new Date().toISOString();
+  inv.status = "cancelled";
+  inv.cancelledAt = nowIso;
+  if (inv.invitationMode === "pair") {
+    inv.recipients.forEach((r) => {
+      r.response = "declined";
+      r.bookingId = null;
+      r.respondedAt = r.respondedAt ?? nowIso;
+    });
+  }
+  logActivity(adminId, "date_invitation.cancel", `Cancelled invitation ${inv.id} (${inv.title})`);
+  save(db);
+  emit("invitations");
+  return { ...inv, recipients: inv.recipients.map((r) => ({ ...r })) };
+}
+
+export function respondToDateInvitation(
+  invitationId: string,
+  userId: string,
+  accept: boolean,
+): DateInvitationRecipient {
+  const db = load();
+  const inv = db.dateInvitations.find((x) => x.id === invitationId);
+  if (!inv) throw new Error("INVITATION_NOT_FOUND: Invitation not found.");
+  const rec = inv.recipients.find((r) => r.userId === userId);
+  if (!rec) throw new Error("PERMISSION_DENIED: You are not an invitee for this invitation.");
+  if (inv.status === "active" && new Date(inv.expiresAt).getTime() <= Date.now()) {
+    inv.status = "expired";
+    inv.recipients.forEach((r) => {
+      if (r.response === "pending") r.response = "expired";
+    });
+    save(db);
+    emit("invitations");
+    return { ...rec };
+  }
+  if (inv.status !== "active") throw new Error(`INVITATION_CLOSED: This invitation is ${inv.status}.`);
+  if (rec.response !== "pending") {
+    throw new Error(`ALREADY_RESPONDED: Already responded (${rec.response}).`);
+  }
+
+  const nowIso = new Date().toISOString();
+  if (inv.invitationMode === "pair" && accept && rec.partnerUserId && isPairBlockedInDb(db, userId, rec.partnerUserId)) {
+    inv.status = "cancelled";
+    inv.cancelledAt = nowIso;
+    inv.recipients.forEach((r) => {
+      r.response = "declined";
+      r.bookingId = null;
+      r.respondedAt = r.respondedAt ?? nowIso;
+    });
+    save(db);
+    emit("invitations");
+    return { ...rec };
+  }
+
+  if (inv.invitationMode === "pair" && !accept) {
+    inv.status = "cancelled";
+    inv.cancelledAt = nowIso;
+    inv.recipients.forEach((r) => {
+      r.response = "declined";
+      r.bookingId = null;
+      r.respondedAt = r.respondedAt ?? nowIso;
+    });
+    save(db);
+    emit("invitations");
+    return { ...rec };
+  }
+
+  rec.response = accept ? "accepted" : "declined";
+  rec.respondedAt = nowIso;
+
+  // Individual & group invitations NEVER auto-create a two-person date_booking.
+  if (inv.invitationMode === "pair" && accept && rec.partnerUserId) {
+    const partnerRec = inv.recipients.find((r) => r.userId === rec.partnerUserId);
+    if (partnerRec && partnerRec.response === "accepted" && !rec.bookingId && !partnerRec.bookingId) {
+      const [ua, ub] = canonicalPair(userId, rec.partnerUserId);
+      const existingActive = findActiveBookingForPairInDb(db, ua, ub);
+      if (existingActive) {
+        inv.status = "cancelled";
+        inv.cancelledAt = nowIso;
+        inv.recipients.forEach((r) => {
+          r.response = "declined";
+          r.bookingId = null;
+          r.respondedAt = r.respondedAt ?? nowIso;
+        });
+        logActivity(
+          userId,
+          "date_invitation.cancelled_active_booking_exists",
+          `Cancelled paired invitation ${inv.id} because active booking ${existingActive.id} already exists for this pair.`,
+        );
+        save(db);
+        emit("invitations");
+        return { ...rec };
+      }
+      const bk: DateBooking = {
+        id: uid("bk"),
+        userId: ua,
+        partnerId: ub,
+        experienceId: inv.experienceId ?? SEED_EXPERIENCES[0]?.id ?? "e-golden-hour",
+        cafeId: inv.cafeId,
+        date: inv.date,
+        time: inv.time,
+        venue: inv.venue,
+        status: "upcoming",
+        amount: 0,
+        paymentStatus: "pending",
+        createdAt: nowIso,
+      };
+      db.bookings.unshift(bk);
+      rec.bookingId = bk.id;
+      partnerRec.bookingId = bk.id;
+      inv.status = "completed";
+    }
+  }
+
+  save(db);
+  emit("invitations");
+  return { ...rec };
+}
+
+/* =====================================================================
+ * Verified Membership Celebration Idempotency (Req 7)
+ * ===================================================================== */
+
+export function acknowledgeMembershipCelebration(paymentId: string, userId: string): string {
+  const db = load();
+  const p = db.payments.find(
+    (x) => x.id === paymentId && x.userId === userId && x.kind === "membership" && x.status === "verified",
+  );
+  if (!p) {
+    throw new Error("PAYMENT_NOT_ELIGIBLE: Verified membership payment not found for caller.");
+  }
+  if (!p.celebrationShownAt) {
+    p.celebrationShownAt = new Date().toISOString();
+    save(db);
+    emit("payments");
+  }
+  return p.celebrationShownAt;
+}
+
+/* =====================================================================
+ * Outside-Delhi Limited-Value Money Vouchers with OTP (Req 8)
+ * ===================================================================== */
+
+export function getVoucherSettings(): VoucherSettings {
+  return { ...load().voucherSettings };
+}
+
+export function updateVoucherSettings(
+  patch: Partial<VoucherSettings>,
+  adminId: string,
+): VoucherSettings {
+  const db = load();
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  const nextEnabled = patch.enabled ?? db.voucherSettings.enabled;
+  const nextVal =
+    patch.voucherValueInr !== undefined ? patch.voucherValueInr : db.voucherSettings.voucherValueInr;
+  if (nextEnabled && (!nextVal || nextVal <= 0)) {
+    throw new Error(
+      "VALUE_REQUIRED: An approved positive INR voucher value must be configured before enabling issuance.",
+    );
+  }
+  db.voucherSettings = {
+    ...db.voucherSettings,
+    ...patch,
+    enabled: nextEnabled,
+    voucherValueInr: nextVal,
+    maxClaimsPerUser: Math.max(1, patch.maxClaimsPerUser ?? db.voucherSettings.maxClaimsPerUser),
+    expiryDays: Math.max(1, patch.expiryDays ?? db.voucherSettings.expiryDays),
+    excludedCities:
+      patch.excludedCities && patch.excludedCities.length > 0
+        ? patch.excludedCities
+        : db.voucherSettings.excludedCities,
+    updatedByAdminId: adminId,
+    updatedAt: new Date().toISOString(),
+  };
+  logActivity(
+    adminId,
+    "voucher_settings.update",
+    `Updated voucher settings (enabled=${nextEnabled}, value=₹${nextVal ?? "unset"})`,
+  );
+  save(db);
+  emit("vouchers");
+  return { ...db.voucherSettings };
+}
+
+export function listAllVouchers(): UserVoucher[] {
+  const db = load();
+  return db.userVouchers.map((v) => {
+    const u = db.users.find((x) => x.id === v.userId);
+    return {
+      ...v,
+      userName: v.userName ?? u?.firstName ?? null,
+      userEmail: v.userEmail ?? u?.email ?? null,
+    };
+  });
+}
+
+export function myVouchers(userId: string): UserVoucher[] {
+  return listAllVouchers().filter((v) => v.userId === userId);
+}
+
+export function requestVoucherOtp(
+  userId: string,
+  channel: "email" | "sms",
+  phone?: string,
+): VoucherOtpChallengeResponse {
+  const db = load();
+  const s = db.voucherSettings;
+  if (!s.enabled || !s.voucherValueInr || s.voucherValueInr <= 0) {
+    throw new Error(
+      "VOUCHER_PROGRAM_DISABLED: Outside-Delhi voucher issuance is currently disabled until configured by an administrator.",
+    );
+  }
+  const u = db.users.find((x) => x.id === userId);
+  if (!u) throw new Error("PROFILE_NOT_FOUND: Member profile not found.");
+
+  const elig = isMemberEligibleForOutsideDelhiVoucher(u.city, u.registeredCity ?? u.city, s.excludedCities);
+  if (!elig.eligible) {
+    throw new Error(`INELIGIBLE_CITY: ${elig.reason ?? "Outside-Delhi residency required."}`);
+  }
+
+  const userClaims = db.userVouchers.filter(
+    (v) => v.userId === userId && ["issued", "redeemed", "expired"].includes(v.status),
+  ).length;
+  if (userClaims >= s.maxClaimsPerUser) {
+    throw new Error("CLAIM_LIMIT_REACHED: You have already claimed your maximum allowed voucher(s).");
+  }
+
+  const now = Date.now();
+  const recent15 = db.voucherOtpChallenges.filter(
+    (c) => c.userId === userId && now - new Date(c.createdAt).getTime() < 15 * 60 * 1000,
+  ).length;
+  if (recent15 >= 3) {
+    throw new Error("RATE_LIMITED: Too many OTP requests. Please wait 15 minutes.");
+  }
+
+  const recent24 = db.voucherOtpChallenges.filter(
+    (c) => c.userId === userId && now - new Date(c.createdAt).getTime() < 24 * 60 * 60 * 1000,
+  ).length;
+  if (recent24 >= 6) {
+    throw new Error("RATE_LIMITED: Daily OTP request limit reached.");
+  }
+
+  db.voucherOtpChallenges.forEach((c) => {
+    if (c.userId === userId && c.status === "pending") c.status = "expired";
+  });
+
+  const dest = channel === "sms" ? (phone ?? "").trim() : u.email;
+  if (channel === "sms" && !/^\+?[1-9]\d{9,14}$/.test(dest)) {
+    throw new Error("Enter a valid mobile number (10–15 digits).");
+  }
+  const masked =
+    channel === "email"
+      ? `${dest.slice(0, 2)}***@${dest.split("@")[1] ?? "mail"}`
+      : `${"*".repeat(Math.max(4, dest.length - 4))}${dest.slice(-4)}`;
+
+  // Generate CSPRNG 6-digit OTP for local demo verification
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  const otpCode = String(buf[0] % 1_000_000).padStart(6, "0");
+
+  const challengeId = uid("votp");
+  const expiresAt = new Date(now + 10 * 60 * 1000).toISOString();
+  db.voucherOtpChallenges.unshift({
+    id: challengeId,
+    userId,
+    channel,
+    destinationMasked: masked,
+    status: "pending",
+    attemptCount: 0,
+    maxAttempts: 5,
+    expiresAt,
+    verifiedAt: null,
+    consumedAt: null,
+    createdAt: new Date(now).toISOString(),
+    otpCode,
+  });
+
+  save(db);
+  return {
+    challengeId,
+    channel,
+    destinationMasked: masked,
+    expiresAt,
+    demoHint: `Demo mode code: ${otpCode}`,
+  };
+}
+
+export function verifyVoucherOtpAndClaim(
+  userId: string,
+  challengeId: string,
+  otp: string,
+): UserVoucher {
+  const db = load();
+  const s = db.voucherSettings;
+  if (!s.enabled || !s.voucherValueInr || s.voucherValueInr <= 0) {
+    throw new Error("VOUCHER_PROGRAM_DISABLED: Voucher issuance is currently disabled.");
+  }
+  const challenge = db.voucherOtpChallenges.find(
+    (c) => c.id === challengeId && c.userId === userId,
+  );
+  if (!challenge) throw new Error("OTP_NOT_FOUND: OTP challenge not found.");
+  if (challenge.status === "consumed") throw new Error("OTP_ALREADY_USED: This OTP has already been used.");
+  if (challenge.status === "locked") throw new Error("OTP_LOCKED: Maximum OTP attempts exceeded.");
+  if (challenge.status !== "pending") throw new Error("OTP_INVALID: Challenge is no longer active.");
+  if (new Date(challenge.expiresAt).getTime() <= Date.now()) {
+    challenge.status = "expired";
+    save(db);
+    throw new Error("OTP_EXPIRED: This OTP has expired.");
+  }
+
+  if (challenge.otpCode !== otp.trim()) {
+    challenge.attemptCount += 1;
+    if (challenge.attemptCount >= challenge.maxAttempts) {
+      challenge.status = "locked";
+    }
+    save(db);
+    throw new Error("OTP_MISMATCH: Invalid OTP code.");
+  }
+
+  const u = db.users.find((x) => x.id === userId);
+  if (!u) throw new Error("PROFILE_NOT_FOUND: Member profile not found.");
+  const elig = isMemberEligibleForOutsideDelhiVoucher(u.city, u.registeredCity ?? u.city, s.excludedCities);
+  if (!elig.eligible) {
+    throw new Error(`INELIGIBLE_CITY: ${elig.reason ?? "Outside-Delhi residency required."}`);
+  }
+
+  const userClaims = db.userVouchers.filter(
+    (v) => v.userId === userId && ["issued", "redeemed", "expired"].includes(v.status),
+  ).length;
+  if (userClaims >= s.maxClaimsPerUser) {
+    throw new Error("CLAIM_LIMIT_REACHED: Member has already reached the maximum voucher claim limit.");
+  }
+  if (s.maxTotalVouchers !== null) {
+    const total = db.userVouchers.filter((v) => ["issued", "redeemed"].includes(v.status)).length;
+    if (total >= s.maxTotalVouchers) {
+      throw new Error("PROGRAM_CAP_REACHED: Maximum voucher issuance cap has been reached.");
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  challenge.status = "consumed";
+  challenge.verifiedAt = nowIso;
+  challenge.consumedAt = nowIso;
+
+  const voucher: UserVoucher = {
+    id: uid("vch"),
+    userId,
+    userName: u.firstName,
+    userEmail: u.email,
+    code: generateUnbiasedCode("DVR-VCH", [4, 4]),
+    valueInr: s.voucherValueInr,
+    nonCashWithdrawable: true,
+    status: "issued",
+    cityAtClaim: u.city,
+    registeredCityAtClaim: u.registeredCity ?? u.city,
+    otpChallengeId: challenge.id,
+    otpVerifiedAt: nowIso,
+    expiresAt: new Date(Date.now() + s.expiryDays * 86400000).toISOString(),
+    redeemedAt: null,
+    redemptionRef: null,
+    revokedAt: null,
+    revocationReason: null,
+    createdAt: nowIso,
+  };
+
+  db.userVouchers.unshift(voucher);
+  save(db);
+  emit("vouchers");
+  return { ...voucher };
+}
+
+export function redeemVoucher(
+  code: string,
+  userId: string,
+  redemptionRef?: string,
+): UserVoucher {
+  const db = load();
+  const clean = code.trim().toUpperCase();
+  const voucher = db.userVouchers.find((v) => v.code === clean);
+  if (!voucher) throw new Error("VOUCHER_NOT_FOUND: Voucher code not found.");
+  const actor = db.users.find((x) => x.id === userId);
+  if (voucher.userId !== userId && userId !== "admin-1" && !actor?.isAdmin) {
+    throw new Error("PERMISSION_DENIED: You are not authorized to redeem this voucher.");
+  }
+  if (voucher.status === "redeemed") throw new Error("ALREADY_REDEEMED: This voucher has already been redeemed.");
+  if (voucher.status === "revoked") throw new Error("VOUCHER_REVOKED: This voucher has been revoked.");
+  if (voucher.status === "expired" || new Date(voucher.expiresAt).getTime() <= Date.now()) {
+    voucher.status = "expired";
+    save(db);
+    throw new Error("VOUCHER_EXPIRED: This voucher has expired.");
+  }
+
+  voucher.status = "redeemed";
+  voucher.redeemedAt = new Date().toISOString();
+  voucher.redemptionRef = redemptionRef?.trim() || "in_app_redemption";
+  save(db);
+  emit("vouchers");
+  return { ...voucher };
+}
+
+export function revokeVoucher(
+  voucherId: string,
+  reason: string | null,
+  adminId: string,
+): UserVoucher {
+  const db = load();
+  const adminUser = db.users.find((u) => u.id === adminId);
+  if (!adminId || (adminId !== "admin-1" && !adminUser?.isAdmin)) {
+    throw new Error("PERMISSION_DENIED: Administrator privileges required.");
+  }
+  const voucher = db.userVouchers.find((v) => v.id === voucherId);
+  if (!voucher) throw new Error("VOUCHER_NOT_FOUND: Voucher not found.");
+  if (voucher.status !== "issued") {
+    throw new Error(`INVALID_STATUS: Only unredeemed issued vouchers may be revoked (current: ${voucher.status}).`);
+  }
+  voucher.status = "revoked";
+  voucher.revokedAt = new Date().toISOString();
+  voucher.revokedByAdminId = adminId;
+  voucher.revocationReason = reason?.trim() || null;
+  save(db);
+  emit("vouchers");
+  return { ...voucher };
+}
+
+export function listVoucherOtpStatus(): VoucherOtpStatusRecord[] {
+  // Never expose otpCode in admin status listing
+  return load().voucherOtpChallenges.map(({ otpCode: _redacted, ...safe }) => safe);
+}
+

@@ -6,17 +6,25 @@ import { PLANS } from "../data/seed";
 import type {
   ActivityLog,
   AppNotification,
+  AutoDateOfferSummary,
+  AutomaticDateOffer,
   Block,
   Cafe,
   CmsPage,
   ComplimentaryPass,
   Conversation,
+  CreateDateInvitationInput,
+  CreateManualDateOfferInput,
   DailyUsage,
   DateApplication,
   DateBooking,
   DateExperience,
+  DateInvitation,
+  DateInvitationRecipient,
+  DateOfferEvent,
   InvestorRecord,
   Like,
+  ManualDateOffer,
   Match,
   MatchPreferences,
   MatchProposal,
@@ -32,6 +40,10 @@ import type {
   SendLikeResult,
   Subscription,
   UserProfile,
+  UserVoucher,
+  VoucherOtpChallengeResponse,
+  VoucherOtpStatusRecord,
+  VoucherSettings,
   RevokeComplimentaryPassResult,
 } from "./types";
 
@@ -56,7 +68,8 @@ export type BackendEvent =
   | "profiles" | "likes" | "matches" | "notifications" | "applications"
   | "bookings" | "cafes" | "payments" | "subscriptions" | "reports"
   | "blocks" | "conversations" | "settings" | "cms" | "investors" | "activity"
-  | "passes" | "membership_passes" | "proposals";
+  | "passes" | "membership_passes" | "proposals"
+  | "date_offers" | "invitations" | "vouchers";
 
 export interface Backend {
   readonly mode: "demo" | "supabase";
@@ -186,6 +199,37 @@ export interface Backend {
   createMatchProposal(userAId: string, userBId: string, message: string | null, adminId: string): Promise<MatchProposal>;
   respondToMatchProposal(proposalId: string, userId: string, accept: boolean): Promise<MatchProposal>;
   myMatchProposals(userId: string): Promise<MatchProposal[]>;
+  /* ---------------- automatic date offers (Req 3) ---------------- */
+  getAutoDateOfferSummary(): Promise<AutoDateOfferSummary>;
+  evaluateInitialAutoDateOffers(): Promise<Record<string, unknown>>;
+  listAutomaticDateOffers(): Promise<AutomaticDateOffer[]>;
+  myAutomaticDateOffers(userId: string): Promise<AutomaticDateOffer[]>;
+  respondToAutomaticDateOffer(offerId: string, userId: string, accept: boolean): Promise<AutomaticDateOffer>;
+  /* ---------------- manual date offers (Req 4) ---------------- */
+  listManualDateOffers(): Promise<ManualDateOffer[]>;
+  myManualDateOffers(userId: string): Promise<ManualDateOffer[]>;
+  createManualDateOffer(input: CreateManualDateOfferInput, adminId: string): Promise<ManualDateOffer>;
+  cancelManualDateOffer(offerId: string, reason: string | null, adminId: string): Promise<ManualDateOffer>;
+  respondToManualDateOffer(offerId: string, userId: string, accept: boolean): Promise<ManualDateOffer>;
+  listDateOfferEvents(offerId?: string): Promise<DateOfferEvent[]>;
+  /* ---------------- invitation dates (Req 5) ---------------- */
+  listDateInvitations(): Promise<DateInvitation[]>;
+  myDateInvitations(userId: string): Promise<DateInvitation[]>;
+  createDateInvitation(input: CreateDateInvitationInput, adminId: string): Promise<DateInvitation>;
+  cancelDateInvitation(invitationId: string, adminId: string): Promise<DateInvitation>;
+  respondToDateInvitation(invitationId: string, userId: string, accept: boolean): Promise<DateInvitationRecipient>;
+  /* ---------------- verified membership celebration (Req 7) ---------------- */
+  acknowledgeMembershipCelebration(paymentId: string, userId: string): Promise<string>;
+  /* ---------------- outside-Delhi vouchers & OTP (Req 8) ---------------- */
+  getVoucherSettings(): Promise<VoucherSettings>;
+  updateVoucherSettings(settings: Partial<VoucherSettings>, adminId: string): Promise<VoucherSettings>;
+  listAllVouchers(): Promise<UserVoucher[]>;
+  myVouchers(userId: string): Promise<UserVoucher[]>;
+  requestVoucherOtp(userId: string, channel: "email" | "sms", phone?: string): Promise<VoucherOtpChallengeResponse>;
+  verifyVoucherOtpAndClaim(userId: string, challengeId: string, otp: string): Promise<UserVoucher>;
+  redeemVoucher(code: string, userId: string, redemptionRef?: string): Promise<UserVoucher>;
+  revokeVoucher(voucherId: string, reason: string | null, adminId: string): Promise<UserVoucher>;
+  listVoucherOtpStatus(): Promise<VoucherOtpStatusRecord[]>;
   /** Coarse invalidation subscription (realtime in Supabase mode). */
   subscribe(evt: BackendEvent, cb: () => void): () => void;
   /** Demo-mode only: wipes local data. No-op in Supabase mode. */
@@ -214,6 +258,9 @@ const DEMO_EVENT_MAP: Record<BackendEvent, string | null> = {
   passes: "passes",
   membership_passes: "membership_passes",
   proposals: "proposals",
+  date_offers: "date_offers",
+  invitations: "invitations",
+  vouchers: "vouchers",
 };
 
 export const demoBackend: Backend = {
@@ -315,6 +362,32 @@ export const demoBackend: Backend = {
   createMatchProposal: (a, b, m, ad) => Promise.resolve(mock.createMatchProposal(a, b, m, ad)),
   respondToMatchProposal: (id, u, ac) => Promise.resolve(mock.respondToMatchProposal(id, u, ac)),
   myMatchProposals: (u) => Promise.resolve(mock.myMatchProposals(u)),
+  getAutoDateOfferSummary: () => Promise.resolve(mock.getAutoDateOfferSummary()),
+  evaluateInitialAutoDateOffers: () => Promise.resolve(mock.evaluateInitialAutoDateOffers()),
+  listAutomaticDateOffers: () => Promise.resolve(mock.listAutomaticDateOffers()),
+  myAutomaticDateOffers: (u) => Promise.resolve(mock.myAutomaticDateOffers(u)),
+  respondToAutomaticDateOffer: (id, u, ac) => Promise.resolve(mock.respondToAutomaticDateOffer(id, u, ac)),
+  listManualDateOffers: () => Promise.resolve(mock.listManualDateOffers()),
+  myManualDateOffers: (u) => Promise.resolve(mock.myManualDateOffers(u)),
+  createManualDateOffer: (i, a) => Promise.resolve(mock.createManualDateOffer(i, a)),
+  cancelManualDateOffer: (id, r, a) => Promise.resolve(mock.cancelManualDateOffer(id, r, a)),
+  respondToManualDateOffer: (id, u, ac) => Promise.resolve(mock.respondToManualDateOffer(id, u, ac)),
+  listDateOfferEvents: (id) => Promise.resolve(mock.listDateOfferEvents(id)),
+  listDateInvitations: () => Promise.resolve(mock.listDateInvitations()),
+  myDateInvitations: (u) => Promise.resolve(mock.myDateInvitations(u)),
+  createDateInvitation: (i, a) => Promise.resolve(mock.createDateInvitation(i, a)),
+  cancelDateInvitation: (id, a) => Promise.resolve(mock.cancelDateInvitation(id, a)),
+  respondToDateInvitation: (id, u, ac) => Promise.resolve(mock.respondToDateInvitation(id, u, ac)),
+  acknowledgeMembershipCelebration: (pid, uid) => Promise.resolve(mock.acknowledgeMembershipCelebration(pid, uid)),
+  getVoucherSettings: () => Promise.resolve(mock.getVoucherSettings()),
+  updateVoucherSettings: (s, a) => Promise.resolve(mock.updateVoucherSettings(s, a)),
+  listAllVouchers: () => Promise.resolve(mock.listAllVouchers()),
+  myVouchers: (u) => Promise.resolve(mock.myVouchers(u)),
+  requestVoucherOtp: (u, ch, ph) => Promise.resolve(mock.requestVoucherOtp(u, ch, ph)),
+  verifyVoucherOtpAndClaim: (u, cid, otp) => Promise.resolve(mock.verifyVoucherOtpAndClaim(u, cid, otp)),
+  redeemVoucher: (code, u, ref) => Promise.resolve(mock.redeemVoucher(code, u, ref)),
+  revokeVoucher: (id, r, a) => Promise.resolve(mock.revokeVoucher(id, r, a)),
+  listVoucherOtpStatus: () => Promise.resolve(mock.listVoucherOtpStatus()),
   subscribe: (evt, cb) => {
     const name = DEMO_EVENT_MAP[evt];
     return name ? mock.onEvent(name, () => cb()) : () => undefined;

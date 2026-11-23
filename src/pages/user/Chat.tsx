@@ -709,7 +709,7 @@ export default function Chat() {
                       >
                         <div className="px-4 py-2.5">
                           <input
-                            className="input-lux rounded-full px-4 py-2 text-sm w-full"
+                            className="input-lux rounded-full px-4 py-2 text-base w-full"
                             placeholder="Search in this conversation…"
                             value={msgSearch}
                             onChange={(e) => setMsgSearch(e.target.value)}
@@ -921,7 +921,7 @@ export default function Chat() {
                       </button>
                       <input
                         ref={inputRef}
-                        className="input-lux rounded-full px-5 py-3 text-sm flex-1 min-w-0"
+                        className="input-lux rounded-full px-5 py-3 text-base flex-1 min-w-0"
                         placeholder={`Message ${partner.firstName}…`}
                         value={input}
                         onChange={(e) => handleInput(e.target.value)}

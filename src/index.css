@@ -162,8 +162,8 @@ body {
   }
 }
 
-/* Ensure mobile inputs do not trigger unwanted iOS browser auto-zoom while preserving font sizing */
-@media (max-width: 640px) {
+/* Prevent iOS/Android browser auto-zoom on form focus across mobile & touch viewports without disabling accessible pinch-to-zoom */
+@media (pointer: coarse), (max-width: 1024px) {
   input, select, textarea {
     font-size: 16px !important;
   }

@@ -128,7 +128,7 @@ export default function Partnerships() {
                                 key={`ref-${c.id}-${c.agreementRef}`}
                                 defaultValue={c.agreementRef ?? ""}
                                 placeholder="CAFE-2026-…"
-                                className={`${inputCls} !py-1.5 text-xs font-mono min-w-[140px]`}
+                                className={`${inputCls} !py-1.5 text-base lg:text-xs font-mono min-w-[140px]`}
                                 onBlur={(e) => {
                                   if (e.target.value.trim() !== (c.agreementRef ?? ""))
                                     saveField(c, { agreementRef: e.target.value.trim() || null });

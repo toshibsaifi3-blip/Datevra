@@ -31,6 +31,9 @@ import {
   Menu,
   X,
   ArrowUpRight,
+  Mail,
+  BadgePercent,
+  CalendarHeart,
   type LucideIcon,
 } from "lucide-react";
 import { hasStoredAuthHint, useAuth } from "../context/AuthContext";
@@ -356,7 +359,9 @@ const USER_LINKS = [
   { to: "/matches", label: "Matches", icon: "✧" },
   { to: "/chat", label: "Chat", icon: "✉" },
   { to: "/experiences", label: "Experiences", icon: "❧" },
+  { to: "/bookings", label: "Dates & invites", icon: "📅" },
   { to: "/cafes", label: "Cafés", icon: "☕" },
+  { to: "/passes", label: "Passes & vouchers", icon: "✧" },
   { to: "/membership", label: "Membership", icon: "♛" },
   { to: "/notifications", label: "Notifications", icon: "◉" },
   { to: "/profile", label: "Profile", icon: "❀" },
@@ -713,8 +718,11 @@ const ADMIN_LINKS: AdminNavItem[] = [
   // Experiences
   { to: "/admin/applications", label: "Applications", group: "Experiences", icon: Sparkles },
   { to: "/admin/bookings", label: "Bookings", group: "Experiences", icon: CalendarCheck },
+  { to: "/admin/date-offers", label: "Date offers", group: "Experiences", icon: CalendarHeart },
+  { to: "/admin/invitations", label: "Invitations", group: "Experiences", icon: Mail },
   { to: "/admin/cafes", label: "Cafés", group: "Experiences", icon: Coffee },
   { to: "/admin/passes", label: "Comp. passes", group: "Experiences", icon: Ticket },
+  { to: "/admin/vouchers", label: "Outside-Delhi vouchers", group: "Experiences", icon: BadgePercent },
   { to: "/admin/partnerships", label: "Partnerships", group: "Experiences", icon: Handshake },
 
   // Platform
@@ -767,6 +775,15 @@ export function AdminShell() {
   });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus quick search only on fine-pointer desktop devices to prevent unwanted mobile keyboard/viewport zoom
+  useEffect(() => {
+    if (!searchOpen) return;
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      requestAnimationFrame(() => searchInputRef.current?.focus({ preventScroll: true }));
+    }
+  }, [searchOpen]);
 
   const loc = useLocation();
   const nav = useNavigate();
@@ -1149,12 +1166,12 @@ export function AdminShell() {
               <div className="flex items-center px-4 py-3 border-b hairline gap-3">
                 <Search size={18} className="text-rosegold shrink-0" />
                 <input
+                  ref={searchInputRef}
                   type="text"
-                  autoFocus
                   placeholder="Jump to admin section (e.g. Users, Verification, Payments)..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full min-w-0 bg-transparent text-sm text-ivory placeholder-mist focus:outline-none"
+                  className="w-full min-w-0 bg-transparent text-base text-ivory placeholder-mist focus:outline-none"
                 />
                 <button
                   type="button"

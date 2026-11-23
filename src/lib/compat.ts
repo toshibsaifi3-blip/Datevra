@@ -78,13 +78,22 @@ export function computeCompatibility(
   const factors: string[] = [];
 
   // 1. Shared interests + hobbies (max 35)
+  // Match Migration 028 SQL exactly: ignore empty strings and normalize case
+  // before deduplicating (SELECT DISTINCT lower(x)), keeping display casing for UI factors.
   const mine = new Set(
-    [...me.interests, ...me.hobbies].map((s) => s.toLowerCase()),
+    [...(me.interests ?? []), ...(me.hobbies ?? [])]
+      .filter((s): s is string => typeof s === "string" && s !== "")
+      .map((s) => s.toLowerCase()),
   );
-  const shared = [...them.interests, ...them.hobbies].filter((s) =>
-    mine.has(s.toLowerCase()),
-  );
-  const uniqueShared = Array.from(new Set(shared));
+  const sharedByKey = new Map<string, string>();
+  for (const s of [...(them.interests ?? []), ...(them.hobbies ?? [])]) {
+    if (typeof s !== "string" || s === "") continue;
+    const key = s.toLowerCase();
+    if (mine.has(key) && !sharedByKey.has(key)) {
+      sharedByKey.set(key, s);
+    }
+  }
+  const uniqueShared = Array.from(sharedByKey.values());
   const interestPts = Math.min(35, uniqueShared.length * 9);
   score += interestPts;
   if (uniqueShared.length >= 2) {
@@ -121,17 +130,31 @@ export function computeCompatibility(
   }
 
   // 4. City / location (max 10)
-  if (me.city === them.city) {
+  // Ignore empty strings to match Migration 028 (COALESCE(city, '') <> '').
+  const myCity = typeof me.city === "string" ? me.city : "";
+  const theirCity = typeof them.city === "string" ? them.city : "";
+  if (myCity !== "" && myCity === theirCity) {
     score += 10;
-    factors.push(`Both in ${me.city}`);
-  } else if (prefs && prefs.cities.includes(them.city)) {
+    factors.push(`Both in ${myCity}`);
+  } else if (
+    theirCity !== "" &&
+    prefs &&
+    (prefs.cities ?? []).some((c) => typeof c === "string" && c !== "" && c === theirCity)
+  ) {
     score += 6;
-    factors.push(`In ${them.city}, one of your chosen cities`);
+    factors.push(`In ${theirCity}, one of your chosen cities`);
   }
 
   // 5. Lifestyle overlap (max 10)
-  const myLife = new Set(me.lifestyle.map((s) => s.toLowerCase()));
-  const sharedLife = them.lifestyle.filter((s) => myLife.has(s.toLowerCase()));
+  // Ignore empty strings to match Migration 028 (WHERE x IS NOT NULL AND x <> '').
+  const myLife = new Set(
+    (me.lifestyle ?? [])
+      .filter((s): s is string => typeof s === "string" && s !== "")
+      .map((s) => s.toLowerCase()),
+  );
+  const sharedLife = (them.lifestyle ?? []).filter(
+    (s): s is string => typeof s === "string" && s !== "" && myLife.has(s.toLowerCase()),
+  );
   if (sharedLife.length > 0) {
     const pts = Math.min(10, sharedLife.length * 4);
     score += pts;
@@ -142,7 +165,7 @@ export function computeCompatibility(
   score += Math.round((them.profileComplete / 100) * 5);
   if (them.verified) factors.push("Verified profile");
 
-  return { score: Math.min(100, Math.round(score)), factors };
+  return { score: Math.min(100, Math.max(0, Math.round(score))), factors };
 }
 
 export type CompatibilityTier = "compatible" | "potential_concern" | "incompatible" | "insufficient_info";

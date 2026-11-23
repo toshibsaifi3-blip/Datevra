@@ -23,7 +23,13 @@
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { verifyRazorpayPaymentSignature } from "../_shared/crypto.ts";
-import { callerUserId, serviceRole, activateMembership, json, UnauthorizedError } from "../_shared/supabase.ts";
+import {
+  callerUserId,
+  serviceRole,
+  activateVerifiedPayment,
+  json,
+  UnauthorizedError,
+} from "../_shared/supabase.ts";
 
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -61,7 +67,7 @@ serve(async (req) => {
   const db = serviceRole();
   const { data: payment, error: payErr } = await db
     .from("payments")
-    .select("id, user_id, kind, status, plan_id, amount, razorpay_order_id")
+    .select("id, user_id, kind, status, plan_id, amount, razorpay_order_id, verified_at")
     .eq("id", paymentId)
     .single();
 
@@ -91,39 +97,43 @@ serve(async (req) => {
     });
     return json({ error: "Payment verification failed. Please contact support." }, 402);
   }
-  if (payment.status === "verified") return json({ ok: true, already: true });
+  if (payment.status === "verified") {
+    return json({
+      ok: true,
+      already: true,
+      paymentId: payment.id,
+      planId: payment.plan_id,
+      verifiedAt: payment.verified_at,
+    });
+  }
   if (payment.status !== "pending") {
     return json({ error: `Payment is ${payment.status}` }, 409);
   }
 
-  const { error: updErr } = await db
-    .from("payments")
-    .update({
-      status: "verified",
-      razorpay_payment_id: String(razorpayPaymentId),
-      verified_at: new Date().toISOString(),
-    })
-    .eq("id", paymentId)
-    .eq("status", "pending"); // optimistic guard against double-activation
-
-  if (updErr) {
-    console.error("[verify-payment] Could not mark payment verified:", updErr);
-    return json({ error: "Could not finalize the payment. Please contact support." }, 500);
-  }
-
   try {
-    await activateMembership(db, userId, payment.plan_id);
+    const activated = await activateVerifiedPayment(
+      db,
+      String(paymentId),
+      String(razorpayPaymentId),
+      "razorpay",
+    );
+    return json({
+      ok: true,
+      already: Boolean(activated.already_verified),
+      paymentId: activated.payment_id,
+      subscriptionId: activated.subscription_id,
+      planId: activated.plan_id,
+      verifiedAt: activated.verified_at,
+      expiresAt: activated.expires_at,
+    });
   } catch (e) {
-    // Payment is verified; activation must be retried by support/webhook.
-    console.error("[verify-payment] Activation failed after verification:", e);
+    console.error("[verify-payment] Atomic activation failed:", e);
     await db.from("activity_logs").insert({
       actor_id: userId,
       actor_role: "system",
       action: "payment.activation_failed",
-      detail: `Payment ${paymentId} verified but activation failed: ${(e as Error).message}`,
+      detail: `Payment ${paymentId} verification/activation failed: ${(e as Error).message}`,
     });
-    return json({ error: "Payment received but activation failed. Support has been notified." }, 500);
+    return json({ error: "Could not finalize the payment. Please contact support." }, 500);
   }
-
-  return json({ ok: true });
 });

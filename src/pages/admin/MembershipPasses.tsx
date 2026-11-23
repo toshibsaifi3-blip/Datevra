@@ -282,7 +282,7 @@ export default function MembershipPasses() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by code, member name, email, or note…"
-            className={`${inputCls} pl-10 text-sm`}
+            className={`${inputCls} pl-10`}
           />
           {searchQuery && (
             <button
@@ -450,6 +450,9 @@ export default function MembershipPasses() {
                       ) : p.status === "revoked" ? (
                         <div className="text-xs">
                           <span className="text-rose-400 font-medium">Revoked</span>
+                          {p.revokedAt && (
+                            <span className="text-mist/80 block">{fmtDay(p.revokedAt)}</span>
+                          )}
                           {p.revocationReason && (
                             <span
                               className="text-mist block max-w-xs truncate"
@@ -571,7 +574,7 @@ export default function MembershipPasses() {
                 placeholder="Or custom days (e.g. 45)…"
                 value={customDuration}
                 onChange={(e) => setCustomDuration(e.target.value)}
-                className={`${inputCls} text-sm`}
+                className={inputCls}
               />
               <span className="text-xs text-mist shrink-0">days</span>
             </div>

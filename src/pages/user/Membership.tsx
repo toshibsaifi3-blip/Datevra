@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useBackend } from "../../lib/data";
@@ -11,8 +11,29 @@ import {
   Skeleton,
   useToast,
 } from "../../components/ui";
+import MembershipCelebrationOverlay, {
+  type MembershipCelebrationPayload,
+} from "../../components/MembershipCelebrationOverlay";
 import { fmtDate, fmtExpiry, inr, timeAgo, useDbRefresh } from "./shared";
 import type { Payment, PlanId, Subscription } from "../../lib/types";
+
+const CELEBRATION_KEY_PREFIX = "datevra:celebration_shown:";
+
+function hasLocalCelebrationBeenShown(paymentId: string): boolean {
+  try {
+    return localStorage.getItem(`${CELEBRATION_KEY_PREFIX}${paymentId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markLocalCelebrationShown(paymentId: string): void {
+  try {
+    localStorage.setItem(`${CELEBRATION_KEY_PREFIX}${paymentId}`, "1");
+  } catch {
+    /* ignore storage quota/privacy mode */
+  }
+}
 
 const PAY_TONE: Record<Payment["status"], "gold" | "rose" | "muted" | "green"> = {
   pending: "gold",
@@ -45,6 +66,7 @@ export default function Membership() {
   const [verifying, setVerifying] = useState(false);
   const [passCode, setPassCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
+  const [celebration, setCelebration] = useState<MembershipCelebrationPayload | null>(null);
 
   const {
     data,
@@ -68,6 +90,34 @@ export default function Membership() {
     [user?.id, tick],
     null as MembershipData | null,
   );
+
+  // Requirement 7: Trigger celebration ONLY when backend confirms a verified membership
+  // payment AND an active subscription exists, and celebration has not yet been shown.
+  useEffect(() => {
+    if (!user || !data?.sub || data.sub.status !== "active") return;
+    const unshownVerified = data.payments.find(
+      (p) =>
+        p.status === "verified" &&
+        p.kind === "membership" &&
+        !p.celebrationShownAt &&
+        !hasLocalCelebrationBeenShown(p.id),
+    );
+    if (!unshownVerified) return;
+
+    const matchedPlan = PLANS.find((x) => x.id === (unshownVerified.planId ?? data.sub?.planId));
+    markLocalCelebrationShown(unshownVerified.id);
+    setCelebration({
+      paymentId: unshownVerified.id,
+      planName: matchedPlan?.name ?? "Datevra Membership",
+      planTagline: matchedPlan?.tagline,
+    });
+    // Persist idempotently on server so refresh/re-login never replays the animation
+    db.acknowledgeMembershipCelebration(unshownVerified.id, user.id).catch(() => {});
+  }, [user, data, db]);
+
+  const dismissCelebration = useCallback(() => {
+    setCelebration(null);
+  }, []);
 
   if (!user) return null;
   const me = user;
@@ -281,7 +331,7 @@ export default function Membership() {
                       placeholder="MEM-XXXX-XXXX-XXXX"
                       maxLength={19}
                       disabled={redeeming}
-                      className="bg-black/40 border border-white/15 focus:border-champagne/60 rounded-full px-5 py-2.5 text-sm font-mono tracking-wider text-ivory placeholder:text-mist/40 outline-none w-full sm:w-60 transition-all uppercase"
+                      className="bg-black/40 border border-white/15 focus:border-champagne/60 rounded-full px-5 py-2.5 text-base font-mono tracking-wider text-ivory placeholder:text-mist/40 outline-none w-full sm:w-60 transition-all uppercase"
                       aria-label="Membership pass code"
                     />
                   </div>
@@ -507,6 +557,12 @@ export default function Membership() {
           </div>
         </div>
       </Modal>
+
+      <MembershipCelebrationOverlay
+        celebration={celebration}
+        durationMs={5500}
+        onDismiss={dismissCelebration}
+      />
     </div>
   );
 }

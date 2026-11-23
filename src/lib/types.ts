@@ -29,6 +29,7 @@ export interface UserProfile {
   gender: Gender;
   interestedIn: InterestedIn;
   city: string;
+  registeredCity?: string | null;
   bio: string;
   interests: string[];
   hobbies: string[];
@@ -121,7 +122,10 @@ export type NotificationKind =
   | "safety"
   | "system"
   | "match_proposal"
-  | "pass";
+  | "pass"
+  | "date_offer"
+  | "date_invitation"
+  | "voucher";
 
 export interface AppNotification {
   id: string;
@@ -222,6 +226,8 @@ export interface Payment {
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   method: string;
+  verifiedAt?: string | null;
+  celebrationShownAt?: string | null;
   createdAt: string;
 }
 
@@ -399,3 +405,212 @@ export interface MatchProposal {
   createdAt: string;
   respondedAt: string | null;
 }
+
+/* ---------------- Automatic Date Offers (Requirement 3) ---------------- */
+
+export type DateOfferStatus = "pending" | "accepted" | "declined" | "expired" | "cancelled";
+
+export interface AutoDateOfferSummary {
+  thresholdTarget: number;
+  targetOfferCount: number;
+  totalEligibleMatches: number;
+  remainingEligiblePairs: number;
+  batchStatus: "not_triggered" | "processing" | "completed" | "failed";
+  batchId: string | null;
+  batchCompletedAt: string | null;
+  shortfallCount: number;
+  offersCreated: number;
+  offersPending: number;
+  offersAccepted: number;
+  offersDeclined: number;
+  offersExpired: number;
+}
+
+export interface AutomaticDateOffer {
+  id: string;
+  batchId: string;
+  matchId: string;
+  userA: string;
+  userB: string;
+  userAName?: string | null;
+  userBName?: string | null;
+  experienceId: string;
+  cafeId: string | null;
+  suggestedDate: string;
+  suggestedTime: string;
+  venue: string;
+  message: string | null;
+  status: DateOfferStatus;
+  userAResponse: boolean | null;
+  userBResponse: boolean | null;
+  userARespondedAt?: string | null;
+  userBRespondedAt?: string | null;
+  expiresAt: string;
+  bookingId: string | null;
+  createdAt: string;
+}
+
+/* ---------------- Manual Date Offers (Requirement 4) ---------------- */
+
+export interface ManualDateOffer {
+  id: string;
+  userA: string;
+  userB: string;
+  userAName?: string | null;
+  userBName?: string | null;
+  matchId: string | null;
+  experienceId: string;
+  cafeId: string | null;
+  suggestedDate: string;
+  suggestedTime: string;
+  venue: string;
+  message: string | null;
+  status: DateOfferStatus;
+  userAResponse: boolean | null;
+  userBResponse: boolean | null;
+  userARespondedAt?: string | null;
+  userBRespondedAt?: string | null;
+  expiresAt: string;
+  bookingId: string | null;
+  createdByAdminId: string;
+  cancelledByAdminId?: string | null;
+  cancelReason?: string | null;
+  createdAt: string;
+}
+
+export interface CreateManualDateOfferInput {
+  userAId: string;
+  userBId: string;
+  experienceId: string;
+  cafeId?: string | null;
+  date: string;
+  time: string;
+  venue: string;
+  message?: string | null;
+  expiresAt?: string | null;
+}
+
+export interface DateOfferEvent {
+  id: string;
+  offerSource: "automatic" | "manual";
+  offerId: string;
+  actorId: string | null;
+  actorRole: "system" | "admin" | "user";
+  eventType: string;
+  detail: string;
+  createdAt: string;
+}
+
+/* ---------------- Invitation Dates (Requirement 5) ---------------- */
+
+export type DateInvitationMode = "individual" | "group" | "pair";
+export type DateInvitationStatus = "active" | "cancelled" | "expired" | "completed";
+export type DateInvitationResponse = "pending" | "accepted" | "declined" | "expired";
+
+export interface DateInvitationRecipient {
+  id: string;
+  invitationId: string;
+  userId: string;
+  userName?: string | null;
+  userCity?: string | null;
+  partnerUserId: string | null;
+  response: DateInvitationResponse;
+  respondedAt: string | null;
+  bookingId: string | null;
+  createdAt: string;
+}
+
+export interface DateInvitation {
+  id: string;
+  invitationMode: DateInvitationMode;
+  title: string;
+  experienceId: string | null;
+  cafeId: string | null;
+  date: string;
+  time: string;
+  venue: string;
+  message: string | null;
+  expiresAt: string;
+  status: DateInvitationStatus;
+  createdByAdminId: string;
+  cancelledAt?: string | null;
+  createdAt: string;
+  /** Admin view includes per-recipient rows; member view includes ONLY the member's own row. */
+  recipients: DateInvitationRecipient[];
+}
+
+export interface CreateDateInvitationInput {
+  title: string;
+  invitationMode: DateInvitationMode;
+  userIds: string[];
+  experienceId?: string | null;
+  cafeId?: string | null;
+  date: string;
+  time: string;
+  venue: string;
+  message?: string | null;
+  expiresAt?: string | null;
+}
+
+/* ---------------- Outside-Delhi Money Vouchers & OTP (Requirement 8) ---------------- */
+
+export type VoucherStatus = "issued" | "redeemed" | "expired" | "revoked";
+
+export interface VoucherSettings {
+  enabled: boolean;
+  voucherValueInr: number | null;
+  maxClaimsPerUser: number;
+  maxTotalVouchers: number | null;
+  expiryDays: number;
+  excludedCities: string[];
+  ncrPolicyNote: string;
+  usageRules: string;
+  updatedByAdminId?: string | null;
+  updatedAt?: string;
+}
+
+export interface UserVoucher {
+  id: string;
+  userId: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  code: string;
+  valueInr: number;
+  nonCashWithdrawable: boolean;
+  status: VoucherStatus;
+  cityAtClaim: string;
+  registeredCityAtClaim: string;
+  otpChallengeId: string | null;
+  otpVerifiedAt: string;
+  expiresAt: string;
+  redeemedAt: string | null;
+  redemptionRef: string | null;
+  revokedAt: string | null;
+  revokedByAdminId?: string | null;
+  revocationReason: string | null;
+  createdAt: string;
+}
+
+export interface VoucherOtpStatusRecord {
+  id: string;
+  userId: string;
+  channel: "email" | "sms";
+  destinationMasked: string;
+  status: "pending" | "verified" | "expired" | "locked" | "consumed";
+  attemptCount: number;
+  maxAttempts: number;
+  expiresAt: string;
+  verifiedAt: string | null;
+  consumedAt: string | null;
+  createdAt: string;
+}
+
+export interface VoucherOtpChallengeResponse {
+  challengeId: string;
+  channel: "email" | "sms";
+  destinationMasked: string;
+  expiresAt: string;
+  /** Demo-mode only helper when running offline without an external OTP provider. Never set in Supabase mode. */
+  demoHint?: string;
+}
+

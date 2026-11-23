@@ -487,7 +487,7 @@ export function Field({
 }
 
 export const inputCls =
-  "input-lux w-full rounded-xl px-4 py-3 min-h-[44px] text-[0.95rem] touch-manipulation";
+  "input-lux w-full rounded-xl px-4 py-3 min-h-[44px] text-base touch-manipulation";
 
 export function Reveal({
   children,

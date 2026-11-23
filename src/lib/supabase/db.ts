@@ -10,17 +10,25 @@ import { validatePhotoFile, extensionFor, storagePathFromUrl } from "../photos";
 import type {
   ActivityLog,
   AppNotification,
+  AutoDateOfferSummary,
+  AutomaticDateOffer,
   Block,
   Cafe,
   CmsPage,
   ComplimentaryPass,
   Conversation,
+  CreateDateInvitationInput,
+  CreateManualDateOfferInput,
   DailyUsage,
   DateApplication,
   DateBooking,
   DateExperience,
+  DateInvitation,
+  DateInvitationRecipient,
+  DateOfferEvent,
   InvestorRecord,
   Like,
+  ManualDateOffer,
   Match,
   MatchPreferences,
   MatchProposal,
@@ -36,16 +44,25 @@ import type {
   SendLikeResult,
   Subscription,
   UserProfile,
+  UserVoucher,
+  VoucherOtpChallengeResponse,
+  VoucherOtpStatusRecord,
+  VoucherSettings,
   RevokeComplimentaryPassResult,
 } from "../types";
 import {
   mapActivity,
   mapApplication,
+  mapAutomaticDateOffer,
   mapBlock,
   mapBooking,
   mapCafe,
   mapCms,
   mapComplimentaryPass,
+  mapDateInvitation,
+  mapDateInvitationRecipient,
+  mapDateOfferEvent,
+  mapManualDateOffer,
   mapMembershipPass,
   mapConversation,
   mapExperience,
@@ -62,6 +79,9 @@ import {
   mapReport,
   mapSettings,
   mapSubscription,
+  mapUserVoucher,
+  mapVoucherOtpStatus,
+  mapVoucherSettings,
   profileCompleteness,
   type Row,
   unmapCafe,
@@ -313,73 +333,19 @@ async function evaluateMutualCompatibility(
   }
 }
 
-async function sendLike(fromUserId: string, toUserId: string): Promise<SendLikeResult> {
-  if (fromUserId === toUserId) return { match: null };
-  const existing = await findMatch(fromUserId, toUserId);
-  if (existing) return { match: existing };
+interface RetryMutualLikeRpcResult {
+  status: "matched" | "already_matched" | "compatibility_blocked" | "blocked" | "no_mutual_like";
+  match_id?: string | null;
+  compatibility?: number | null;
+  min_compatibility?: number | null;
+}
 
-  // Pre-check reciprocal like so an ineligible mutual match attempt fails closed
-  // cleanly without creating a match or misleading like notification.
-  const reciprocalPre = await hasLiked(toUserId, fromUserId);
-  if (reciprocalPre) {
-    const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
-    if (!eligibility.eligible) {
-      return {
-        match: null,
-        compatibilityBlocked: true,
-        compatibility: eligibility.score,
-        minCompatibility: MIN_COMPATIBILITY_SCORE,
-      };
-    }
-  }
-
-  const ins = await sb().from("likes").insert({ from_user_id: fromUserId, to_user_id: toUserId });
-  if (ins.error) {
-    // Free-tier daily cap enforced by the trg_enforce_like_limit trigger.
-    if (ins.error.message.includes("DAILY_LIKE_LIMIT_REACHED")) {
-      throw new Error("DAILY_LIKE_LIMIT_REACHED");
-    }
-    // Already liked (unique conflict) — check for a match or threshold block.
-    if (ins.error.message.includes("duplicate") || ins.error.code === "23505") {
-      const dupMatch = await findMatch(fromUserId, toUserId);
-      if (dupMatch) return { match: dupMatch };
-      const reciprocalDup = await hasLiked(toUserId, fromUserId);
-      if (reciprocalDup) {
-        const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
-        if (!eligibility.eligible) {
-          return {
-            match: null,
-            compatibilityBlocked: true,
-            compatibility: eligibility.score,
-            minCompatibility: MIN_COMPATIBILITY_SCORE,
-          };
-        }
-      }
-      return { match: null };
-    }
-    throw new Error(`Could not send like: ${ins.error.message}`);
-  }
-
-  // The handle_mutual_like trigger creates the match + conversation server-side
-  // only when pair compatibility >= MIN_COMPATIBILITY_SCORE (75%).
-  const match = await findMatch(fromUserId, toUserId);
-  if (!match) {
-    const reciprocalPost = await hasLiked(toUserId, fromUserId);
-    if (reciprocalPost) {
-      const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
-      if (!eligibility.eligible) {
-        return {
-          match: null,
-          compatibilityBlocked: true,
-          compatibility: eligibility.score,
-          minCompatibility: MIN_COMPATIBILITY_SCORE,
-        };
-      }
-    }
-    return { match: null };
-  }
-
-  if (match && (match.compatibility === 0 || match.factors.length === 0)) {
+async function enrichMatchFactors(
+  match: Match,
+  fromUserId: string,
+  toUserId: string,
+): Promise<Match> {
+  if (match.compatibility === 0 || match.factors.length === 0) {
     try {
       const [meP, themP] = await Promise.all([getUser(fromUserId), getUser(toUserId)]);
       const prefs = await getPrefs(fromUserId);
@@ -393,7 +359,140 @@ async function sendLike(fromUserId: string, toUserId: string): Promise<SendLikeR
       /* compatibility write-back is best-effort; the match itself stands */
     }
   }
-  return { match };
+  return match;
+}
+
+/**
+ * Invokes the SECURITY DEFINER retry_mutual_like_match RPC (Migration 029)
+ * when both directional like rows already exist. Returns null only if the RPC
+ * is not yet installed in the connected database so callers can fall back
+ * safely without bypassing RLS.
+ */
+async function retryExistingMutualLike(
+  fromUserId: string,
+  toUserId: string,
+): Promise<SendLikeResult | null> {
+  const rpcRes = await sb().rpc("retry_mutual_like_match", {
+    p_target_user_id: toUserId,
+  });
+  if (rpcRes.error) {
+    if (rpcRes.error.code === "PGRST202" || rpcRes.error.code === "42883") {
+      return null;
+    }
+    throw new Error(`Could not retry match evaluation: ${rpcRes.error.message}`);
+  }
+  const payload = rpcRes.data as RetryMutualLikeRpcResult | null;
+  if (!payload || typeof payload.status !== "string") {
+    return { match: null };
+  }
+  if (payload.status === "matched" || payload.status === "already_matched") {
+    const match = await findMatch(fromUserId, toUserId);
+    if (!match) return { match: null };
+    return { match: await enrichMatchFactors(match, fromUserId, toUserId) };
+  }
+  if (payload.status === "compatibility_blocked") {
+    return {
+      match: null,
+      compatibilityBlocked: true,
+      compatibility:
+        typeof payload.compatibility === "number" && Number.isFinite(payload.compatibility)
+          ? payload.compatibility
+          : null,
+      minCompatibility:
+        typeof payload.min_compatibility === "number" && Number.isFinite(payload.min_compatibility)
+          ? payload.min_compatibility
+          : MIN_COMPATIBILITY_SCORE,
+    };
+  }
+  return { match: null };
+}
+
+async function sendLike(fromUserId: string, toUserId: string): Promise<SendLikeResult> {
+  if (fromUserId === toUserId) return { match: null };
+  const existing = await findMatch(fromUserId, toUserId);
+  if (existing) return { match: existing };
+
+  // Pre-check reciprocal like so an ineligible mutual match attempt fails closed
+  // cleanly without creating a match or misleading like notification, and so an
+  // already-existing reciprocal like pair can safely retry/unlock when eligible.
+  const reciprocalPre = await hasLiked(toUserId, fromUserId);
+  if (reciprocalPre) {
+    if (await isBlocked(fromUserId, toUserId)) {
+      return { match: null };
+    }
+    const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+    if (!eligibility.eligible) {
+      return {
+        match: null,
+        compatibilityBlocked: true,
+        compatibility: eligibility.score,
+        minCompatibility: MIN_COMPATIBILITY_SCORE,
+      };
+    }
+    if (await hasLiked(fromUserId, toUserId)) {
+      const retried = await retryExistingMutualLike(fromUserId, toUserId);
+      if (retried) return retried;
+      return { match: null };
+    }
+  }
+
+  const ins = await sb().from("likes").insert({ from_user_id: fromUserId, to_user_id: toUserId });
+  if (ins.error) {
+    // Free-tier daily cap enforced by the trg_enforce_like_limit trigger.
+    if (ins.error.message.includes("DAILY_LIKE_LIMIT_REACHED")) {
+      throw new Error("DAILY_LIKE_LIMIT_REACHED");
+    }
+    // Already liked (unique conflict) — check for an existing match, retry unlock, or threshold block.
+    if (ins.error.message.includes("duplicate") || ins.error.code === "23505") {
+      const dupMatch = await findMatch(fromUserId, toUserId);
+      if (dupMatch) return { match: dupMatch };
+      const reciprocalDup = await hasLiked(toUserId, fromUserId);
+      if (reciprocalDup) {
+        if (await isBlocked(fromUserId, toUserId)) {
+          return { match: null };
+        }
+        const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+        if (!eligibility.eligible) {
+          return {
+            match: null,
+            compatibilityBlocked: true,
+            compatibility: eligibility.score,
+            minCompatibility: MIN_COMPATIBILITY_SCORE,
+          };
+        }
+        const retried = await retryExistingMutualLike(fromUserId, toUserId);
+        if (retried) return retried;
+      }
+      return { match: null };
+    }
+    throw new Error(`Could not send like: ${ins.error.message}`);
+  }
+
+  // The handle_mutual_like trigger creates the match + conversation server-side
+  // only when pair compatibility >= MIN_COMPATIBILITY_SCORE (75%).
+  const match = await findMatch(fromUserId, toUserId);
+  if (!match) {
+    const reciprocalPost = await hasLiked(toUserId, fromUserId);
+    if (reciprocalPost) {
+      if (await isBlocked(fromUserId, toUserId)) {
+        return { match: null };
+      }
+      const retried = await retryExistingMutualLike(fromUserId, toUserId);
+      if (retried) return retried;
+      const eligibility = await evaluateMutualCompatibility(fromUserId, toUserId);
+      if (!eligibility.eligible) {
+        return {
+          match: null,
+          compatibilityBlocked: true,
+          compatibility: eligibility.score,
+          minCompatibility: MIN_COMPATIBILITY_SCORE,
+        };
+      }
+    }
+    return { match: null };
+  }
+
+  return { match: await enrichMatchFactors(match, fromUserId, toUserId) };
 }
 
 async function sendPass(from: string, to: string): Promise<void> {
@@ -786,33 +885,33 @@ async function allBookings(): Promise<DateBooking[]> {
 
 async function createBooking(
   input: Omit<DateBooking, "id" | "createdAt">,
-  actorId: string,
+  _actorId: string,
 ): Promise<DateBooking> {
-  const res = await sb()
-    .from("date_bookings")
-    .insert({
-      user_id: input.userId,
-      partner_id: input.partnerId,
-      experience_id: input.experienceId,
-      cafe_id: input.cafeId,
-      date: input.date,
-      time: input.time,
-      venue: input.venue,
-      status: input.status === "upcoming" ? "confirmed" : input.status,
-      amount: input.amount,
-      payment_status: input.paymentStatus,
-    })
-    .select("*")
-    .single();
-  const booking = mapBooking(throwIf(res, "Could not create booking") as Record<string, unknown>);
-  await logActivity(actorId, "booking.create", `Booking ${booking.id} at ${booking.venue} on ${booking.date}`);
-  return booking;
+  const res = await sb().rpc("admin_create_booking", {
+    p_user_id: input.userId,
+    p_partner_id: input.partnerId ?? null,
+    p_experience_id: input.experienceId,
+    p_cafe_id: input.cafeId ?? null,
+    p_date: input.date,
+    p_time: input.time,
+    p_venue: input.venue,
+    p_status: input.status === "upcoming" ? "confirmed" : input.status,
+    p_amount: input.amount,
+    p_payment_status: input.paymentStatus,
+  });
+  return mapBooking(throwIf(res, "Could not create booking") as Record<string, unknown>);
 }
 
-async function setBookingStatus(id: string, status: DateBooking["status"], actorId: string): Promise<void> {
-  const res = await sb().from("date_bookings").update({ status }).eq("id", id);
+async function setBookingStatus(
+  id: string,
+  status: DateBooking["status"],
+  _actorId: string,
+): Promise<void> {
+  const res = await sb().rpc("admin_set_booking_status", {
+    p_booking_id: id,
+    p_status: status,
+  });
   if (res.error) throw new Error(`Could not update booking: ${res.error.message}`);
-  await logActivity(actorId, "booking.status", `Booking ${id} → ${status}`);
 }
 
 /* ---------------- cafes ---------------- */
@@ -1530,6 +1629,435 @@ async function revenueSummary(): Promise<{
   };
 }
 
+/* ---------------- automatic date offers (Req 3) ---------------- */
+
+async function getAutoDateOfferSummary(): Promise<AutoDateOfferSummary> {
+  const res = await sb().rpc("get_auto_date_offer_summary");
+  if (res.error) {
+    if (res.error.code === "PGRST202" || res.error.code === "42883") {
+      throw new Error("MIGRATION_REQUIRED:030:get_auto_date_offer_summary:Apply db/migrations/030_date_offers_and_invitations.sql.");
+    }
+    throw new Error(res.error.message);
+  }
+  const d = (res.data ?? {}) as Record<string, unknown>;
+  return {
+    thresholdTarget: Number(d.thresholdTarget ?? 100),
+    targetOfferCount: Number(d.targetOfferCount ?? 10),
+    totalEligibleMatches: Number(d.totalEligibleMatches ?? 0),
+    remainingEligiblePairs: Number(d.remainingEligiblePairs ?? 0),
+    batchStatus: (d.batchStatus as AutoDateOfferSummary["batchStatus"]) ?? "not_triggered",
+    batchId: (d.batchId as string | null) ?? null,
+    batchCompletedAt: (d.batchCompletedAt as string | null) ?? null,
+    shortfallCount: Number(d.shortfallCount ?? 0),
+    offersCreated: Number(d.offersCreated ?? 0),
+    offersPending: Number(d.offersPending ?? 0),
+    offersAccepted: Number(d.offersAccepted ?? 0),
+    offersDeclined: Number(d.offersDeclined ?? 0),
+    offersExpired: Number(d.offersExpired ?? 0),
+  };
+}
+
+async function evaluateInitialAutoDateOffers(): Promise<Record<string, unknown>> {
+  const res = await sb().rpc("admin_evaluate_initial_auto_date_offers");
+  if (res.error) throw new Error(res.error.message);
+  return (res.data ?? {}) as Record<string, unknown>;
+}
+
+async function listAutomaticDateOffers(): Promise<AutomaticDateOffer[]> {
+  const res = await sb()
+    .from("automatic_date_offers")
+    .select("*, user_a_profile:user_a(first_name), user_b_profile:user_b(first_name)")
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:030:automatic_date_offers:Apply db/migrations/030_date_offers_and_invitations.sql.");
+    }
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapAutomaticDateOffer);
+}
+
+async function myAutomaticDateOffers(userId: string): Promise<AutomaticDateOffer[]> {
+  const res = await sb()
+    .from("automatic_date_offers")
+    .select("*, user_a_profile:user_a(first_name), user_b_profile:user_b(first_name)")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) return [];
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapAutomaticDateOffer);
+}
+
+async function respondToAutomaticDateOffer(
+  offerId: string,
+  _userId: string,
+  accept: boolean,
+): Promise<AutomaticDateOffer> {
+  const res = await sb().rpc("respond_to_automatic_date_offer", {
+    p_offer_id: offerId,
+    p_accept: accept,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapAutomaticDateOffer(res.data as Row);
+}
+
+/* ---------------- manual date offers (Req 4) ---------------- */
+
+async function listManualDateOffers(): Promise<ManualDateOffer[]> {
+  const res = await sb()
+    .from("manual_date_offers")
+    .select("*, user_a_profile:user_a(first_name), user_b_profile:user_b(first_name)")
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:030:manual_date_offers:Apply db/migrations/030_date_offers_and_invitations.sql.");
+    }
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapManualDateOffer);
+}
+
+async function myManualDateOffers(userId: string): Promise<ManualDateOffer[]> {
+  const res = await sb()
+    .from("manual_date_offers")
+    .select("*, user_a_profile:user_a(first_name), user_b_profile:user_b(first_name)")
+    .or(`user_a.eq.${userId},user_b.eq.${userId}`)
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) return [];
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapManualDateOffer);
+}
+
+async function createManualDateOffer(
+  input: CreateManualDateOfferInput,
+  _adminId: string,
+): Promise<ManualDateOffer> {
+  const res = await sb().rpc("admin_create_manual_date_offer", {
+    p_user_a_id: input.userAId,
+    p_user_b_id: input.userBId,
+    p_experience_id: input.experienceId,
+    p_cafe_id: input.cafeId ?? null,
+    p_date: input.date,
+    p_time: input.time,
+    p_venue: input.venue,
+    p_message: input.message ?? null,
+    p_expires_at: input.expiresAt ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapManualDateOffer(res.data as Row);
+}
+
+async function cancelManualDateOffer(
+  offerId: string,
+  reason: string | null,
+  _adminId: string,
+): Promise<ManualDateOffer> {
+  const res = await sb().rpc("admin_cancel_manual_date_offer", {
+    p_offer_id: offerId,
+    p_reason: reason ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapManualDateOffer(res.data as Row);
+}
+
+async function respondToManualDateOffer(
+  offerId: string,
+  _userId: string,
+  accept: boolean,
+): Promise<ManualDateOffer> {
+  const res = await sb().rpc("respond_to_manual_date_offer", {
+    p_offer_id: offerId,
+    p_accept: accept,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapManualDateOffer(res.data as Row);
+}
+
+async function listDateOfferEvents(offerId?: string): Promise<DateOfferEvent[]> {
+  let query = sb()
+    .from("date_offer_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (offerId) query = query.eq("offer_id", offerId);
+  const res = await query;
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) return [];
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapDateOfferEvent);
+}
+
+/* ---------------- invitation dates (Req 5) ---------------- */
+
+async function listDateInvitations(): Promise<DateInvitation[]> {
+  const res = await sb()
+    .from("date_invitations")
+    .select("*, date_invitation_recipients(*, profiles:user_id(first_name, city))")
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:030:date_invitations:Apply db/migrations/030_date_offers_and_invitations.sql.");
+    }
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapDateInvitation);
+}
+
+async function myDateInvitations(userId: string): Promise<DateInvitation[]> {
+  // RLS on date_invitation_recipients guarantees only caller's own recipient row is returned.
+  const res = await sb()
+    .from("date_invitations")
+    .select("*, date_invitation_recipients!inner(*)")
+    .eq("date_invitation_recipients.user_id", userId)
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) return [];
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapDateInvitation);
+}
+
+async function createDateInvitation(
+  input: CreateDateInvitationInput,
+  _adminId: string,
+): Promise<DateInvitation> {
+  const res = await sb().rpc("admin_create_date_invitation", {
+    p_title: input.title,
+    p_invitation_mode: input.invitationMode,
+    p_user_ids: input.userIds,
+    p_experience_id: input.experienceId ?? null,
+    p_cafe_id: input.cafeId ?? null,
+    p_date: input.date,
+    p_time: input.time,
+    p_venue: input.venue,
+    p_message: input.message ?? null,
+    p_expires_at: input.expiresAt ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapDateInvitation(res.data as Row);
+}
+
+async function cancelDateInvitation(invitationId: string, _adminId: string): Promise<DateInvitation> {
+  const res = await sb().rpc("admin_cancel_date_invitation", {
+    p_invitation_id: invitationId,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapDateInvitation(res.data as Row);
+}
+
+async function respondToDateInvitation(
+  invitationId: string,
+  _userId: string,
+  accept: boolean,
+): Promise<DateInvitationRecipient> {
+  const res = await sb().rpc("respond_to_date_invitation", {
+    p_invitation_id: invitationId,
+    p_accept: accept,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapDateInvitationRecipient(res.data as Row);
+}
+
+/* ---------------- verified membership celebration (Req 7) ---------------- */
+
+async function acknowledgeMembershipCelebration(
+  paymentId: string,
+  _userId: string,
+): Promise<string> {
+  const res = await sb().rpc("acknowledge_membership_celebration", {
+    p_payment_id: paymentId,
+  });
+  if (res.error) {
+    // Graceful fallback if Migration 031 hasn't been executed yet (client localStorage still guards idempotency)
+    if (res.error.code === "PGRST202" || res.error.code === "42883") {
+      return new Date().toISOString();
+    }
+    throw new Error(res.error.message);
+  }
+  return typeof res.data === "string" ? res.data : new Date().toISOString();
+}
+
+/* ---------------- outside-Delhi vouchers & OTP (Req 8) ---------------- */
+
+async function getVoucherSettings(): Promise<VoucherSettings> {
+  const res = await sb().from("voucher_settings").select("*").eq("id", 1).maybeSingle();
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      return {
+        enabled: false,
+        voucherValueInr: null,
+        maxClaimsPerUser: 1,
+        maxTotalVouchers: null,
+        expiryDays: 30,
+        excludedCities: ["delhi", "new delhi"],
+        ncrPolicyNote:
+          "Excludes NCT of Delhi (Delhi, New Delhi). Delhi-NCR cities are treated as outside-Delhi unless explicitly added to excluded cities.",
+        usageRules:
+          "Limited-value, non-cash-withdrawable Datevra credit. Single-use only.",
+      };
+    }
+    throw new Error(res.error.message);
+  }
+  if (!res.data) {
+    return {
+      enabled: false,
+      voucherValueInr: null,
+      maxClaimsPerUser: 1,
+      maxTotalVouchers: null,
+      expiryDays: 30,
+      excludedCities: ["delhi", "new delhi"],
+      ncrPolicyNote:
+        "Excludes NCT of Delhi (Delhi, New Delhi). Delhi-NCR cities are treated as outside-Delhi unless explicitly added to excluded cities.",
+      usageRules:
+        "Limited-value, non-cash-withdrawable Datevra credit. Single-use only.",
+    };
+  }
+  return mapVoucherSettings(res.data as Row);
+}
+
+async function updateVoucherSettings(
+  settings: Partial<VoucherSettings>,
+  _adminId: string,
+): Promise<VoucherSettings> {
+  const res = await sb().rpc("admin_update_voucher_settings", {
+    p_enabled: settings.enabled ?? false,
+    p_voucher_value_inr: settings.voucherValueInr ?? null,
+    p_max_claims_per_user: settings.maxClaimsPerUser ?? 1,
+    p_max_total_vouchers: settings.maxTotalVouchers ?? null,
+    p_expiry_days: settings.expiryDays ?? 30,
+    p_excluded_cities: settings.excludedCities ?? ["delhi", "new delhi"],
+    p_usage_rules: settings.usageRules ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapVoucherSettings(res.data as Row);
+}
+
+async function listAllVouchers(): Promise<UserVoucher[]> {
+  const res = await sb()
+    .from("user_vouchers")
+    .select("*, profiles:user_id(first_name, email)")
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) {
+      throw new Error("MIGRATION_REQUIRED:032:user_vouchers:Apply db/migrations/032_outside_delhi_vouchers_and_otp.sql.");
+    }
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapUserVoucher);
+}
+
+async function myVouchers(userId: string): Promise<UserVoucher[]> {
+  const res = await sb()
+    .from("user_vouchers")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (res.error) {
+    if (res.error.code === "PGRST205" || res.error.message.includes("schema cache")) return [];
+    throw new Error(res.error.message);
+  }
+  return (res.data as Row[]).map(mapUserVoucher);
+}
+
+async function callEdgeFunction<T>(name: string, payload: Record<string, unknown>): Promise<T> {
+  const { data: sessionData } = await sb().auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Authentication required.");
+
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(payload),
+  });
+  const body = (await resp.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!resp.ok) {
+    throw new Error(
+      typeof body.error === "string"
+        ? body.error
+        : `Edge Function ${name} failed with status ${resp.status}.`,
+    );
+  }
+  return body as T;
+}
+
+async function requestVoucherOtp(
+  _userId: string,
+  channel: "email" | "sms",
+  phone?: string,
+): Promise<VoucherOtpChallengeResponse> {
+  const data = await callEdgeFunction<{
+    challenge_id: string;
+    channel: "email" | "sms";
+    destination_masked: string;
+    expires_at: string;
+  }>("voucher-otp-request", { channel, phone });
+  return {
+    challengeId: data.challenge_id,
+    channel: data.channel,
+    destinationMasked: data.destination_masked,
+    expiresAt: data.expires_at,
+  };
+}
+
+async function verifyVoucherOtpAndClaim(
+  _userId: string,
+  challengeId: string,
+  otp: string,
+): Promise<UserVoucher> {
+  const data = await callEdgeFunction<{ verified: boolean; voucher: Row }>(
+    "voucher-otp-verify",
+    { challenge_id: challengeId, otp },
+  );
+  if (!data.verified || !data.voucher) {
+    throw new Error("OTP verification failed.");
+  }
+  return mapUserVoucher(data.voucher);
+}
+
+async function redeemVoucher(
+  code: string,
+  _userId: string,
+  redemptionRef?: string,
+): Promise<UserVoucher> {
+  const res = await sb().rpc("redeem_outside_delhi_voucher", {
+    p_code: code,
+    p_redemption_ref: redemptionRef ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapUserVoucher(res.data as Row);
+}
+
+async function revokeVoucher(
+  voucherId: string,
+  reason: string | null,
+  _adminId: string,
+): Promise<UserVoucher> {
+  const res = await sb().rpc("admin_revoke_voucher", {
+    p_voucher_id: voucherId,
+    p_reason: reason ?? null,
+  });
+  if (res.error) throw new Error(res.error.message);
+  return mapUserVoucher(res.data as Row);
+}
+
+async function listVoucherOtpStatus(): Promise<VoucherOtpStatusRecord[]> {
+  const res = await sb().rpc("admin_list_voucher_otp_status", { p_limit: 50 });
+  if (res.error) {
+    if (res.error.code === "PGRST202" || res.error.code === "42883") return [];
+    throw new Error(res.error.message);
+  }
+  return ((res.data ?? []) as Row[]).map(mapVoucherOtpStatus);
+}
+
 /* ---------------- realtime fan-out ---------------- */
 
 const EVENT_TABLES: Record<BackendEvent, string[]> = {
@@ -1552,6 +2080,9 @@ const EVENT_TABLES: Record<BackendEvent, string[]> = {
   passes: ["complimentary_passes"],
   membership_passes: ["membership_passes"],
   proposals: ["match_proposals"],
+  date_offers: ["automatic_date_offers", "manual_date_offers"],
+  invitations: ["date_invitations", "date_invitation_recipients"],
+  vouchers: ["voucher_settings", "user_vouchers"],
 };
 
 const eventSubs = new Map<BackendEvent, Set<() => void>>();
@@ -1680,6 +2211,32 @@ export const supabaseBackend = {
   createMatchProposal,
   respondToMatchProposal,
   myMatchProposals,
+  getAutoDateOfferSummary,
+  evaluateInitialAutoDateOffers,
+  listAutomaticDateOffers,
+  myAutomaticDateOffers,
+  respondToAutomaticDateOffer,
+  listManualDateOffers,
+  myManualDateOffers,
+  createManualDateOffer,
+  cancelManualDateOffer,
+  respondToManualDateOffer,
+  listDateOfferEvents,
+  listDateInvitations,
+  myDateInvitations,
+  createDateInvitation,
+  cancelDateInvitation,
+  respondToDateInvitation,
+  acknowledgeMembershipCelebration,
+  getVoucherSettings,
+  updateVoucherSettings,
+  listAllVouchers,
+  myVouchers,
+  requestVoucherOtp,
+  verifyVoucherOtpAndClaim,
+  redeemVoucher,
+  revokeVoucher,
+  listVoucherOtpStatus,
   subscribe,
 } satisfies Backend;
 

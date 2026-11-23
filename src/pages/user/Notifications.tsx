@@ -17,6 +17,9 @@ const KIND_ICON: Record<NotificationKind, string> = {
   system: "✦",
   match_proposal: "💌",
   pass: "🎟",
+  date_offer: "🥂",
+  date_invitation: "✉",
+  voucher: "✦",
 };
 
 export default function Notifications() {

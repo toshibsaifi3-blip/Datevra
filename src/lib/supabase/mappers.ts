@@ -1,6 +1,7 @@
 import type {
   ActivityLog,
   AppNotification,
+  AutomaticDateOffer,
   Block,
   Cafe,
   CmsPage,
@@ -9,8 +10,12 @@ import type {
   DateApplication,
   DateBooking,
   DateExperience,
+  DateInvitation,
+  DateInvitationRecipient,
+  DateOfferEvent,
   InvestorRecord,
   Like,
+  ManualDateOffer,
   Match,
   MatchPreferences,
   MatchProposal,
@@ -23,7 +28,10 @@ import type {
   Report,
   Subscription,
   UserProfile,
+  UserVoucher,
   VerificationStatus,
+  VoucherOtpStatusRecord,
+  VoucherSettings,
 } from "../types";
 
 /* Row → domain mappers (snake_case Supabase rows → camelCase app types).
@@ -55,6 +63,7 @@ export function mapProfile(r: Row): UserProfile {
     gender: (str(r.gender, "woman") as UserProfile["gender"]),
     interestedIn: (str(r.interested_in, "everyone") as UserProfile["interestedIn"]),
     city: str(r.city, "Mumbai"),
+    registeredCity: isoNull(r.registered_city),
     bio: str(r.bio),
     interests: arr(r.interests),
     hobbies: arr(r.hobbies),
@@ -237,6 +246,14 @@ const BOOKING_STATUS: Record<string, DateBooking["status"]> = {
   pending: "upcoming",
 };
 
+const BOOKING_PAYMENT_STATUS: Record<string, DateBooking["paymentStatus"]> = {
+  pending: "pending",
+  verified: "paid",
+  paid: "paid",
+  refunded: "refunded",
+  failed: "pending",
+};
+
 export function mapBooking(r: Row): DateBooking {
   return {
     id: str(r.id),
@@ -249,7 +266,7 @@ export function mapBooking(r: Row): DateBooking {
     venue: str(r.venue),
     status: BOOKING_STATUS[str(r.status)] ?? "upcoming",
     amount: num(r.amount),
-    paymentStatus: (str(r.payment_status, "pending") as DateBooking["paymentStatus"]),
+    paymentStatus: BOOKING_PAYMENT_STATUS[str(r.payment_status, "pending")] ?? "pending",
     createdAt: iso(r.created_at),
   };
 }
@@ -321,6 +338,8 @@ export function mapPayment(r: Row): Payment {
     razorpayOrderId: (r.razorpay_order_id as string | null) ?? null,
     razorpayPaymentId: (r.razorpay_payment_id as string | null) ?? null,
     method: str(r.method),
+    verifiedAt: isoNull(r.verified_at),
+    celebrationShownAt: isoNull(r.celebration_shown_at),
     createdAt: iso(r.created_at),
   };
 }
@@ -510,3 +529,178 @@ export function mapMatchProposal(r: Row): MatchProposal {
     respondedAt: (r.responded_at as string | null) ?? null,
   };
 }
+
+export function mapAutomaticDateOffer(r: Row): AutomaticDateOffer {
+  const uaObj = r.user_a_profile && typeof r.user_a_profile === "object" ? (r.user_a_profile as Row) : null;
+  const ubObj = r.user_b_profile && typeof r.user_b_profile === "object" ? (r.user_b_profile as Row) : null;
+  return {
+    id: str(r.id),
+    batchId: str(r.batch_id),
+    matchId: str(r.match_id),
+    userA: str(r.user_a),
+    userB: str(r.user_b),
+    userAName: (uaObj?.first_name as string | null) ?? (r.user_a_name as string | null) ?? null,
+    userBName: (ubObj?.first_name as string | null) ?? (r.user_b_name as string | null) ?? null,
+    experienceId: str(r.experience_id),
+    cafeId: (r.cafe_id as string | null) ?? null,
+    suggestedDate: str(r.suggested_date),
+    suggestedTime: str(r.suggested_time),
+    venue: str(r.venue),
+    message: (r.message as string | null) ?? null,
+    status: str(r.status, "pending") as AutomaticDateOffer["status"],
+    userAResponse: (r.user_a_response as boolean | null) ?? null,
+    userBResponse: (r.user_b_response as boolean | null) ?? null,
+    userARespondedAt: isoNull(r.user_a_responded_at),
+    userBRespondedAt: isoNull(r.user_b_responded_at),
+    expiresAt: iso(r.expires_at),
+    bookingId: (r.booking_id as string | null) ?? null,
+    createdAt: iso(r.created_at),
+  };
+}
+
+export function mapManualDateOffer(r: Row): ManualDateOffer {
+  const uaObj = r.user_a_profile && typeof r.user_a_profile === "object" ? (r.user_a_profile as Row) : null;
+  const ubObj = r.user_b_profile && typeof r.user_b_profile === "object" ? (r.user_b_profile as Row) : null;
+  return {
+    id: str(r.id),
+    userA: str(r.user_a),
+    userB: str(r.user_b),
+    userAName: (uaObj?.first_name as string | null) ?? (r.user_a_name as string | null) ?? null,
+    userBName: (ubObj?.first_name as string | null) ?? (r.user_b_name as string | null) ?? null,
+    matchId: (r.match_id as string | null) ?? null,
+    experienceId: str(r.experience_id),
+    cafeId: (r.cafe_id as string | null) ?? null,
+    suggestedDate: str(r.suggested_date),
+    suggestedTime: str(r.suggested_time),
+    venue: str(r.venue),
+    message: (r.message as string | null) ?? null,
+    status: str(r.status, "pending") as ManualDateOffer["status"],
+    userAResponse: (r.user_a_response as boolean | null) ?? null,
+    userBResponse: (r.user_b_response as boolean | null) ?? null,
+    userARespondedAt: isoNull(r.user_a_responded_at),
+    userBRespondedAt: isoNull(r.user_b_responded_at),
+    expiresAt: iso(r.expires_at),
+    bookingId: (r.booking_id as string | null) ?? null,
+    createdByAdminId: str(r.created_by_admin_id),
+    cancelledByAdminId: (r.cancelled_by_admin_id as string | null) ?? null,
+    cancelReason: (r.cancel_reason as string | null) ?? null,
+    createdAt: iso(r.created_at),
+  };
+}
+
+export function mapDateOfferEvent(r: Row): DateOfferEvent {
+  return {
+    id: str(r.id),
+    offerSource: str(r.offer_source, "manual") as DateOfferEvent["offerSource"],
+    offerId: str(r.offer_id),
+    actorId: (r.actor_id as string | null) ?? null,
+    actorRole: str(r.actor_role, "system") as DateOfferEvent["actorRole"],
+    eventType: str(r.event_type),
+    detail: str(r.detail),
+    createdAt: iso(r.created_at),
+  };
+}
+
+export function mapDateInvitationRecipient(r: Row): DateInvitationRecipient {
+  const prof = r.profiles && typeof r.profiles === "object" ? (r.profiles as Row) : null;
+  return {
+    id: str(r.id),
+    invitationId: str(r.invitation_id),
+    userId: str(r.user_id),
+    userName: (prof?.first_name as string | null) ?? (r.user_name as string | null) ?? null,
+    userCity: (prof?.city as string | null) ?? (r.user_city as string | null) ?? null,
+    partnerUserId: (r.partner_user_id as string | null) ?? null,
+    response: str(r.response, "pending") as DateInvitationRecipient["response"],
+    respondedAt: isoNull(r.responded_at),
+    bookingId: (r.booking_id as string | null) ?? null,
+    createdAt: iso(r.created_at),
+  };
+}
+
+export function mapDateInvitation(r: Row): DateInvitation {
+  const rawRecs = Array.isArray(r.date_invitation_recipients)
+    ? (r.date_invitation_recipients as Row[])
+    : Array.isArray(r.recipients)
+      ? (r.recipients as Row[])
+      : [];
+  return {
+    id: str(r.id),
+    invitationMode: str(r.invitation_mode, "individual") as DateInvitation["invitationMode"],
+    title: str(r.title),
+    experienceId: (r.experience_id as string | null) ?? null,
+    cafeId: (r.cafe_id as string | null) ?? null,
+    date: str(r.date),
+    time: str(r.time),
+    venue: str(r.venue),
+    message: (r.message as string | null) ?? null,
+    expiresAt: iso(r.expires_at),
+    status: str(r.status, "active") as DateInvitation["status"],
+    createdByAdminId: str(r.created_by_admin_id),
+    cancelledAt: isoNull(r.cancelled_at),
+    createdAt: iso(r.created_at),
+    recipients: rawRecs.map(mapDateInvitationRecipient),
+  };
+}
+
+export function mapVoucherSettings(r: Row): VoucherSettings {
+  return {
+    enabled: bool(r.enabled, false),
+    voucherValueInr: typeof r.voucher_value_inr === "number" ? r.voucher_value_inr : null,
+    maxClaimsPerUser: num(r.max_claims_per_user, 1),
+    maxTotalVouchers: typeof r.max_total_vouchers === "number" ? r.max_total_vouchers : null,
+    expiryDays: num(r.expiry_days, 30),
+    excludedCities: arr(r.excluded_cities).length > 0 ? arr(r.excluded_cities) : ["delhi", "new delhi"],
+    ncrPolicyNote: str(
+      r.ncr_policy_note,
+      "Excludes NCT of Delhi (Delhi, New Delhi). Delhi-NCR cities are treated as outside-Delhi unless explicitly added to excluded cities.",
+    ),
+    usageRules: str(
+      r.usage_rules,
+      "Limited-value, non-cash-withdrawable Datevra credit. Single-use only.",
+    ),
+    updatedByAdminId: (r.updated_by_admin_id as string | null) ?? null,
+    updatedAt: isoNull(r.updated_at) ?? undefined,
+  };
+}
+
+export function mapUserVoucher(r: Row): UserVoucher {
+  const prof = r.profiles && typeof r.profiles === "object" ? (r.profiles as Row) : null;
+  return {
+    id: str(r.id),
+    userId: str(r.user_id),
+    userName: (prof?.first_name as string | null) ?? (r.user_name as string | null) ?? null,
+    userEmail: (prof?.email as string | null) ?? (r.user_email as string | null) ?? null,
+    code: str(r.code),
+    valueInr: num(r.value_inr, 0),
+    nonCashWithdrawable: bool(r.non_cash_withdrawable, true),
+    status: str(r.status, "issued") as UserVoucher["status"],
+    cityAtClaim: str(r.city_at_claim),
+    registeredCityAtClaim: str(r.registered_city_at_claim),
+    otpChallengeId: (r.otp_challenge_id as string | null) ?? null,
+    otpVerifiedAt: iso(r.otp_verified_at),
+    expiresAt: iso(r.expires_at),
+    redeemedAt: isoNull(r.redeemed_at),
+    redemptionRef: (r.redemption_ref as string | null) ?? null,
+    revokedAt: isoNull(r.revoked_at),
+    revokedByAdminId: (r.revoked_by_admin_id as string | null) ?? null,
+    revocationReason: (r.revocation_reason as string | null) ?? null,
+    createdAt: iso(r.created_at),
+  };
+}
+
+export function mapVoucherOtpStatus(r: Row): VoucherOtpStatusRecord {
+  return {
+    id: str(r.id),
+    userId: str(r.user_id),
+    channel: str(r.channel, "email") as VoucherOtpStatusRecord["channel"],
+    destinationMasked: str(r.destination_masked),
+    status: str(r.status, "pending") as VoucherOtpStatusRecord["status"],
+    attemptCount: num(r.attempt_count, 0),
+    maxAttempts: num(r.max_attempts, 5),
+    expiresAt: iso(r.expires_at),
+    verifiedAt: isoNull(r.verified_at),
+    consumedAt: isoNull(r.consumed_at),
+    createdAt: iso(r.created_at),
+  };
+}
+

@@ -44,15 +44,64 @@ export function serviceRole(): SupabaseClient {
   });
 }
 
+export interface ActivatedPaymentResult {
+  already_verified: boolean;
+  payment_id: string;
+  subscription_id: string | null;
+  plan_id: string | null;
+  verified_at: string | null;
+  expires_at: string | null;
+}
+
 /**
- * Activate a membership after a verified payment. Idempotent-safe to call
- * once per payment: expires any active subscription, creates the new one,
- * updates the profile plan, and notifies the member.
+ * Atomically verify a pending payment, link subscriptions.payment_id,
+ * insert plan_update_intents for protect_profile_fields() compatibility,
+ * update profiles.plan_id/plan_expires_at, and notify the member at /membership.
+ */
+export async function activateVerifiedPayment(
+  db: SupabaseClient,
+  paymentId: string,
+  razorpayPaymentId: string,
+  method = "razorpay",
+): Promise<ActivatedPaymentResult> {
+  const { data, error } = await db.rpc("service_activate_verified_payment", {
+    p_payment_id: paymentId,
+    p_razorpay_payment_id: razorpayPaymentId,
+    p_method: method,
+  });
+  if (error) {
+    throw new Error(`Could not activate verified payment: ${error.message}`);
+  }
+  return (data ?? {}) as ActivatedPaymentResult;
+}
+
+/**
+ * Atomically reconcile a Razorpay refund webhook: marks payment refunded,
+ * cancels the linked subscription, and recalculates profile entitlement.
+ */
+export async function reconcileRefundedPayment(
+  db: SupabaseClient,
+  razorpayPaymentId: string,
+  reason = "Razorpay refund processed",
+): Promise<Record<string, unknown>> {
+  const { data, error } = await db.rpc("service_reconcile_refunded_payment", {
+    p_razorpay_payment_id: razorpayPaymentId,
+    p_reason: reason,
+  });
+  if (error) {
+    throw new Error(`Could not reconcile refunded payment: ${error.message}`);
+  }
+  return (data ?? {}) as Record<string, unknown>;
+}
+
+/**
+ * Legacy fallback helper — links payment_id when provided and uses /membership route.
  */
 export async function activateMembership(
   db: SupabaseClient,
   userId: string,
   planId: string,
+  paymentId?: string,
 ): Promise<void> {
   const now = new Date();
   const expires = new Date(now);
@@ -63,10 +112,11 @@ export async function activateMembership(
   const { error: subErr } = await db.from("subscriptions").insert({
     user_id: userId,
     plan_id: planId,
+    payment_id: paymentId ?? null,
     status: "active",
     started_at: now.toISOString(),
     expires_at: expires.toISOString(),
-    auto_renew: true,
+    auto_renew: false,
   });
   if (subErr) throw new Error(`Could not create subscription: ${subErr.message}`);
 
@@ -81,7 +131,7 @@ export async function activateMembership(
     kind: "membership",
     title: "Membership activated",
     body: `Your ${planId} membership is now active. Welcome to Datevra.`,
-    link: "/app/membership",
+    link: "/membership",
   });
 
   await db.from("activity_logs").insert({

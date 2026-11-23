@@ -408,7 +408,203 @@ describe("DATEVRA 75% MINIMUM COMPATIBILITY THRESHOLD SUITE", () => {
     assert.equal(accepted.status, "accepted");
   });
 
-  it("verifies Migration 028 SQL enforcement, security search_path, and canonical lock ordering", () => {
+  it("matches Migration 028 SQL normalization exactly: case-insensitive deduplication and empty-string ignoring", () => {
+    // 1. Case variants in them's interests + hobbies must deduplicate case-insensitively
+    //    (e.g., "Jazz", "jazz", "JAZZ" = 1 shared interest = 9 pts, NOT 3 = 27 pts).
+    const meCase = makeProfile({
+      id: "case-me",
+      city: "Mumbai",
+      interests: ["Jazz", "Coffee"],
+      hobbies: [],
+      relationshipIntent: "A serious relationship",
+      lifestyle: ["Non-smoker"],
+      profileComplete: 100,
+    });
+    const themCase = makeProfile({
+      id: "case-them",
+      city: "Pune",
+      age: 26,
+      interests: ["Jazz", "jazz", "JAZZ"],
+      hobbies: ["coffee", "COFFEE"],
+      relationshipIntent: "A serious relationship",
+      lifestyle: ["non-smoker"],
+      profileComplete: 80,
+    });
+    // Expected: 18 (2 unique case-insensitive interests) + 25 (intent) + 15 (age) + 0 (city) + 4 (lifestyle) + 4 (80% complete) = 66 (< 75)
+    // Without case-normalized dedup, 5 raw strings would have inflated to 35 pts -> 83% (false positive!).
+    const caseRes = computeCompatibility(meCase, themCase, STANDARD_PREFS);
+    assert.equal(caseRes.score, 66);
+    assert.equal(isCompatibilityEligible(caseRes.score), false);
+    assert.ok(
+      caseRes.factors.some((f) => f.includes("2 shared interests")),
+      `Expected 2 shared interests factor, got: ${caseRes.factors.join(" | ")}`,
+    );
+
+    // 2. Empty strings in interests, hobbies, lifestyle, city, and prefs.cities must award 0 points
+    const meEmpty = makeProfile({
+      id: "empty-me",
+      age: 27,
+      city: "",
+      interests: ["", ""],
+      hobbies: [""],
+      relationshipIntent: "",
+      lifestyle: ["", ""],
+      profileComplete: 0,
+    });
+    const themEmpty = makeProfile({
+      id: "empty-them",
+      age: 40, // outside STANDARD_PREFS 23-32 -> 0 age pts
+      city: "",
+      interests: [""],
+      hobbies: ["", ""],
+      relationshipIntent: "",
+      lifestyle: [""],
+      verified: false,
+      profileComplete: 0,
+    });
+    const prefsWithEmptyCity: MatchPreferences = {
+      ...STANDARD_PREFS,
+      cities: [""],
+    };
+    const emptyRes = computeCompatibility(meEmpty, themEmpty, prefsWithEmptyCity);
+    assert.equal(
+      emptyRes.score,
+      0,
+      "Empty strings across city, prefs.cities, interests, hobbies, and lifestyle must contribute 0 points",
+    );
+    assert.equal(emptyRes.factors.length, 0);
+
+    // 3. Valid values mixed with empty strings score identically to the clean array
+    const meMixed = makeProfile({
+      id: "mixed-me",
+      city: "Mumbai",
+      interests: ["", "Cinema", "Jazz", ""],
+      hobbies: ["Coffee", ""],
+      lifestyle: ["", "Non-smoker"],
+    });
+    const themMixed = makeProfile({
+      id: "mixed-them",
+      age: 26,
+      city: "Pune",
+      interests: ["", "cinema", "CINEMA", "jazz"],
+      hobbies: ["coffee", ""],
+      lifestyle: ["", "non-smoker", ""],
+      profileComplete: 80,
+    });
+    // Expected: 27 (3 unique: cinema, jazz, coffee) + 25 (intent) + 15 (age) + 0 (city) + 4 (1 lifestyle) + 4 (80% complete) = 75
+    const mixedRes = computeCompatibility(meMixed, themMixed, STANDARD_PREFS);
+    assert.equal(mixedRes.score, 75);
+    assert.equal(isCompatibilityEligible(mixedRes.score), true);
+  });
+
+  it("safely retries and unlocks an existing reciprocal like when compatibility improves from 74% to 75%, stays idempotent under repeated/concurrent retries, and keeps blocked users blocked", async () => {
+    // Helper: seed both directional likes directly (simulating pre-existing reciprocal likes
+    // created while compatibility was < 75% without a match row).
+    const seedExistingReciprocalLikes = (userAId: string, userBId: string) => {
+      const raw = localStorage.getItem("datevra-db-v1");
+      assert.ok(raw, "Expected demo DB in localStorage");
+      const parsed = JSON.parse(raw) as {
+        likes: Array<{ id: string; fromUserId: string; toUserId: string; createdAt: string }>;
+      };
+      const now = new Date().toISOString();
+      if (!parsed.likes.some((l) => l.fromUserId === userAId && l.toUserId === userBId)) {
+        parsed.likes.push({ id: `seed-lk-ab-${Date.now()}`, fromUserId: userAId, toUserId: userBId, createdAt: now });
+      }
+      if (!parsed.likes.some((l) => l.fromUserId === userBId && l.toUserId === userAId)) {
+        parsed.likes.push({ id: `seed-lk-ba-${Date.now()}`, fromUserId: userBId, toUserId: userAId, createdAt: now });
+      }
+      // Clear mockDb's in-memory cache so the next call rehydrates from localStorage
+      mockDb.resetDemo();
+      localStorage.setItem("datevra-db-v1", JSON.stringify(parsed));
+    };
+
+    // Case 1: Both likes already exist at 74% -> retries remain rejected
+    mockDb.resetDemo();
+    const pair74 = createScorePair(74);
+    const uA = registerProfile(pair74.me, "retry.a@datevra.test");
+    mockDb.savePrefs(uA.id, pair74.prefs);
+    const uB = registerProfile(pair74.them, "retry.b@datevra.test");
+    seedExistingReciprocalLikes(uA.id, uB.id);
+
+    assert.equal(mockDb.hasLiked(uA.id, uB.id), true);
+    assert.equal(mockDb.hasLiked(uB.id, uA.id), true);
+
+    const retryAt74 = mockDb.sendLike(uA.id, uB.id);
+    assert.equal(retryAt74.match, null);
+    assert.equal(retryAt74.compatibilityBlocked, true);
+    assert.equal(retryAt74.compatibility, 74);
+    assert.equal(retryAt74.minCompatibility, 75);
+    assert.equal(mockDb.matchesFor(uA.id).length, 0);
+    assert.equal(mockDb.conversationsFor(uA.id).length, 0);
+    assert.equal(mockDb.notificationsFor(uA.id).filter((n) => n.kind === "match").length, 0);
+    assert.equal(mockDb.notificationsFor(uB.id).filter((n) => n.kind === "match").length, 0);
+
+    // Case 2: Profile improves from 74% -> 75%; retrying with BOTH likes already existing unlocks match once
+    mockDb.updateUser(uB.id, {
+      bio: "Completed bio",
+      photos: ["https://example.com/p1.jpg"],
+    });
+    const likeNotifsBefore = mockDb.notificationsFor(uB.id).filter((n) => n.kind === "like").length;
+    const likesCountBefore = mockDb.likesSent(uA.id).length;
+
+    const unlocked = mockDb.sendLike(uA.id, uB.id);
+    assert.ok(unlocked.match, "Existing reciprocal like MUST unlock when score improves to 75%");
+    assert.equal(unlocked.compatibilityBlocked, undefined);
+    assert.equal(unlocked.match!.compatibility, 75);
+    assert.equal(mockDb.likesSent(uA.id).length, likesCountBefore, "No duplicate like row inserted");
+    assert.equal(
+      mockDb.notificationsFor(uB.id).filter((n) => n.kind === "like").length,
+      likeNotifsBefore,
+      "No duplicate like notification on retry",
+    );
+    assert.equal(mockDb.matchesFor(uA.id).length, 1);
+    assert.equal(mockDb.conversationsFor(uA.id).length, 1);
+    assert.equal(mockDb.notificationsFor(uA.id).filter((n) => n.kind === "match").length, 1);
+    assert.equal(mockDb.notificationsFor(uB.id).filter((n) => n.kind === "match").length, 1);
+
+    // Case 3: Repeated & concurrent retries from both sides remain idempotent (no duplicate matches/conversations/notifications)
+    const concurrentResults = await Promise.all([
+      Promise.resolve().then(() => mockDb.sendLike(uA.id, uB.id)),
+      Promise.resolve().then(() => mockDb.sendLike(uB.id, uA.id)),
+      Promise.resolve().then(() => mockDb.sendLike(uA.id, uB.id)),
+      Promise.resolve().then(() => mockDb.sendLike(uB.id, uA.id)),
+    ]);
+    for (const r of concurrentResults) {
+      assert.equal(r.match?.id, unlocked.match!.id);
+    }
+    assert.equal(mockDb.matchesFor(uA.id).length, 1, "Exactly 1 match after repeated/concurrent retries");
+    assert.equal(mockDb.conversationsFor(uA.id).length, 1, "Exactly 1 conversation after repeated/concurrent retries");
+    assert.equal(
+      mockDb.notificationsFor(uA.id).filter((n) => n.kind === "match").length,
+      1,
+      "Exactly 1 match notification for user A",
+    );
+    assert.equal(
+      mockDb.notificationsFor(uB.id).filter((n) => n.kind === "match").length,
+      1,
+      "Exactly 1 match notification for user B",
+    );
+
+    // Case 4: Blocked users with existing reciprocal likes (even at 90% compatibility) MUST remain blocked
+    mockDb.resetDemo();
+    const pair90 = createScorePair(90);
+    const bA = registerProfile(pair90.me, "blocked.a@datevra.test");
+    mockDb.savePrefs(bA.id, pair90.prefs);
+    const bB = registerProfile(pair90.them, "blocked.b@datevra.test");
+    seedExistingReciprocalLikes(bA.id, bB.id);
+    mockDb.blockUser(bB.id, bA.id);
+
+    const blockedRetryAB = mockDb.sendLike(bA.id, bB.id);
+    const blockedRetryBA = mockDb.sendLike(bB.id, bA.id);
+    assert.equal(blockedRetryAB.match, null);
+    assert.equal(blockedRetryBA.match, null);
+    assert.equal(mockDb.matchesFor(bA.id).length, 0);
+    assert.equal(mockDb.conversationsFor(bA.id).length, 0);
+    assert.equal(mockDb.notificationsFor(bA.id).filter((n) => n.kind === "match").length, 0);
+    assert.equal(mockDb.notificationsFor(bB.id).filter((n) => n.kind === "match").length, 0);
+  });
+
+  it("verifies Migration 028 & 029 SQL enforcement, security search_path, canonical lock ordering, and notification idempotency", () => {
     const sql = fs.readFileSync("db/migrations/028_minimum_compatibility_threshold.sql", "utf-8");
     assert.match(sql, /CREATE OR REPLACE FUNCTION public\.min_match_compatibility\(\)/);
     assert.match(sql, /SELECT 75;/);
@@ -428,13 +624,146 @@ describe("DATEVRA 75% MINIMUM COMPATIBILITY THRESHOLD SUITE", () => {
     assert.ok(lockIdx > 0 && recIdx > lockIdx, "Advisory pair lock precedes reciprocal like check");
     assert.ok(blockIdx > recIdx, "Block check precedes match creation");
     assert.ok(compatIdx > blockIdx && insertMatchIdx > compatIdx, "Compatibility gate precedes match, conversation, and notification creation");
+
+    // Verify Migration 029 retry RPC & duplicate-notification hardening
+    const sql029 = fs.readFileSync("db/migrations/029_reciprocal_like_match_retry.sql", "utf-8");
+    assert.match(sql029, /CREATE OR REPLACE FUNCTION public\.retry_mutual_like_match\(/);
+    assert.match(sql029, /v_caller\s+uuid\s*:=\s*auth\.uid\(\);/);
+    assert.match(sql029, /REVOKE ALL ON FUNCTION public\.retry_mutual_like_match\(uuid\) FROM PUBLIC, anon;/);
+    assert.match(sql029, /GRANT EXECUTE ON FUNCTION public\.retry_mutual_like_match\(uuid\) TO authenticated;/);
+    assert.match(sql029, /SET search_path = pg_catalog, public, pg_temp/);
+    assert.doesNotMatch(sql029, /INSERT INTO public\.likes/, "retry_mutual_like_match must NEVER insert into public.likes");
+    assert.doesNotMatch(sql029, /CREATE OR REPLACE FUNCTION public\.respond_to_proposal/, "Migration 029 must keep manual admin proposals separate");
+
+    const retryFn = sql029
+      .slice(
+        sql029.indexOf("CREATE OR REPLACE FUNCTION public.retry_mutual_like_match("),
+        sql029.indexOf("CREATE OR REPLACE FUNCTION public.handle_mutual_like()"),
+      )
+      .replace(/--.*$/gm, "");
+    const rLock = retryFn.indexOf("PERFORM public.lock_matchmaking_pair(a, b);");
+    const rBlock = retryFn.indexOf("public.blocked_pair(a, b)");
+    const rExisting = retryFn.indexOf("FROM public.matches");
+    const rFirstConvoInsert = retryFn.indexOf("INSERT INTO public.conversations");
+    const rAlreadyMatched = retryFn.indexOf("'already_matched'");
+    const rLikes = retryFn.indexOf("FROM public.likes");
+    const rCompat = retryFn.indexOf("public.is_compatibility_eligible(v_compat)");
+    const rInsert = retryFn.indexOf("INSERT INTO public.matches");
+    const rNullGuard = retryFn.indexOf("IF m_id IS NULL THEN");
+    const rNotif = retryFn.indexOf("INSERT INTO public.notifications");
+
+    assert.ok(rLock > 0 && rBlock > rLock, "Retry RPC acquires advisory pair lock before block check");
+    assert.ok(rExisting > rBlock, "Block check precedes existing-match lookup");
+    assert.ok(rFirstConvoInsert > rBlock && rAlreadyMatched > rBlock, "Blocked pair exits before conversation creation or already_matched return");
+    assert.ok(rLikes > rExisting, "Existing-match idempotency check precedes mutual-like check");
+    assert.ok(rCompat > rLikes && rInsert > rCompat, "Mutual-like and 75% compatibility gate precede match insert");
+    assert.ok(rNullGuard > rInsert && rNotif > rNullGuard, "Notifications only emitted when m_id IS NOT NULL (newly inserted match)");
+
+    // Ensure the old duplicate blocked_pair check was removed
+    const blockMatches = retryFn.match(/public\.blocked_pair\(a,\s*b\)/g) ?? [];
+    assert.equal(blockMatches.length, 1, "retry_mutual_like_match must contain exactly one blocked_pair(a, b) check");
+
+    const trigger029 = sql029
+      .slice(sql029.indexOf("CREATE OR REPLACE FUNCTION public.handle_mutual_like()"))
+      .replace(/--.*$/gm, "");
+    const tInsert = trigger029.indexOf("INSERT INTO public.matches");
+    const tNullGuard = trigger029.indexOf("IF m_id IS NULL THEN");
+    const tNotif = trigger029.indexOf("INSERT INTO public.notifications");
+    assert.ok(tNullGuard > tInsert && tNotif > tNullGuard, "handle_mutual_like skips notifications when match already existed");
   });
 
-  it("verifies Supabase adapter and UI surfaces wire centralized threshold and friendly message cleanly", () => {
+  it("proves a blocked pair with an existing match cannot cause conversation creation or return already_matched through retry", () => {
+    // 1. SQL-level contract proof on Migration 029 retry_mutual_like_match():
+    //    Verify the exact executable control flow immediately following lock_matchmaking_pair(a, b)
+    //    returns status='blocked' with NULL match_id and NULL compatibility before any
+    //    existing-match lookup, conversation insert, or 'already_matched' return is reachable.
+    const sql029 = fs.readFileSync("db/migrations/029_reciprocal_like_match_retry.sql", "utf-8");
+    const retryFn = sql029
+      .slice(
+        sql029.indexOf("CREATE OR REPLACE FUNCTION public.retry_mutual_like_match("),
+        sql029.indexOf("CREATE OR REPLACE FUNCTION public.handle_mutual_like()"),
+      )
+      .replace(/--.*$/gm, "");
+
+    const lockStmt = "PERFORM public.lock_matchmaking_pair(a, b);";
+    const lockEnd = retryFn.indexOf(lockStmt) + lockStmt.length;
+    const existingLookupIdx = retryFn.indexOf("FROM public.matches");
+    const betweenLockAndExisting = retryFn.slice(lockEnd, existingLookupIdx);
+
+    assert.match(
+      betweenLockAndExisting,
+      /IF public\.blocked_pair\(a, b\) THEN[\s\S]*?'status',\s*'blocked'[\s\S]*?'match_id',\s*NULL[\s\S]*?'compatibility',\s*NULL[\s\S]*?END IF;/,
+      "Blocked-pair guard must immediately follow lock_matchmaking_pair and return status='blocked' with NULL match_id & compatibility before existing-match lookup",
+    );
+    assert.doesNotMatch(
+      betweenLockAndExisting,
+      /INSERT INTO public\.conversations|'already_matched'/,
+      "No conversation insert or already_matched return may appear before the blocked_pair early return",
+    );
+
+    // 2. Runtime behavioral proof (even if a stale match row exists alongside a block record
+    //    without a conversation, retrying must NOT return the match or create a conversation).
+    mockDb.resetDemo();
+    const pair90 = createScorePair(90);
+    const uA = registerProfile(pair90.me, "blocked.existing.a@datevra.test");
+    mockDb.savePrefs(uA.id, pair90.prefs);
+    const uB = registerProfile(pair90.them, "blocked.existing.b@datevra.test");
+
+    const raw = localStorage.getItem("datevra-db-v1");
+    assert.ok(raw, "Expected demo DB in localStorage");
+    const parsed = JSON.parse(raw) as {
+      likes: Array<{ id: string; fromUserId: string; toUserId: string; createdAt: string }>;
+      matches: Array<{ id: string; userA: string; userB: string; compatibility: number; factors: string[]; createdAt: string }>;
+      blocks: Array<{ id: string; blockerId: string; blockedId: string; createdAt: string }>;
+      conversations: Array<{ id: string; matchId: string; participantIds: string[] }>;
+    };
+    const now = new Date().toISOString();
+    parsed.likes.push(
+      { id: "lk-ab", fromUserId: uA.id, toUserId: uB.id, createdAt: now },
+      { id: "lk-ba", fromUserId: uB.id, toUserId: uA.id, createdAt: now },
+    );
+    parsed.matches.push({
+      id: "stale-match-blocked",
+      userA: uA.id,
+      userB: uB.id,
+      compatibility: 90,
+      factors: [],
+      createdAt: now,
+    });
+    parsed.blocks.push({
+      id: "blk-ba",
+      blockerId: uB.id,
+      blockedId: uA.id,
+      createdAt: now,
+    });
+    // Ensure zero conversations exist before retry
+    parsed.conversations = parsed.conversations.filter((c) => c.matchId !== "stale-match-blocked");
+    mockDb.resetDemo();
+    localStorage.setItem("datevra-db-v1", JSON.stringify(parsed));
+
+    const resAB = mockDb.sendLike(uA.id, uB.id);
+    const resBA = mockDb.sendLike(uB.id, uA.id);
+    assert.equal(resAB.match, null, "Blocked user A must NOT receive stale existing match");
+    assert.equal(resBA.match, null, "Blocked user B must NOT receive stale existing match");
+    assert.equal(
+      mockDb.conversationsFor(uA.id).length,
+      0,
+      "Blocked pair with existing match must NOT cause conversation creation",
+    );
+    assert.equal(
+      mockDb.conversationsFor(uB.id).length,
+      0,
+      "Blocked pair with existing match must NOT cause conversation creation for partner",
+    );
+  });
+
+  it("verifies Supabase adapter and UI surfaces wire centralized threshold, safe retry RPC, and friendly message cleanly", () => {
     const sbSrc = fs.readFileSync("src/lib/supabase/db.ts", "utf-8");
     assert.match(sbSrc, /evaluateMatchEligibility/);
     assert.match(sbSrc, /MIN_COMPATIBILITY_SCORE/);
     assert.match(sbSrc, /compatibilityBlocked:\s*true/);
+    assert.match(sbSrc, /rpc\("retry_mutual_like_match"/);
+    assert.match(sbSrc, /PGRST202/);
 
     for (const file of [
       "src/pages/user/Discover.tsx",

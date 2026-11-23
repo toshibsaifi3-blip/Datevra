@@ -321,6 +321,9 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.lock_block_pair_changes()
+FROM PUBLIC, anon, authenticated;
+
 DROP TRIGGER IF EXISTS trg_lock_block_pair_changes ON public.blocks;
 
 CREATE TRIGGER trg_lock_block_pair_changes
