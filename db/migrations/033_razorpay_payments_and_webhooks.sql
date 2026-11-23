@@ -248,7 +248,7 @@ BEGIN
   END IF;
 
   INSERT INTO datevra_internal.plan_update_intents (user_id, plan_id, expires_at)
-  VALUES (v_payment.user_id, v_payment.plan_id, now() + interval '5 minutes');
+  VALUES (v_payment.user_id, v_payment.plan_id, v_end);
 
   UPDATE public.profiles
      SET plan_id = v_payment.plan_id, plan_expires_at = v_end
@@ -323,7 +323,7 @@ BEGIN
 
     IF FOUND THEN
       INSERT INTO datevra_internal.plan_update_intents (user_id, plan_id, expires_at)
-      VALUES (v_payment.user_id, v_other_active.plan_id, now() + interval '5 minutes');
+      VALUES (v_payment.user_id, v_other_active.plan_id, v_other_active.expires_at);
       UPDATE public.profiles SET plan_id = v_other_active.plan_id,
         plan_expires_at = v_other_active.expires_at
       WHERE id = v_payment.user_id;
@@ -420,9 +420,7 @@ BEGIN
       v_payment.user_id, v_payment.plan_id, v_payment.id, 'active', v_start, v_end, true
     );
 
-    INSERT INTO datevra_internal.plan_update_intents (user_id, plan_id, expires_at)
-    VALUES (v_payment.user_id, v_payment.plan_id, now() + interval '5 minutes');
-
+    -- Admins bypass protect_profile_fields(); no internal member intent is needed.
     UPDATE public.profiles SET plan_id = v_payment.plan_id, plan_expires_at = v_end
     WHERE id = v_payment.user_id;
 
