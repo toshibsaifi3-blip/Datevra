@@ -92,6 +92,12 @@ serve(async (req) => {
     return json({ error: "Could not prepare checkout. Please try again." }, 500);
   }
   if (existing?.razorpay_order_id && !existing.razorpay_order_id.startsWith("order_pending_")) {
+    if (Number(existing.amount) !== Number(plan.price)) {
+      return json({
+        error: "A previous pending order has a different plan price. Please contact support before retrying.",
+        code: "PENDING_ORDER_PRICE_MISMATCH",
+      }, 409);
+    }
     return json({
       paymentId: existing.id,
       orderId: existing.razorpay_order_id,
@@ -130,10 +136,10 @@ serve(async (req) => {
     // concurrent checkout attempts cannot overwrite the winning real order.
     let update = db
       .from("payments")
-      .update({ razorpay_order_id: order.id, method: "razorpay" })
+      .update({ razorpay_order_id: order.id, method: "razorpay", amount: plan.price })
       .eq("id", existing.id)
       .eq("status", "pending");
-    update = existing.razorpay_order_id
+    update = existing.razorpay_order_id !== null
       ? update.eq("razorpay_order_id", existing.razorpay_order_id)
       : update.is("razorpay_order_id", null);
 
