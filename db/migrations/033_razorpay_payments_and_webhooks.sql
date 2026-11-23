@@ -188,6 +188,10 @@ BEGIN
   END IF;
 
   IF v_payment.status = 'verified' THEN
+    IF v_payment.razorpay_payment_id IS DISTINCT FROM btrim(p_razorpay_payment_id) THEN
+      RAISE EXCEPTION 'VERIFIED_PAYMENT_ID_MISMATCH';
+    END IF;
+
     SELECT id INTO v_sub_id
     FROM public.subscriptions
     WHERE payment_id = p_payment_id
