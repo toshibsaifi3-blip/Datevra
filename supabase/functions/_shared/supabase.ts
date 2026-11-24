@@ -1,13 +1,8 @@
 /**
- * Shared Supabase helpers for the Datevra Razorpay Edge Functions.
+ * Shared Supabase helpers for the Datevra Razorpay and voucher OTP Edge Functions.
  *
- * Two clients are used on purpose:
- *  - `callerUserId(req)` — anon client carrying the member's JWT, only to
- *    identify WHO is calling. Never trusted for privileged writes.
- *  - `serviceRole()` — service-role client for privileged DB writes
- *    (payments, subscriptions, profiles, notifications, activity logs).
- *    The service-role key lives ONLY in Edge Function secrets, never in
- *    the browser bundle.
+ * Caller JWTs are used only to identify the authenticated member. Privileged
+ * database operations use the service-role client, which remains server-only.
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -37,11 +32,40 @@ export async function callerUserId(req: Request): Promise<string> {
   return data.user.id;
 }
 
+/**
+ * Voucher OTP helper: return only the authenticated user's ID and email.
+ * A null result is returned for missing/invalid caller JWTs.
+ */
+export async function getAuthenticatedUser(
+  req: Request,
+): Promise<{ id: string; email?: string } | null> {
+  const auth = req.headers.get("Authorization");
+  if (!auth) return null;
+
+  const client = createClient(mustEnv("SUPABASE_URL"), mustEnv("SUPABASE_ANON_KEY"), {
+    global: { headers: { Authorization: auth } },
+    auth: { persistSession: false },
+  });
+
+  const { data, error } = await client.auth.getUser();
+  if (error || !data.user) return null;
+
+  return {
+    id: data.user.id,
+    ...(data.user.email ? { email: data.user.email } : {}),
+  };
+}
+
 /** Privileged client for server-side writes. */
 export function serviceRole(): SupabaseClient {
   return createClient(mustEnv("SUPABASE_URL"), mustEnv("SUPABASE_SERVICE_ROLE_KEY"), {
     auth: { persistSession: false },
   });
+}
+
+/** Voucher OTP helper alias; service-role credentials never reach the browser. */
+export function getServiceClient(): SupabaseClient {
+  return serviceRole();
 }
 
 export interface ActivatedPaymentResult {
