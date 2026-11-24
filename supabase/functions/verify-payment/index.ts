@@ -81,32 +81,29 @@ serve(async (req) => {
     console.warn("[verify-payment] Order id mismatch for payment", paymentId);
     return json({ error: "Payment verification failed. Please contact support." }, 402);
   }
-  // Amount binding: the stored amount must match the plan's configured price.
-  const { data: plan } = await db
-    .from("membership_plans")
-    .select("price")
-    .eq("id", payment.plan_id)
-    .single();
-  if (!plan || Number(payment.amount) !== Number(plan.price)) {
-    console.warn("[verify-payment] Amount mismatch for payment", paymentId);
-    await db.from("activity_logs").insert({
-      actor_id: userId,
-      actor_role: "system",
-      action: "payment.amount_mismatch",
-      detail: `Payment ${paymentId} amount ${payment.amount} != plan ${payment.plan_id} price ${plan?.price}. Held for review.`,
-    });
-    return json({ error: "Payment verification failed. Please contact support." }, 402);
+  // Enforce current plan pricing for a new activation. Already-verified
+  // payments are reconciled by the database RPC using their original payment ID
+  // and linked subscription, even if the published plan price later changes.
+  if (payment.status === "pending") {
+    const { data: plan } = await db
+      .from("membership_plans")
+      .select("price")
+      .eq("id", payment.plan_id)
+      .single();
+    if (!plan || Number(payment.amount) !== Number(plan.price)) {
+      console.warn("[verify-payment] Amount mismatch for payment", paymentId);
+      await db.from("activity_logs").insert({
+        actor_id: userId,
+        actor_role: "system",
+        action: "payment.amount_mismatch",
+        detail: `Payment ${paymentId} amount ${payment.amount} != plan ${payment.plan_id} price ${plan?.price}. Held for review.`,
+      });
+      return json({ error: "Payment verification failed. Please contact support." }, 402);
+    }
   }
-  if (payment.status === "verified") {
-    return json({
-      ok: true,
-      already: true,
-      paymentId: payment.id,
-      planId: payment.plan_id,
-      verifiedAt: payment.verified_at,
-    });
-  }
-  if (payment.status !== "pending") {
+  // Allow verified rows through the atomic RPC as well: it confirms that
+  // the original Razorpay payment ID matches and that a linked subscription exists.
+  if (payment.status !== "pending" && payment.status !== "verified") {
     return json({ error: `Payment is ${payment.status}` }, 409);
   }
 

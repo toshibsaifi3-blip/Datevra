@@ -10,10 +10,9 @@
  *    for someone else.
  *  - The amount ALWAYS comes from the `membership_plans` table, never
  *    from the client.
- *  - Idempotent: if the caller already has a pending payment for this
- *    plan created in the last 30 minutes, the existing order is returned
- *    instead of creating a duplicate Razorpay order (backed by a partial
- *    unique index on payments in migration 005).
+ *  - Idempotent: reuses the member's single pending payment row for this plan.
+ *    A legacy order_pending_* placeholder is upgraded in place to a real
+ *    Razorpay order so the pending-per-user/plan unique index is respected.
  *  - Rate-limited: max 5 orders per member per hour.
  *  - Razorpay credentials come from Edge Function secrets. If they are
  *    not set, the function returns 503 (test mode) instead of failing
@@ -77,20 +76,28 @@ serve(async (req) => {
     return json({ error: "Too many payment attempts. Please try again later." }, 429);
   }
 
-  // Idempotency: reuse a recent pending payment for the same plan instead
-  // of creating a duplicate Razorpay order.
-  const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-  const { data: existing } = await db
+  // The live database permits one pending payment per member and plan.
+  // Reuse a real order regardless of age; never hand a placeholder to checkout.
+  const { data: existing, error: existingErr } = await db
     .from("payments")
     .select("id, razorpay_order_id, amount")
     .eq("user_id", userId)
     .eq("plan_id", planId)
     .eq("status", "pending")
-    .gte("created_at", thirtyMinAgo)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (existing?.razorpay_order_id) {
+  if (existingErr) {
+    console.error("[create-order] Could not inspect pending payment:", existingErr);
+    return json({ error: "Could not prepare checkout. Please try again." }, 500);
+  }
+  if (existing?.razorpay_order_id && !existing.razorpay_order_id.startsWith("order_pending_")) {
+    if (Number(existing.amount) !== Number(plan.price)) {
+      return json({
+        error: "A previous pending order has a different plan price. Please contact support before retrying.",
+        code: "PENDING_ORDER_PRICE_MISMATCH",
+      }, 409);
+    }
     return json({
       paymentId: existing.id,
       orderId: existing.razorpay_order_id,
@@ -122,51 +129,94 @@ serve(async (req) => {
   }
   const order = await orderRes.json();
 
-  const { data: payment, error: payErr } = await db
-    .from("payments")
-    .insert({
-      user_id: userId,
-      kind: "membership",
-      amount: plan.price,
-      plan_id: planId,
-      status: "pending",
-      razorpay_order_id: order.id,
-      method: "razorpay",
-    })
-    .select("id")
-    .single();
+  let paymentId: string | null = null;
 
-  if (payErr || !payment) {
-    // Race safety: a concurrent request may have won the insert — the
-    // partial unique index (migration 005) rejects the duplicate. Fall
-    // back to the winner's pending payment instead of erroring.
-    if (payErr && String(payErr.code) === "23505") {
+  if (existing?.id) {
+    // Upgrade a legacy placeholder in place. Compare the old value so that
+    // concurrent checkout attempts cannot overwrite the winning real order.
+    let update = db
+      .from("payments")
+      .update({ razorpay_order_id: order.id, method: "razorpay", amount: plan.price })
+      .eq("id", existing.id)
+      .eq("status", "pending");
+    update = existing.razorpay_order_id !== null
+      ? update.eq("razorpay_order_id", existing.razorpay_order_id)
+      : update.is("razorpay_order_id", null);
+
+    const { data: updated, error: updateError } = await update.select("id").maybeSingle();
+    if (updateError) {
+      console.error("[create-order] Could not upgrade pending payment:", updateError);
+      return json({ error: "Could not record the payment order. Please try again." }, 500);
+    }
+    if (updated) {
+      paymentId = updated.id;
+    } else {
+      // Another request won the compare-and-set. Return its persisted order;
+      // the order created by this request is unused and cannot activate a plan.
       const { data: winner } = await db
         .from("payments")
         .select("id, razorpay_order_id")
-        .eq("user_id", userId)
-        .eq("plan_id", planId)
+        .eq("id", existing.id)
         .eq("status", "pending")
-        .order("created_at", { ascending: false })
-        .limit(1)
         .maybeSingle();
-      if (winner?.razorpay_order_id) {
-        return json({
-          paymentId: winner.id,
-          orderId: winner.razorpay_order_id,
-          amount: amountPaise,
-          currency: "INR",
-          keyId,
-          reused: true,
-        });
+      if (!winner?.razorpay_order_id || winner.razorpay_order_id.startsWith("order_pending_")) {
+        return json({ error: "Checkout is being prepared. Please try again." }, 409);
       }
+      return json({
+        paymentId: winner.id,
+        orderId: winner.razorpay_order_id,
+        amount: amountPaise,
+        currency: "INR",
+        keyId,
+        reused: true,
+      });
     }
-    console.error("[create-order] Could not record payment:", payErr);
-    return json({ error: "Could not record the payment. Please try again." }, 500);
+  } else {
+    const { data: payment, error: payErr } = await db
+      .from("payments")
+      .insert({
+        user_id: userId,
+        kind: "membership",
+        amount: plan.price,
+        plan_id: planId,
+        status: "pending",
+        razorpay_order_id: order.id,
+        method: "razorpay",
+      })
+      .select("id")
+      .single();
+
+    if (payErr || !payment) {
+      // A concurrent request may have inserted the pending row first.
+      if (payErr && String(payErr.code) === "23505") {
+        const { data: winner } = await db
+          .from("payments")
+          .select("id, razorpay_order_id")
+          .eq("user_id", userId)
+          .eq("plan_id", planId)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (winner?.razorpay_order_id && !winner.razorpay_order_id.startsWith("order_pending_")) {
+          return json({
+            paymentId: winner.id,
+            orderId: winner.razorpay_order_id,
+            amount: amountPaise,
+            currency: "INR",
+            keyId,
+            reused: true,
+          });
+        }
+      }
+      console.error("[create-order] Could not record payment:", payErr);
+      return json({ error: "Could not record the payment. Please try again." }, 500);
+    }
+    paymentId = payment.id;
   }
 
   return json({
-    paymentId: payment.id,
+    paymentId,
     orderId: order.id,
     amount: order.amount,
     currency: order.currency,
