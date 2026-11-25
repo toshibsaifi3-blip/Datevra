@@ -95,12 +95,12 @@ export default function Membership() {
       planTagline: matchedPlan?.tagline,
     });
 
-    // The server acknowledgement is authoritative. Mark this browser only after
-    // the RPC succeeds; a failed acknowledgement must remain retryable after reload.
+    // The server timestamp is the durable idempotency marker. If the RPC fails,
+    // keep the payment eligible so a later page load can show and acknowledge it.
     db.acknowledgeMembershipCelebration(paymentId, user.id).catch((error) => {
-        attemptedCelebrationsRef.current.delete(paymentId);
-        console.warn("Membership celebration acknowledgement failed; it will retry:", error);
-      });
+      attemptedCelebrationsRef.current.delete(paymentId);
+      console.warn("Membership celebration acknowledgement failed; it will retry:", error);
+    });
   }, [user, data, db]);
 
   const dismissCelebration = useCallback(() => {
