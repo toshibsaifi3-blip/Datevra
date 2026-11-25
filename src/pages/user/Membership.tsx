@@ -14,6 +14,7 @@ import {
 import MembershipCelebrationOverlay, {
   type MembershipCelebrationPayload,
 } from "../../components/MembershipCelebrationOverlay";
+import { createCelebrationSessionController } from "../../lib/membershipCelebration";
 import { fmtDate, fmtExpiry, inr, timeAgo, useDbRefresh } from "./shared";
 import type { Payment, PlanId, Subscription } from "../../lib/types";
 
@@ -48,8 +49,23 @@ export default function Membership() {
   const [verifying, setVerifying] = useState(false);
   const [passCode, setPassCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
-  const [celebration, setCelebration] = useState<MembershipCelebrationPayload | null>(null);
-  const attemptedCelebrationsRef = useRef(new Set<string>());
+  const [celebrationState, setCelebrationState] = useState<{
+    ownerUserId: string;
+    payload: MembershipCelebrationPayload;
+  } | null>(null);
+  const celebrationControllerRef = useRef(createCelebrationSessionController());
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    celebrationControllerRef.current.reset();
+  }, [user?.id]);
 
   const {
     data,
@@ -75,37 +91,68 @@ export default function Membership() {
   );
 
   // Requirement 7: Trigger celebration ONLY when backend confirms a verified membership
-  // payment AND an active subscription exists, and celebration has not yet been shown.
+  // payment owned by the signed-in member AND an active subscription exists, using
+  // server-side celebration_shown_at as the durable idempotency marker. Failed
+  // acknowledgements are never permanently suppressed and remain retryable.
   useEffect(() => {
     if (!user || !data?.sub || data.sub.status !== "active") return;
-    const unshownVerified = data.payments.find(
-      (p) =>
-        p.status === "verified" &&
-        p.kind === "membership" &&
-        !p.celebrationShownAt,
+    const verifiedMembershipPayments = data.payments.filter(
+      (p) => p.userId === user.id && p.status === "verified" && p.kind === "membership",
     );
-    if (!unshownVerified || attemptedCelebrationsRef.current.has(unshownVerified.id)) return;
+    if (verifiedMembershipPayments.length === 0) return;
 
-    const paymentId = unshownVerified.id;
-    attemptedCelebrationsRef.current.add(paymentId);
-    const matchedPlan = PLANS.find((x) => x.id === (unshownVerified.planId ?? data.sub?.planId));
-    setCelebration({
-      paymentId,
-      planName: matchedPlan?.name ?? "Datevra Membership",
-      planTagline: matchedPlan?.tagline,
+    void celebrationControllerRef.current.evaluateAndAcknowledge({
+      userId: user.id,
+      sub: data.sub,
+      payments: verifiedMembershipPayments,
+      acknowledge: (paymentId, uid) => db.acknowledgeMembershipCelebration(paymentId, uid),
+      onShow: (unshownVerified) => {
+        if (!mountedRef.current) return;
+        const matchedPlan = PLANS.find((x) => x.id === (unshownVerified.planId ?? data.sub?.planId));
+        setCelebrationState({
+          ownerUserId: user.id,
+          payload: {
+            paymentId: unshownVerified.id,
+            planName: matchedPlan?.name ?? "Datevra Membership",
+            planTagline: matchedPlan?.tagline,
+          },
+        });
+      },
+      onAcknowledged: () => {
+        if (mountedRef.current) refreshData();
+      },
+      onError: (_paymentId, err) => {
+        console.warn(
+          "Membership celebration acknowledgement failed; will retry on next eligible trigger:",
+          err instanceof Error ? err.message : "unknown error",
+        );
+      },
     });
+  }, [user, data, db, refreshData]);
 
-    // The server timestamp is the durable idempotency marker. If the RPC fails,
-    // keep the payment eligible so a later page load can show and acknowledge it.
-    db.acknowledgeMembershipCelebration(paymentId, user.id).catch((error) => {
-      attemptedCelebrationsRef.current.delete(paymentId);
-      console.warn("Membership celebration acknowledgement failed; it will retry:", error);
-    });
-  }, [user, data, db]);
+  const celebration =
+    user && celebrationState?.ownerUserId === user.id ? celebrationState.payload : null;
 
   const dismissCelebration = useCallback(() => {
-    setCelebration(null);
-  }, []);
+    const dismissedPaymentId = celebration?.paymentId;
+    setCelebrationState(null);
+    if (dismissedPaymentId && user) {
+      void celebrationControllerRef.current.retryAcknowledgeIfPending({
+        paymentId: dismissedPaymentId,
+        userId: user.id,
+        acknowledge: (paymentId, uid) => db.acknowledgeMembershipCelebration(paymentId, uid),
+        onAcknowledged: () => {
+          if (mountedRef.current) refreshData();
+        },
+        onError: (_paymentId, err) => {
+          console.warn(
+            "Membership celebration acknowledgement retry failed:",
+            err instanceof Error ? err.message : "unknown error",
+          );
+        },
+      });
+    }
+  }, [celebration?.paymentId, user, db, refreshData]);
 
   if (!user) return null;
   const me = user;
