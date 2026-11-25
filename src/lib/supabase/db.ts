@@ -1873,9 +1873,10 @@ async function acknowledgeMembershipCelebration(
     p_payment_id: paymentId,
   });
   if (res.error) {
-    // Graceful fallback if Migration 031 hasn't been executed yet (client localStorage still guards idempotency)
+    // Never treat a missing server acknowledgement RPC as success: the UI must
+    // keep the celebration eligible for retry after a later reload.
     if (res.error.code === "PGRST202" || res.error.code === "42883") {
-      return new Date().toISOString();
+      throw new Error("Membership celebration acknowledgement RPC is not available.");
     }
     throw new Error(res.error.message);
   }
