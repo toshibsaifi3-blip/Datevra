@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useAsync, useBackend } from "../../lib/data";
@@ -67,6 +67,7 @@ export default function Membership() {
   const [passCode, setPassCode] = useState("");
   const [redeeming, setRedeeming] = useState(false);
   const [celebration, setCelebration] = useState<MembershipCelebrationPayload | null>(null);
+  const attemptedCelebrationsRef = useRef(new Set<string>());
 
   const {
     data,
@@ -99,20 +100,27 @@ export default function Membership() {
       (p) =>
         p.status === "verified" &&
         p.kind === "membership" &&
-        !p.celebrationShownAt &&
-        !hasLocalCelebrationBeenShown(p.id),
+        !p.celebrationShownAt,
     );
-    if (!unshownVerified) return;
+    if (!unshownVerified || attemptedCelebrationsRef.current.has(unshownVerified.id)) return;
 
+    const paymentId = unshownVerified.id;
+    attemptedCelebrationsRef.current.add(paymentId);
     const matchedPlan = PLANS.find((x) => x.id === (unshownVerified.planId ?? data.sub?.planId));
-    markLocalCelebrationShown(unshownVerified.id);
     setCelebration({
-      paymentId: unshownVerified.id,
+      paymentId,
       planName: matchedPlan?.name ?? "Datevra Membership",
       planTagline: matchedPlan?.tagline,
     });
-    // Persist idempotently on server so refresh/re-login never replays the animation
-    db.acknowledgeMembershipCelebration(unshownVerified.id, user.id).catch(() => {});
+
+    // The server acknowledgement is authoritative. Mark this browser only after
+    // the RPC succeeds; a failed acknowledgement must remain retryable after reload.
+    db.acknowledgeMembershipCelebration(paymentId, user.id)
+      .then(() => markLocalCelebrationShown(paymentId))
+      .catch((error) => {
+        attemptedCelebrationsRef.current.delete(paymentId);
+        console.warn("Membership celebration acknowledgement failed; it will retry:", error);
+      });
   }, [user, data, db]);
 
   const dismissCelebration = useCallback(() => {
