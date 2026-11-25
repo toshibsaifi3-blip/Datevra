@@ -57,7 +57,7 @@ export function findEligibleCelebrationPayment(
   payments: readonly Payment[],
   acknowledgedIds?: ReadonlySet<string>,
 ): Payment | undefined {
-  if (!userId || !sub || sub.status !== "active") return undefined;
+  if (!userId || !sub || sub.userId !== userId || sub.status !== "active") return undefined;
   return payments.find(
     (p) =>
       p.userId === userId &&
