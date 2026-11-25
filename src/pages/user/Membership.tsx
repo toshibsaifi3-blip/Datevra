@@ -19,14 +19,6 @@ import type { Payment, PlanId, Subscription } from "../../lib/types";
 
 const CELEBRATION_KEY_PREFIX = "datevra:celebration_shown:";
 
-function hasLocalCelebrationBeenShown(paymentId: string): boolean {
-  try {
-    return localStorage.getItem(`${CELEBRATION_KEY_PREFIX}${paymentId}`) === "1";
-  } catch {
-    return false;
-  }
-}
-
 function markLocalCelebrationShown(paymentId: string): void {
   try {
     localStorage.setItem(`${CELEBRATION_KEY_PREFIX}${paymentId}`, "1");
