@@ -17,16 +17,6 @@ import MembershipCelebrationOverlay, {
 import { fmtDate, fmtExpiry, inr, timeAgo, useDbRefresh } from "./shared";
 import type { Payment, PlanId, Subscription } from "../../lib/types";
 
-const CELEBRATION_KEY_PREFIX = "datevra:celebration_shown:";
-
-function markLocalCelebrationShown(paymentId: string): void {
-  try {
-    localStorage.setItem(`${CELEBRATION_KEY_PREFIX}${paymentId}`, "1");
-  } catch {
-    /* ignore storage quota/privacy mode */
-  }
-}
-
 const PAY_TONE: Record<Payment["status"], "gold" | "rose" | "muted" | "green"> = {
   pending: "gold",
   verified: "green",
@@ -107,9 +97,7 @@ export default function Membership() {
 
     // The server acknowledgement is authoritative. Mark this browser only after
     // the RPC succeeds; a failed acknowledgement must remain retryable after reload.
-    db.acknowledgeMembershipCelebration(paymentId, user.id)
-      .then(() => markLocalCelebrationShown(paymentId))
-      .catch((error) => {
+    db.acknowledgeMembershipCelebration(paymentId, user.id).catch((error) => {
         attemptedCelebrationsRef.current.delete(paymentId);
         console.warn("Membership celebration acknowledgement failed; it will retry:", error);
       });
