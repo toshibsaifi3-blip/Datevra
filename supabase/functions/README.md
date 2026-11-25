@@ -11,6 +11,7 @@ before they can serve traffic.
 | `create-order` | `POST /functions/v1/create-order` | Authenticated member → creates a Razorpay order for a plan and records a `pending` payment. Amount is read from `membership_plans`, never from the client. |
 | `verify-payment` | `POST /functions/v1/verify-payment` | Verifies the Razorpay checkout signature server-side, marks the payment `verified`, and activates the membership. Idempotent. |
 | `razorpay-webhook` | `POST /functions/v1/razorpay-webhook` | Handles `payment.captured` / `payment.failed` webhook events (HMAC-verified). Safety net if the client never calls `verify-payment`. |
+| `expire-stale-date-offers` | `POST /functions/v1/expire-stale-date-offers` | Scheduled expiry endpoint protected by `x-expire-secret` (`EXPIRE_STALE_DATE_OFFERS_SECRET`). Calls `public.expire_stale_date_offers()` via `service_role`. See `expire-stale-date-offers/README.md`. |
 
 Shared code lives in `_shared/`:
 - `crypto.ts` — HMAC-SHA256 signature verification (WebCrypto only, no npm deps; unit-testable in Node).
@@ -21,7 +22,8 @@ Shared code lives in `_shared/`:
 ```bash
 supabase secrets set RAZORPAY_KEY_ID=rzp_test_... \
                     RAZORPAY_KEY_SECRET=... \
-                    RAZORPAY_WEBHOOK_SECRET=...
+                    RAZORPAY_WEBHOOK_SECRET=... \
+                    EXPIRE_STALE_DATE_OFFERS_SECRET=...
 ```
 
 Use **test-mode** keys until the full flow is verified end-to-end. The service-role
@@ -35,10 +37,13 @@ browser bundle.
 supabase functions deploy create-order
 supabase functions deploy verify-payment
 supabase functions deploy razorpay-webhook
+supabase functions deploy expire-stale-date-offers --no-verify-jwt
 ```
 
 Then register the webhook URL in the Razorpay dashboard:
 `https://<project-ref>.supabase.co/functions/v1/razorpay-webhook`
+
+For `expire-stale-date-offers` secret generation and 5-minute external scheduler setup (not configured or active yet), see `supabase/functions/expire-stale-date-offers/README.md`.
 
 ## Client wiring (follow-up, not done)
 

@@ -7,6 +7,7 @@ import {
   type MatchEligibilityResult,
 } from "../compat";
 import { validatePhotoFile, extensionFor, storagePathFromUrl } from "../photos";
+import { unwrapCelebrationAckRpcResult } from "../membershipCelebration";
 import type {
   ActivityLog,
   AppNotification,
@@ -1869,17 +1870,14 @@ async function acknowledgeMembershipCelebration(
   paymentId: string,
   _userId: string,
 ): Promise<string> {
-  const res = await sb().rpc("acknowledge_membership_celebration", {
-    p_payment_id: paymentId,
-  });
-  if (res.error) {
-    // Graceful fallback if Migration 031 hasn't been executed yet (client localStorage still guards idempotency)
-    if (res.error.code === "PGRST202" || res.error.code === "42883") {
-      return new Date().toISOString();
-    }
-    throw new Error(res.error.message);
+  const id = paymentId.trim();
+  if (!id) {
+    throw new Error("PAYMENT_NOT_ELIGIBLE: Payment ID is required.");
   }
-  return typeof res.data === "string" ? res.data : new Date().toISOString();
+  const res = await sb().rpc("acknowledge_membership_celebration", {
+    p_payment_id: id,
+  });
+  return unwrapCelebrationAckRpcResult(res);
 }
 
 /* ---------------- outside-Delhi vouchers & OTP (Req 8) ---------------- */
