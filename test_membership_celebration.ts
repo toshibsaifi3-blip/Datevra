@@ -78,6 +78,11 @@ test("C1: Eligibility requires active subscription + owned verified membership p
   // Inactive / missing subscription -> ineligible
   assert.equal(findEligibleCelebrationPayment("user-a", undefined, [validPayment]), undefined);
   assert.equal(
+    findEligibleCelebrationPayment("user-a", makeSub({ userId: "user-b" }), [validPayment]),
+    undefined,
+    "An active subscription belonging to another user must not qualify",
+  );
+  assert.equal(
     findEligibleCelebrationPayment("user-a", makeSub({ status: "expired" }), [validPayment]),
     undefined,
   );
