@@ -1,5 +1,6 @@
 import type { Cafe } from "./types";
 import { SEED_CAFES } from "../data/seed";
+import { getVerifiedCafeResearch } from "../data/cafesVerified";
 
 /**
  * Confirmed demo/sample café IDs from initial development / seed catalog.
@@ -109,10 +110,43 @@ export function isDemoCafe(
 }
 
 /**
+ * Enriches a genuine café record with Datevra's static manually researched
+ * business metadata (opening hours, weekly schedule, verified address, and
+ * honest Google rating verification flags) without overwriting non-empty
+ * admin-managed values.
+ */
+export function enrichCafeWithVerifiedResearch(cafe: Cafe): Cafe {
+  const research = getVerifiedCafeResearch(cafe);
+  if (!research) return cafe;
+  const ratingVerified = cafe.ratingVerified ?? research.ratingVerified;
+  const priceVerified = cafe.priceVerified ?? research.priceVerified;
+  return {
+    ...cafe,
+    address: cafe.address || research.verifiedAddress,
+    openingHours: cafe.openingHours?.trim() ? cafe.openingHours : research.openingHoursSummary,
+    rating: cafe.rating > 0 ? cafe.rating : (research.googleRating ?? 0),
+    googleRating: cafe.googleRating ?? research.googleRating,
+    googleReviewCount: cafe.googleReviewCount ?? research.googleReviewCount,
+    ratingVerified,
+    ratingStatusLabel: ratingVerified
+      ? (cafe.ratingStatusLabel ?? research.ratingStatusLabel)
+      : research.ratingStatusLabel,
+    weeklyHours: cafe.weeklyHours ?? research.weeklyHours,
+    hoursVerified: cafe.hoursVerified ?? research.hoursVerified,
+    priceVerified,
+    priceStatusLabel: priceVerified
+      ? (cafe.priceStatusLabel ?? research.priceStatusLabel)
+      : research.priceStatusLabel,
+    infoSource: research.infoSource,
+    infoCheckedAt: research.infoCheckedAt,
+  };
+}
+
+/**
  * Sanitizes an array of cafés:
  * 1. Strictly filters out all demo/sample cafés using exhaustive ID, name, and location matching.
  * 2. Ensures the 3 genuine Delhi cafés (Café Hot Stag, KARMALA CAFE & RESTAURANT,
- *    The Yumm Club) are preserved with verified addresses and photographs without duplicates.
+ *    The Yumm Club) are preserved with verified addresses, hours, and photographs without duplicates.
  * 3. Incorporates any genuine cafés created by administrators in Supabase or local storage.
  * 4. Ensures the final returned array contains 0 demo cafés under all circumstances.
  */
@@ -123,25 +157,38 @@ export function sanitizeCafeList(cafes: Cafe[]): Cafe[] {
   // Baseline: ensure the 3 genuine Delhi seed cafes exist with verified assets
   for (const sc of SEED_CAFES) {
     if (!isDemoCafe(sc)) {
-      cafeMap.set(sc.id, sc);
+      cafeMap.set(sc.id, enrichCafeWithVerifiedResearch(sc));
     }
   }
 
   // Merge genuine cafes from source (Supabase / local DB)
   for (const c of genuineFromSource) {
     if (isDemoCafe(c)) continue;
-    const existing = cafeMap.get(c.id);
+    const matchedResearch = getVerifiedCafeResearch(c);
+    const canonicalKey =
+      cafeMap.has(c.id)
+        ? c.id
+        : matchedResearch && cafeMap.has(matchedResearch.id)
+          ? matchedResearch.id
+          : c.id;
+    const existing = cafeMap.get(canonicalKey);
     if (existing) {
-      cafeMap.set(c.id, {
-        ...existing,
-        ...c,
-        image: c.image || existing.image,
-        images: c.images && c.images.length > 0 ? c.images : existing.images,
-        address: c.address || existing.address,
-        experiences: c.experiences && c.experiences.length > 0 ? c.experiences : existing.experiences,
-      });
+      cafeMap.set(
+        canonicalKey,
+        enrichCafeWithVerifiedResearch({
+          ...existing,
+          ...c,
+          id: c.id || existing.id,
+          image: c.image || existing.image,
+          images: c.images && c.images.length > 0 ? c.images : existing.images,
+          address: c.address || existing.address,
+          openingHours: c.openingHours?.trim() ? c.openingHours : existing.openingHours,
+          rating: c.rating > 0 ? c.rating : existing.rating,
+          experiences: c.experiences && c.experiences.length > 0 ? c.experiences : existing.experiences,
+        }),
+      );
     } else {
-      cafeMap.set(c.id, c);
+      cafeMap.set(canonicalKey, enrichCafeWithVerifiedResearch(c));
     }
   }
 

@@ -17,7 +17,8 @@ import {
   MIN_COMPATIBILITY_SCORE,
   rankCandidates,
 } from "../../lib/compat";
-import { CITIES, RELATIONSHIP_INTENTS } from "../../data/seed";
+import { RELATIONSHIP_INTENTS } from "../../data/seed";
+import { IndiaCityMultiPicker } from "../../components/IndiaLocationPicker";
 import {
   Avatar,
   Badge,
@@ -1221,36 +1222,19 @@ export default function Discover() {
               </select>
             </Field>
             <Field label="Cities">
-              <div className="flex flex-wrap gap-2">
-                {CITIES.map((c) => {
-                  const on = prefsDraft.cities.includes(c);
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() =>
-                        setPrefsDraft({
-                          ...prefsDraft,
-                          cities: on
-                            ? prefsDraft.cities.filter((x) => x !== c)
-                            : [...prefsDraft.cities, c],
-                        })
-                      }
-                      className={`rounded-full border px-3.5 py-1.5 min-h-[38px] text-sm transition-colors ${
-                        on
-                          ? "border-champagne/60 bg-champagne/10 text-champagne shadow-[0_0_14px_rgba(197,164,255,0.25)]"
-                          : "border-white/15 text-mist hover:text-ivory"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  );
-                })}
-              </div>
+              <IndiaCityMultiPicker
+                selected={prefsDraft.cities}
+                onChange={(cities) => setPrefsDraft({ ...prefsDraft, cities })}
+              />
             </Field>
             <Field label="Relationship intentions">
               <div className="flex flex-wrap gap-2">
-                {RELATIONSHIP_INTENTS.map((r) => {
+                {Array.from(
+                  new Set([
+                    ...RELATIONSHIP_INTENTS,
+                    ...prefsDraft.relationshipIntents,
+                  ]),
+                ).map((r) => {
                   const on = prefsDraft.relationshipIntents.includes(r);
                   return (
                     <button

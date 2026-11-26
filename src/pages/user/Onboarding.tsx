@@ -3,7 +3,12 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useBackend } from "../../lib/data";
-import { ALL_INTERESTS, CITIES, RELATIONSHIP_INTENTS } from "../../data/seed";
+import { CITIES } from "../../data/seed";
+import { INTEREST_CATEGORIES } from "../../data/interests";
+import { LIFESTYLE_CATEGORIES } from "../../data/lifestyle";
+import { relationshipGoalOptionsWithLegacy } from "../../data/relationshipGoals";
+import { CatalogTagPicker } from "../../components/CatalogTagPicker";
+import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import {
   Avatar,
   Badge,
@@ -59,10 +64,7 @@ export default function Onboarding() {
   const [interests, setInterests] = useState<string[]>([]);
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState<string[]>([]);
-  const [interestQuery, setInterestQuery] = useState("");
-  const [customTag, setCustomTag] = useState("");
   const [hobbyInput, setHobbyInput] = useState("");
-  const [lifestyleInput, setLifestyleInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<BasicIdentityErrors>({});
   const [error, setError] = useState("");
@@ -115,12 +117,10 @@ export default function Onboarding() {
     [bio, relationshipIntent, city, interests, user?.photos],
   );
 
-  const presetSuggestions = useMemo(() => {
-    const q = interestQuery.trim().toLowerCase();
-    return ALL_INTERESTS.filter(
-      (tag) => !q || tag.toLowerCase().includes(q),
-    ).slice(0, 24);
-  }, [interestQuery]);
+  const relationshipGoalOptions = useMemo(
+    () => relationshipGoalOptionsWithLegacy(relationshipIntent),
+    [relationshipIntent],
+  );
 
   if (!user) return null;
 
@@ -368,17 +368,7 @@ export default function Onboarding() {
                       </select>
                     </Field>
                     <Field label="City">
-                      <select
-                        className={inputCls}
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                      >
-                        {CITIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
+                      <IndiaLocationPicker value={city} onChange={setCity} />
                     </Field>
                   </div>
                 </div>
@@ -441,7 +431,7 @@ export default function Onboarding() {
 
                   <Field label="Relationship intent (optional)">
                     <div className="space-y-2">
-                      {RELATIONSHIP_INTENTS.map((intent) => {
+                      {relationshipGoalOptions.map((intent) => {
                         const selected = relationshipIntent === intent;
                         return (
                           <button
@@ -476,83 +466,20 @@ export default function Onboarding() {
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-champagne mb-2.5">
-                      Interests ({interests.length})
-                    </p>
-                    <div className="flex flex-wrap gap-2 min-h-[44px] p-3 rounded-xl bg-white/5 border hairline mb-3">
-                      {interests.length === 0 ? (
-                        <span className="text-xs text-mist">No interests selected yet. Pick tags below or add your own.</span>
-                      ) : (
-                        interests.map((tag) => (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => setInterests((prev) => toggleTag(prev, tag))}
-                            className="rounded-full bg-champagne/15 border border-champagne/40 text-champagne text-xs px-3 py-1.5 min-h-[36px] flex items-center gap-1.5"
-                          >
-                            <span>{tag}</span>
-                            <span aria-hidden className="text-[0.75rem]">×</span>
-                          </button>
-                        ))
-                      )}
-                    </div>
-
-                    <input
-                      className={`${inputCls} mb-2.5`}
-                      placeholder="Search preset interests…"
-                      aria-label="Search preset interests"
-                      value={interestQuery}
-                      onChange={(e) => setInterestQuery(e.target.value)}
+                  <Field
+                    label={`Interests (${interests.length})`}
+                    hint="Optional — search 400+ curated interests across categories or add your own."
+                  >
+                    <CatalogTagPicker
+                      categories={INTEREST_CATEGORIES}
+                      selected={interests}
+                      onChange={setInterests}
+                      tone="gold"
+                      searchPlaceholder="Search 400+ interests or categories (e.g. Chai, Bollywood, Trekking, Yoga)…"
+                      customPlaceholder="Add custom interest (e.g. Scuba diving)…"
+                      emptySelectedText="No interests selected yet — optional, pick any below."
                     />
-                    <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto p-1">
-                      {presetSuggestions.map((tag) => {
-                        const active = interests.includes(tag);
-                        return (
-                          <button
-                            key={tag}
-                            type="button"
-                            onClick={() => setInterests((prev) => toggleTag(prev, tag))}
-                            aria-pressed={active}
-                            className={`rounded-full px-3 py-1.5 text-xs border transition-colors ${
-                              active
-                                ? "bg-rosegold/20 border-rosegold text-rosegold"
-                                : "bg-white/5 border-white/10 text-ivory-dim hover:text-ivory hover:border-white/25"
-                            }`}
-                          >
-                            {active ? "✓ " : "+ "}{tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="flex gap-2 mt-3">
-                      <input
-                        className={`${inputCls} min-w-0 flex-1`}
-                        placeholder="Add custom interest (e.g. Scuba diving)…"
-                        aria-label="Custom interest"
-                        value={customTag}
-                        onChange={(e) => setCustomTag(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            setInterests((prev) => addCustomTagItem(prev, customTag));
-                            setCustomTag("");
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setInterests((prev) => addCustomTagItem(prev, customTag));
-                          setCustomTag("");
-                        }}
-                        className="btn-ghost rounded-xl px-4 min-h-[44px] text-xs shrink-0"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
+                  </Field>
 
                   <div className="hairline" />
 
@@ -599,47 +526,21 @@ export default function Onboarding() {
                     </div>
                   </Field>
 
-                  <Field label="Lifestyle notes (optional)" hint="e.g. Early riser, Vegetarian, Non-smoker.">
-                    {lifestyle.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2.5">
-                        {lifestyle.map((l) => (
-                          <button
-                            key={l}
-                            type="button"
-                            onClick={() => setLifestyle((prev) => toggleTag(prev, l))}
-                            className="rounded-full bg-white/5 border border-white/20 text-ivory-dim text-xs px-3 py-1.5 flex items-center gap-1.5"
-                          >
-                            <span>{l}</span>
-                            <span aria-hidden>×</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <input
-                        className={`${inputCls} min-w-0 flex-1`}
-                        placeholder="Add a lifestyle note…"
-                        value={lifestyleInput}
-                        onChange={(e) => setLifestyleInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            setLifestyle((prev) => addCustomTagItem(prev, lifestyleInput));
-                            setLifestyleInput("");
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLifestyle((prev) => addCustomTagItem(prev, lifestyleInput));
-                          setLifestyleInput("");
-                        }}
-                        className="btn-ghost rounded-xl px-4 min-h-[44px] text-xs shrink-0"
-                      >
-                        Add
-                      </button>
-                    </div>
+                  <div className="hairline" />
+
+                  <Field
+                    label={`Lifestyle (${lifestyle.length})`}
+                    hint="Optional — pick from 200+ options across 34 categories, or add your own."
+                  >
+                    <CatalogTagPicker
+                      categories={LIFESTYLE_CATEGORIES}
+                      selected={lifestyle}
+                      onChange={setLifestyle}
+                      tone="rose"
+                      searchPlaceholder="Search lifestyle options (e.g. Early riser, Vegetarian, Non-smoker)…"
+                      customPlaceholder="Add a custom lifestyle note…"
+                      emptySelectedText="None selected yet — optional, share whatever feels right."
+                    />
                   </Field>
                 </div>
               )}

@@ -92,8 +92,23 @@ export default function CafeDetail() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {cafe.partner && <Badge tone="gold">✦ Datevra Partner</Badge>}
-                <Badge tone="muted">★ {cafe.rating.toFixed(1)}</Badge>
-                <Badge tone="muted">{cafe.priceRange}</Badge>
+                {cafe.ratingVerified && typeof cafe.googleRating === "number" && cafe.googleRating > 0 ? (
+                  <Badge tone="muted">
+                    ★ {cafe.googleRating.toFixed(1)} Google
+                    {typeof cafe.googleReviewCount === "number" && cafe.googleReviewCount > 0
+                      ? ` (${cafe.googleReviewCount} reviews)`
+                      : ""}
+                  </Badge>
+                ) : cafe.ratingVerified === false ? (
+                  <Badge tone="muted">{cafe.ratingStatusLabel || "Google rating unavailable"}</Badge>
+                ) : cafe.rating > 0 ? (
+                  <Badge tone="muted">★ {cafe.rating.toFixed(1)}</Badge>
+                ) : (
+                  <Badge tone="muted">Google rating unavailable</Badge>
+                )}
+                {cafe.priceVerified !== false && cafe.priceRange && (
+                  <Badge tone="muted">{cafe.priceRange}</Badge>
+                )}
               </div>
               <h1 className="font-display text-3xl sm:text-5xl md:text-6xl text-ivory leading-tight break-words">
                 {cafe.name}
@@ -162,16 +177,53 @@ export default function CafeDetail() {
           <dl className="mt-5 space-y-5 text-sm">
             <div>
               <dt className="text-mist/80">Opening hours</dt>
-              <dd className="text-ivory mt-1">{cafe.openingHours}</dd>
+              <dd className="text-ivory mt-1">
+                {cafe.openingHours?.trim() ? cafe.openingHours : "Hours not verified"}
+              </dd>
+              {cafe.weeklyHours && (
+                <ul className="mt-2 space-y-1 text-xs text-ivory-dim/85">
+                  {Object.entries(cafe.weeklyHours).map(([day, hrs]) => (
+                    <li key={day} className="flex items-center justify-between gap-3">
+                      <span className="text-mist/85">{day}</span>
+                      <span>{hrs}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <dt className="text-mist/80">Google rating</dt>
+              <dd className="text-ivory mt-1">
+                {cafe.ratingVerified && typeof cafe.googleRating === "number" && cafe.googleRating > 0
+                  ? `★ ${cafe.googleRating.toFixed(1)} / 5${
+                      typeof cafe.googleReviewCount === "number" && cafe.googleReviewCount > 0
+                        ? ` (${cafe.googleReviewCount} Google reviews)`
+                        : ""
+                    }`
+                  : cafe.ratingStatusLabel || "Google rating unavailable"}
+              </dd>
             </div>
             <div>
               <dt className="text-mist/80">Price range</dt>
-              <dd className="text-ivory mt-1">{cafe.priceRange} · relaxed fine-café pricing</dd>
+              <dd className="text-ivory mt-1">
+                {cafe.priceVerified !== false && cafe.priceRange
+                  ? cafe.priceRange
+                  : cafe.priceStatusLabel || "Price information unavailable"}
+              </dd>
             </div>
             <div>
               <dt className="text-mist/80">City</dt>
               <dd className="text-ivory mt-1">{cafe.city}</dd>
             </div>
+            {cafe.infoCheckedAt && (
+              <div>
+                <dt className="text-mist/80">Information checked</dt>
+                <dd className="text-xs text-mist mt-1 leading-relaxed">
+                  {cafe.infoCheckedAt}
+                  {cafe.infoSource ? ` · ${cafe.infoSource}` : ""}
+                </dd>
+              </div>
+            )}
             {cafe.menu && (
               <div>
                 <dt className="text-mist/80">Menu highlights</dt>

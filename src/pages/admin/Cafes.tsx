@@ -4,6 +4,7 @@ import type { Cafe } from "../../lib/types";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import { CITIES } from "../../data/seed";
+import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import {
   Badge,
   EmptyState,
@@ -28,7 +29,7 @@ const blankCafe = (): Cafe => ({
   openingHours: "",
   experiences: [],
   bookingInfo: "",
-  rating: 4.5,
+  rating: 0,
   partner: false,
   commissionPct: 10,
   agreementRef: null,
@@ -162,7 +163,7 @@ export default function Cafes() {
                         <p className="text-xs text-mist line-clamp-1">{c.address}</p>
                       </td>
                       <td className={`${tdCls} text-ivory-dim whitespace-nowrap`}>{c.city}</td>
-                      <td className={`${tdCls} text-champagne`}>{c.priceRange}</td>
+                      <td className={`${tdCls} text-champagne`}>{c.priceVerified === false ? "—" : c.priceRange}</td>
                       <td className={tdCls}>
                         {c.partner ? <Badge tone="gold">Partner</Badge> : <Badge tone="muted">Listed</Badge>}
                       </td>
@@ -194,11 +195,10 @@ export default function Cafes() {
                   <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} />
                 </Field>
                 <Field label="City">
-                  <select value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className={inputCls}>
-                    {CITIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
+                  <IndiaLocationPicker
+                    value={form.city}
+                    onChange={(city) => setForm({ ...form, city })}
+                  />
                 </Field>
                 <Field label="Address">
                   <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={inputCls} />

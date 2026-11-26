@@ -84,13 +84,18 @@ export default function SavedCafes() {
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-display text-xl text-ivory">{c.name}</p>
-                    <Badge tone="muted">{c.priceRange}</Badge>
+                    {c.priceVerified !== false && c.priceRange && (
+                      <Badge tone="muted">{c.priceRange}</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-champagne/90 mt-1.5 leading-relaxed break-words font-medium">
                     {c.address}
                   </p>
                   <p className="text-[11px] text-mist/80 mt-1 flex items-center gap-1.5 flex-wrap">
-                    <span aria-hidden>✦</span> {c.city}{c.rating > 0 ? ` · ★ ${c.rating.toFixed(1)}` : ""}
+                    <span aria-hidden>✦</span> {c.city} · {c.openingHours?.trim() ? c.openingHours : "Hours not verified"}
+                    {c.ratingVerified && typeof c.googleRating === "number" && c.googleRating > 0
+                      ? ` · ★ ${c.googleRating.toFixed(1)}`
+                      : ""}
                   </p>
                   {c.description ? (
                     <p className="text-xs text-mist/80 mt-2 line-clamp-2 flex-1">{c.description}</p>

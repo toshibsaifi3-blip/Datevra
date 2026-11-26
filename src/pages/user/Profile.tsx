@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useBackend } from "../../lib/data";
-import { ALL_INTERESTS, CITIES, RELATIONSHIP_INTENTS } from "../../data/seed";
+import { CITIES } from "../../data/seed";
+import { INTEREST_CATEGORIES } from "../../data/interests";
+import { LIFESTYLE_CATEGORIES } from "../../data/lifestyle";
+import { relationshipGoalOptionsWithLegacy } from "../../data/relationshipGoals";
+import { CatalogTagPicker } from "../../components/CatalogTagPicker";
+import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import {
   Avatar,
   Badge,
@@ -178,10 +183,7 @@ export default function Profile() {
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState<string[]>([]);
   const [online, setOnline] = useState(true);
-  const [interestQuery, setInterestQuery] = useState("");
-  const [customInterest, setCustomInterest] = useState("");
   const [hobbyInput, setHobbyInput] = useState("");
-  const [lifestyleInput, setLifestyleInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Sync form when the user record changes (e.g. after save).
@@ -223,11 +225,7 @@ export default function Profile() {
     clear();
   };
 
-  const suggestions = ALL_INTERESTS.filter(
-    (i) =>
-      !interests.includes(i) &&
-      i.toLowerCase().includes(interestQuery.trim().toLowerCase()),
-  ).slice(0, 12);
+  const relationshipGoalOptions = relationshipGoalOptionsWithLegacy(relationshipIntent);
 
   const save = async () => {
     const errs = validateBasicIdentity(firstName, Number(age));
@@ -387,11 +385,7 @@ export default function Profile() {
                 />
               </Field>
               <Field label="City">
-                <select className={inputCls} value={city} onChange={(e) => setCity(e.target.value)}>
-                  {CITIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                <IndiaLocationPicker value={city} onChange={setCity} />
               </Field>
             </div>
             <Field label="Bio" hint="A few honest lines about you — what a great first date looks like, what you're into.">
@@ -435,7 +429,7 @@ export default function Profile() {
               <Field label="Relationship intent">
                 <select className={inputCls} value={relationshipIntent} onChange={(e) => setRelationshipIntent(e.target.value)}>
                   <option value="">Prefer not to say</option>
-                  {RELATIONSHIP_INTENTS.map((r) => (
+                  {relationshipGoalOptions.map((r) => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </select>
@@ -455,48 +449,16 @@ export default function Profile() {
               title="Interests, hobbies & lifestyle"
               sub="Interests power your compatibility scores — the rest helps our curators seat you well."
             />
-            <Field label="Interests" hint="Tap to add. These power your compatibility scores.">
-              <ChipList items={interests} onRemove={(i) => toggle(interests, setInterests, i)} empty="None yet — pick a few below." tone="champagne" />
-              <input
-                className={`${inputCls} mb-2`}
-                placeholder="Search interests…"
-                value={interestQuery}
-                onChange={(e) => setInterestQuery(e.target.value)}
+            <Field label={`Interests (${interests.length})`} hint="Search 400+ curated interests across categories or add your own. Optional — powers compatibility.">
+              <CatalogTagPicker
+                categories={INTEREST_CATEGORIES}
+                selected={interests}
+                onChange={setInterests}
+                tone="gold"
+                searchPlaceholder="Search 400+ interests or categories (e.g. Chai, Bollywood, Trekking, Yoga)…"
+                customPlaceholder="Or add your own interest…"
+                emptySelectedText="None yet — optional, search or browse categories below."
               />
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => (
-                  <motion.button
-                    key={s}
-                    type="button"
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => toggle(interests, setInterests, s)}
-                    className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-sm text-ivory-dim hover:border-rosegold/50 hover:text-ivory transition-colors"
-                  >
-                    + {s}
-                  </motion.button>
-                ))}
-              </div>
-              <div className="flex gap-2 mt-3">
-                <input
-                  className={`${inputCls} min-w-0 flex-1`}
-                  placeholder="Or add your own…"
-                  value={customInterest}
-                  onChange={(e) => setCustomInterest(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addFree(interests, setInterests, customInterest, () => setCustomInterest(""));
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
-                  onClick={() => addFree(interests, setInterests, customInterest, () => setCustomInterest(""))}
-                >
-                  Add
-                </button>
-              </div>
             </Field>
 
             <div className="hairline" />
@@ -528,29 +490,16 @@ export default function Profile() {
 
             <div className="hairline" />
 
-            <Field label="Lifestyle" hint="Optional — shared voluntarily. e.g. Early riser, Vegetarian, Non-smoker.">
-              <ChipList items={lifestyle} onRemove={(l) => toggle(lifestyle, setLifestyle, l)} empty="None added." tone="mist" />
-              <div className="flex gap-2">
-                <input
-                  className={`${inputCls} min-w-0 flex-1`}
-                  placeholder="Add a lifestyle note…"
-                  value={lifestyleInput}
-                  onChange={(e) => setLifestyleInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addFree(lifestyle, setLifestyle, lifestyleInput, () => setLifestyleInput(""));
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
-                  onClick={() => addFree(lifestyle, setLifestyle, lifestyleInput, () => setLifestyleInput(""))}
-                >
-                  Add
-                </button>
-              </div>
+            <Field label={`Lifestyle (${lifestyle.length})`} hint="Optional — choose from 200+ lifestyle options across 34 categories, or add your own.">
+              <CatalogTagPicker
+                categories={LIFESTYLE_CATEGORIES}
+                selected={lifestyle}
+                onChange={setLifestyle}
+                tone="rose"
+                searchPlaceholder="Search lifestyle options (e.g. Early riser, Vegetarian, Non-smoker, Dog lover)…"
+                customPlaceholder="Or add a custom lifestyle note…"
+                emptySelectedText="None added — optional, share whatever feels right."
+              />
             </Field>
           </div>
         </section>

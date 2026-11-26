@@ -211,6 +211,16 @@ export interface Cafe {
   totalBookings: number;
   revenue: number;
   menu: string;
+  googleRating?: number | null;
+  googleReviewCount?: number | null;
+  ratingVerified?: boolean;
+  ratingStatusLabel?: string;
+  weeklyHours?: Readonly<Record<string, string>> | null;
+  hoursVerified?: boolean;
+  priceVerified?: boolean;
+  priceStatusLabel?: string;
+  infoSource?: string;
+  infoCheckedAt?: string;
 }
 
 export type PaymentStatus = "pending" | "verified" | "failed" | "refunded";

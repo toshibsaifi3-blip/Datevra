@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Field, Logo, inputCls } from "../../components/ui";
+import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import { CITIES } from "../../data/seed";
 import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
 import type { Gender, InterestedIn } from "../../lib/types";
@@ -258,7 +259,7 @@ export default function Register() {
             />
           </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="I am">
               <select
                 className={inputCls}
@@ -281,16 +282,11 @@ export default function Register() {
                 <option value="everyone">Everyone</option>
               </select>
             </Field>
-            <Field label="City">
-              <select className={inputCls} value={city} onChange={(e) => setCity(e.target.value)}>
-                {CITIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </Field>
           </div>
+
+          <Field label="City or town" hint="All 28 States & 8 Union Territories">
+            <IndiaLocationPicker value={city} onChange={setCity} />
+          </Field>
 
           <label className="flex items-start gap-3 text-sm text-ivory-dim/85 cursor-pointer">
             <input

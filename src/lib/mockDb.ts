@@ -45,7 +45,7 @@ import {
   evaluateMatchEligibility,
   MIN_COMPATIBILITY_SCORE,
 } from "./compat";
-import { isDemoCafe, DEMO_CAFE_IDS, sanitizeCafeList } from "./cafeFilter";
+import { enrichCafeWithVerifiedResearch, isDemoCafe, DEMO_CAFE_IDS, sanitizeCafeList } from "./cafeFilter";
 import {
   DEFAULT_EXCLUDED_VOUCHER_CITIES,
   generateUnbiasedCode,
@@ -1466,9 +1466,9 @@ export function listCafes(): Cafe[] {
 }
 export function getCafe(id: string): Cafe | undefined {
   if (DEMO_CAFE_IDS.has(id)) return undefined;
-  const cafe = load().cafes.find((c) => c.id === id);
+  const cafe = sanitizeCafeList(load().cafes).find((c) => c.id === id);
   if (!cafe || isDemoCafe(cafe)) return undefined;
-  return cafe;
+  return enrichCafeWithVerifiedResearch(cafe);
 }
 export function upsertCafe(cafe: Cafe, actorId: string) {
   const db = load();

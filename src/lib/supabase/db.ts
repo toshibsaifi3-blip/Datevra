@@ -92,7 +92,8 @@ import {
   unmapSettings,
 } from "./mappers";
 import type { Backend, BackendEvent } from "../data";
-import { isDemoCafe, sanitizeCafeList } from "../cafeFilter";
+import { enrichCafeWithVerifiedResearch, isDemoCafe, sanitizeCafeList } from "../cafeFilter";
+import { getVerifiedCafeResearch } from "../../data/cafesVerified";
 import { SEED_CAFES } from "../../data/seed";
 
 /* =====================================================================
@@ -939,25 +940,32 @@ async function getCafe(id: string): Promise<Cafe | undefined> {
   try {
     const res = await sb().from("cafes").select("*").eq("id", id).maybeSingle();
     if (res.error || !res.data) {
-      return seedCafe && !isDemoCafe(seedCafe) ? seedCafe : undefined;
+      return seedCafe && !isDemoCafe(seedCafe) ? enrichCafeWithVerifiedResearch(seedCafe) : undefined;
     }
     const cafe = mapCafe(res.data as Record<string, unknown>);
     if (isDemoCafe(cafe)) return undefined;
 
-    if (seedCafe) {
-      return {
-        ...seedCafe,
+    const matchedResearch = getVerifiedCafeResearch(cafe);
+    const matchedSeed =
+      seedCafe ??
+      (matchedResearch ? SEED_CAFES.find((sc) => sc.id === matchedResearch.id) : undefined);
+
+    if (matchedSeed) {
+      return enrichCafeWithVerifiedResearch({
+        ...matchedSeed,
         ...cafe,
-        image: cafe.image || seedCafe.image,
-        images: cafe.images && cafe.images.length > 0 ? cafe.images : seedCafe.images,
-        address: cafe.address || seedCafe.address,
-        experiences: cafe.experiences && cafe.experiences.length > 0 ? cafe.experiences : seedCafe.experiences,
-      };
+        image: cafe.image || matchedSeed.image,
+        images: cafe.images && cafe.images.length > 0 ? cafe.images : matchedSeed.images,
+        address: cafe.address || matchedSeed.address,
+        openingHours: cafe.openingHours?.trim() ? cafe.openingHours : matchedSeed.openingHours,
+        rating: cafe.rating > 0 ? cafe.rating : matchedSeed.rating,
+        experiences: cafe.experiences && cafe.experiences.length > 0 ? cafe.experiences : matchedSeed.experiences,
+      });
     }
 
-    return cafe;
+    return enrichCafeWithVerifiedResearch(cafe);
   } catch {
-    return seedCafe && !isDemoCafe(seedCafe) ? seedCafe : undefined;
+    return seedCafe && !isDemoCafe(seedCafe) ? enrichCafeWithVerifiedResearch(seedCafe) : undefined;
   }
 }
 

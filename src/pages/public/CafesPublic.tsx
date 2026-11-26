@@ -117,7 +117,16 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                       {c.partner && <Badge tone="gold">✦ Partner</Badge>}
                     </div>
                     <div className="absolute top-4 right-4 z-20 flex gap-2 items-center pointer-events-none">
-                      {c.rating > 0 && <Badge tone="muted">★ {c.rating.toFixed(1)}</Badge>}
+                      {c.ratingVerified && typeof c.googleRating === "number" && c.googleRating > 0 ? (
+                        <Badge tone="muted">
+                          ★ {c.googleRating.toFixed(1)}
+                          {typeof c.googleReviewCount === "number" && c.googleReviewCount > 0
+                            ? ` (${c.googleReviewCount})`
+                            : ""}
+                        </Badge>
+                      ) : c.ratingVerified !== false && c.rating > 0 ? (
+                        <Badge tone="muted">★ {c.rating.toFixed(1)}</Badge>
+                      ) : null}
                     </div>
                     {user && (
                       <button
@@ -143,16 +152,23 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                   <div className="p-5 sm:p-6 flex-1 flex flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <h3 className="font-display text-xl text-ivory min-w-0 break-words">{c.name}</h3>
-                      <span className="text-[0.7rem] tracking-widest text-champagne border border-champagne/30 rounded-full px-2.5 py-0.5 shrink-0">
-                        {c.priceRange}
-                      </span>
+                      {c.priceVerified !== false && c.priceRange && (
+                        <span className="text-[0.7rem] tracking-widest text-champagne border border-champagne/30 rounded-full px-2.5 py-0.5 shrink-0">
+                          {c.priceRange}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-champagne/90 mt-1.5 leading-relaxed break-words font-medium">
                       {c.address}
                     </p>
                     <p className="text-[11px] text-mist/80 mt-1 tracking-wide flex items-center gap-1.5 flex-wrap">
-                      <span aria-hidden>✦</span> {c.city}{c.openingHours ? ` · ${c.openingHours}` : ""}
+                      <span aria-hidden>✦</span> {c.city} · {c.openingHours?.trim() ? c.openingHours : "Hours not verified"}
                     </p>
+                    {!(c.ratingVerified && typeof c.googleRating === "number" && c.googleRating > 0) && (
+                      <p className="text-[11px] text-mist/70 mt-0.5">
+                        {c.ratingStatusLabel || "Google rating unavailable"}
+                      </p>
+                    )}
                     {c.description ? (
                       <p className="mt-3 text-sm text-ivory-dim/85 leading-relaxed line-clamp-2 flex-1">
                         {c.description}

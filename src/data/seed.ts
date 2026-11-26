@@ -4,6 +4,11 @@ import type {
   MembershipPlan,
   UserProfile,
 } from "../lib/types";
+import { VERIFIED_CAFE_RESEARCH } from "./cafesVerified";
+import { POPULAR_INDIA_CITIES } from "./indiaLocations";
+import { ALL_INTEREST_OPTIONS } from "./interests";
+import { ALL_LIFESTYLE_OPTIONS } from "./lifestyle";
+import { RELATIONSHIP_GOALS } from "./relationshipGoals";
 
 /* ---------------- Membership plans (the ONLY plans — no legacy names) ---------------- */
 
@@ -162,27 +167,26 @@ export const DEMO_PROFILES: UserProfile[] = [
     "Marriage-minded", ["Non-smoker", "Teetotaler"], true, "elite"),
 ];
 
-export const CITIES = ["Mumbai", "Delhi", "Bengaluru", "Pune", "Jaipur", "Hyderabad"];
+export const CITIES: string[] = [...POPULAR_INDIA_CITIES];
 
-export const ALL_INTERESTS = Array.from(
-  new Set(DEMO_PROFILES.flatMap((p) => [...p.interests, ...p.hobbies])),
-).sort();
+export const ALL_INTERESTS: string[] = [...ALL_INTEREST_OPTIONS];
 
-export const RELATIONSHIP_INTENTS = [
-  "Dating with intention",
-  "Open to something meaningful",
-  "A serious relationship",
-  "Marriage-minded",
-];
+export const ALL_LIFESTYLE: string[] = [...ALL_LIFESTYLE_OPTIONS];
+
+export const RELATIONSHIP_INTENTS: string[] = [...RELATIONSHIP_GOALS];
 
 /* ---------------- Cafés ---------------- */
+
+const hotStagResearch = VERIFIED_CAFE_RESEARCH["c-hot-stag-del"];
+const karmalaResearch = VERIFIED_CAFE_RESEARCH["c-karmala-del"];
+const yummClubResearch = VERIFIED_CAFE_RESEARCH["c-yumm-club-del"];
 
 export const SEED_CAFES: Cafe[] = [
   {
     id: "c-hot-stag-del",
     name: "Café Hot Stag",
     city: "Delhi",
-    address: "1st Floor, Opp. Deer Park, Ayyappa Temple Road, Dilshad Garden, Delhi-110095",
+    address: hotStagResearch.verifiedAddress,
     description: "",
     image: "/assets/cafes/hot-stag-1.jpg",
     images: [
@@ -192,26 +196,36 @@ export const SEED_CAFES: Cafe[] = [
       "/assets/cafes/hot-stag-4.jpg",
     ],
     priceRange: "₹₹",
-    openingHours: "",
+    openingHours: hotStagResearch.openingHoursSummary,
     experiences: [
       "Premium Date",
       "Premium Coffee Date",
       "Italian Cuisine Date with Premium Experience",
     ],
     bookingInfo: "",
-    rating: 0,
+    rating: hotStagResearch.googleRating ?? 0,
     partner: false,
     commissionPct: 0,
     agreementRef: null,
     totalBookings: 0,
     revenue: 0,
     menu: "",
+    googleRating: hotStagResearch.googleRating,
+    googleReviewCount: hotStagResearch.googleReviewCount,
+    ratingVerified: hotStagResearch.ratingVerified,
+    ratingStatusLabel: hotStagResearch.ratingStatusLabel,
+    weeklyHours: hotStagResearch.weeklyHours,
+    hoursVerified: hotStagResearch.hoursVerified,
+    priceVerified: hotStagResearch.priceVerified,
+    priceStatusLabel: hotStagResearch.priceStatusLabel,
+    infoSource: hotStagResearch.infoSource,
+    infoCheckedAt: hotStagResearch.infoCheckedAt,
   },
   {
     id: "c-karmala-del",
     name: "KARMALA CAFE & RESTAURANT",
     city: "Delhi",
-    address: "Tsampa House, 5th Floor, Plot Nos. 18 & 19, Gate No. 3, Majnu Ka Tilla, New Aruna Nagar Colony, Delhi-110054",
+    address: karmalaResearch.verifiedAddress,
     description: "",
     image: "/assets/cafes/karmala-1.jpg",
     images: [
@@ -221,24 +235,34 @@ export const SEED_CAFES: Cafe[] = [
       "/assets/cafes/karmala-4.jpg",
     ],
     priceRange: "₹₹",
-    openingHours: "",
+    openingHours: karmalaResearch.openingHoursSummary,
     experiences: [
       "Premium Date with Live Karaoke",
     ],
     bookingInfo: "",
-    rating: 0,
+    rating: karmalaResearch.googleRating ?? 0,
     partner: false,
     commissionPct: 0,
     agreementRef: null,
     totalBookings: 0,
     revenue: 0,
     menu: "",
+    googleRating: karmalaResearch.googleRating,
+    googleReviewCount: karmalaResearch.googleReviewCount,
+    ratingVerified: karmalaResearch.ratingVerified,
+    ratingStatusLabel: karmalaResearch.ratingStatusLabel,
+    weeklyHours: karmalaResearch.weeklyHours,
+    hoursVerified: karmalaResearch.hoursVerified,
+    priceVerified: karmalaResearch.priceVerified,
+    priceStatusLabel: karmalaResearch.priceStatusLabel,
+    infoSource: karmalaResearch.infoSource,
+    infoCheckedAt: karmalaResearch.infoCheckedAt,
   },
   {
     id: "c-yumm-club-del",
     name: "The Yumm Club",
     city: "Delhi",
-    address: "Shop no-G5, Aditya Arcade, C Block, Preet Vihar, Delhi, 110092",
+    address: yummClubResearch.verifiedAddress,
     description: "",
     image: "/assets/cafes/yumm-club-1.jpg",
     images: [
@@ -248,16 +272,26 @@ export const SEED_CAFES: Cafe[] = [
       "/assets/cafes/yumm-club-4.jpg",
     ],
     priceRange: "₹₹",
-    openingHours: "",
+    openingHours: yummClubResearch.openingHoursSummary,
     experiences: [],
     bookingInfo: "",
-    rating: 0,
+    rating: yummClubResearch.googleRating ?? 0,
     partner: false,
     commissionPct: 0,
     agreementRef: null,
     totalBookings: 0,
     revenue: 0,
     menu: "",
+    googleRating: yummClubResearch.googleRating,
+    googleReviewCount: yummClubResearch.googleReviewCount,
+    ratingVerified: yummClubResearch.ratingVerified,
+    ratingStatusLabel: yummClubResearch.ratingStatusLabel,
+    weeklyHours: yummClubResearch.weeklyHours,
+    hoursVerified: yummClubResearch.hoursVerified,
+    priceVerified: yummClubResearch.priceVerified,
+    priceStatusLabel: yummClubResearch.priceStatusLabel,
+    infoSource: yummClubResearch.infoSource,
+    infoCheckedAt: yummClubResearch.infoCheckedAt,
   },
 ];
 
