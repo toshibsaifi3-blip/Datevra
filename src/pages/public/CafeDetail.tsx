@@ -202,6 +202,9 @@ export default function CafeDetail() {
                     }`
                   : cafe.ratingStatusLabel || "Google rating unavailable"}
               </dd>
+              {cafe.ratingVerified && cafe.ratingSource && (
+                <p className="text-[11px] text-mist/75 mt-0.5">{cafe.ratingSource}</p>
+              )}
             </div>
             <div>
               <dt className="text-mist/80">Price range</dt>

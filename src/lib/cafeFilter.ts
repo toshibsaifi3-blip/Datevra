@@ -118,19 +118,44 @@ export function isDemoCafe(
 export function enrichCafeWithVerifiedResearch(cafe: Cafe): Cafe {
   const research = getVerifiedCafeResearch(cafe);
   if (!research) return cafe;
-  const ratingVerified = cafe.ratingVerified ?? research.ratingVerified;
+
+  const hasVerifiedResearchRating =
+    research.ratingVerified && typeof research.googleRating === "number" && research.googleRating > 0;
+  const hasExplicitPositiveGoogleRating =
+    typeof cafe.googleRating === "number" && cafe.googleRating > 0;
+
+  const googleRating = hasExplicitPositiveGoogleRating
+    ? cafe.googleRating
+    : research.googleRating;
+  const ratingVerified = hasVerifiedResearchRating
+    ? true
+    : (cafe.ratingVerified ?? research.ratingVerified);
+  const rating =
+    cafe.rating > 0
+      ? cafe.rating
+      : typeof googleRating === "number" && googleRating > 0
+        ? googleRating
+        : 0;
+  const googleReviewCount =
+    typeof cafe.googleReviewCount === "number" && cafe.googleReviewCount > 0
+      ? cafe.googleReviewCount
+      : research.googleReviewCount;
   const priceVerified = cafe.priceVerified ?? research.priceVerified;
+
   return {
     ...cafe,
     address: cafe.address || research.verifiedAddress,
     openingHours: cafe.openingHours?.trim() ? cafe.openingHours : research.openingHoursSummary,
-    rating: cafe.rating > 0 ? cafe.rating : (research.googleRating ?? 0),
-    googleRating: cafe.googleRating ?? research.googleRating,
-    googleReviewCount: cafe.googleReviewCount ?? research.googleReviewCount,
+    rating,
+    googleRating,
+    googleReviewCount,
     ratingVerified,
-    ratingStatusLabel: ratingVerified
-      ? (cafe.ratingStatusLabel ?? research.ratingStatusLabel)
-      : research.ratingStatusLabel,
+    ratingStatusLabel: hasVerifiedResearchRating
+      ? research.ratingStatusLabel
+      : ratingVerified
+        ? (cafe.ratingStatusLabel ?? research.ratingStatusLabel)
+        : research.ratingStatusLabel,
+    ratingSource: research.ratingSource,
     weeklyHours: cafe.weeklyHours ?? research.weeklyHours,
     hoursVerified: cafe.hoursVerified ?? research.hoursVerified,
     priceVerified,
@@ -173,6 +198,7 @@ export function sanitizeCafeList(cafes: Cafe[]): Cafe[] {
           : c.id;
     const existing = cafeMap.get(canonicalKey);
     if (existing) {
+      const hasSourceGoogleRating = typeof c.googleRating === "number" && c.googleRating > 0;
       cafeMap.set(
         canonicalKey,
         enrichCafeWithVerifiedResearch({
@@ -184,6 +210,9 @@ export function sanitizeCafeList(cafes: Cafe[]): Cafe[] {
           address: c.address || existing.address,
           openingHours: c.openingHours?.trim() ? c.openingHours : existing.openingHours,
           rating: c.rating > 0 ? c.rating : existing.rating,
+          googleRating: hasSourceGoogleRating ? c.googleRating : existing.googleRating,
+          ratingVerified: hasSourceGoogleRating ? (c.ratingVerified ?? true) : existing.ratingVerified,
+          ratingStatusLabel: hasSourceGoogleRating ? c.ratingStatusLabel : existing.ratingStatusLabel,
           experiences: c.experiences && c.experiences.length > 0 ? c.experiences : existing.experiences,
         }),
       );

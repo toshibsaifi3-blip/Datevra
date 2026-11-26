@@ -215,6 +215,7 @@ export interface Cafe {
   googleReviewCount?: number | null;
   ratingVerified?: boolean;
   ratingStatusLabel?: string;
+  ratingSource?: string;
   weeklyHours?: Readonly<Record<string, string>> | null;
   hoursVerified?: boolean;
   priceVerified?: boolean;

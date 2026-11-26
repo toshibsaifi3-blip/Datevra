@@ -35,6 +35,7 @@ import { getVerifiedCafeResearch, VERIFIED_CAFE_RESEARCH } from "./src/data/cafe
 import { IndiaLocationPicker } from "./src/components/IndiaLocationPicker";
 import { CatalogTagPicker } from "./src/components/CatalogTagPicker";
 import { mapProfile, unmapProfilePatch } from "./src/lib/supabase/mappers";
+import * as mockDb from "./src/lib/mockDb";
 import { ALL_INTERESTS, CITIES, RELATIONSHIP_INTENTS, SEED_CAFES } from "./src/data/seed";
 import { enrichCafeWithVerifiedResearch, isDemoCafe, sanitizeCafeList } from "./src/lib/cafeFilter";
 import {
@@ -460,10 +461,16 @@ test("Profile & onboarding helpers prevent duplicates, preserve order, and prese
  * 6. CAFÉ STATIC RESEARCH, HONEST VERIFICATION & ZERO EXTERNAL API CHECKS (Checks 19–21)
  * ============================================================================ */
 
-test("Cafés preserve strictly the 3 genuine Delhi venues with static verified hours, honest Google rating unavailable label, and unverified price protection", () => {
+test("Cafés preserve strictly the 3 genuine Delhi venues with static client-supplied Google ratings (4.8, 4.4, 5.0), null review counts, verified hours, and stale-cache immunity", () => {
   assert.equal(SEED_CAFES.length, 3);
   const ids = SEED_CAFES.map((c) => c.id).sort();
   assert.deepEqual(ids, ["c-hot-stag-del", "c-karmala-del", "c-yumm-club-del"]);
+
+  const expectedRatings: Record<string, number> = {
+    "c-hot-stag-del": 4.8,
+    "c-karmala-del": 4.4,
+    "c-yumm-club-del": 5.0,
+  };
 
   for (const cafe of SEED_CAFES) {
     assert.equal(isDemoCafe(cafe), false);
@@ -477,13 +484,15 @@ test("Cafés preserve strictly the 3 genuine Delhi venues with static verified h
     assert.equal(cafe.priceStatusLabel, "Price information unavailable");
     assert.equal(cafe.infoCheckedAt, "2026-11-26");
 
-    // Honesty rule: no fabricated or mislabelled Google ratings
-    if (!cafe.ratingVerified) {
-      assert.equal(cafe.googleRating, null);
-      assert.equal(cafe.googleReviewCount, null);
-      assert.equal(cafe.rating, 0);
-      assert.equal(cafe.ratingStatusLabel, "Google rating unavailable");
-    }
+    // Client-supplied static numerical Google ratings, no fabricated review counts
+    assert.equal(typeof research.googleRating, "number");
+    assert.equal(research.googleRating, expectedRatings[cafe.id]);
+    assert.equal(cafe.googleRating, expectedRatings[cafe.id]);
+    assert.equal(cafe.rating, expectedRatings[cafe.id]);
+    assert.equal(cafe.ratingVerified, true);
+    assert.equal(cafe.googleReviewCount, null);
+    assert.equal(cafe.ratingSource, "Google (supplied by client)");
+    assert.equal(cafe.googleRating!.toFixed(1), expectedRatings[cafe.id].toFixed(1));
   }
 
   // Resilient lookup even if a Supabase row has a different ID
@@ -493,16 +502,36 @@ test("Cafés preserve strictly the 3 genuine Delhi venues with static verified h
     address: "Majnu Ka Tilla, Delhi",
   });
   assert.equal(byName?.id, "c-karmala-del");
+  assert.equal(byName?.googleRating, 4.4);
   assert.equal(byName?.openingHoursSummary, "10:00 AM – 10:30 PM (Daily)");
 
-  // Enriching a DB row with empty openingHours, rating: 0, stale ratingStatusLabel fills in verified static metadata cleanly
+  // Stale localStorage / DB rows with rating: 0, googleRating: null, ratingVerified: false
+  // must NEVER overwrite the verified static client-supplied ratings (4.8, 4.4, 5.0)
   const sanitized = sanitizeCafeList([
     {
       ...SEED_CAFES[0],
-      id: "custom-hot-stag-uuid",
       openingHours: "",
       rating: 0,
-      ratingStatusLabel: "Google rating unverified",
+      googleRating: null,
+      googleReviewCount: null,
+      ratingVerified: false,
+      ratingStatusLabel: "Google rating unavailable",
+    },
+    {
+      ...SEED_CAFES[1],
+      openingHours: "",
+      rating: 0,
+      googleRating: null,
+      ratingVerified: false,
+      ratingStatusLabel: "Google rating unavailable",
+    },
+    {
+      ...SEED_CAFES[2],
+      openingHours: "",
+      rating: 0,
+      googleRating: null,
+      ratingVerified: false,
+      ratingStatusLabel: "Google rating unavailable",
     },
     {
       ...SEED_CAFES[0],
@@ -513,14 +542,32 @@ test("Cafés preserve strictly the 3 genuine Delhi venues with static verified h
   ]);
   assert.equal(sanitized.length, 3);
   assert.ok(sanitized.every((c) => !isDemoCafe(c)));
+
+  for (const c of sanitized) {
+    const exp = expectedRatings[c.id];
+    assert.equal(c.googleRating, exp, `Stale cache overwrote googleRating for ${c.id}`);
+    assert.equal(c.rating, exp, `Stale cache overwrote rating for ${c.id}`);
+    assert.equal(c.ratingVerified, true, `Stale cache overwrote ratingVerified for ${c.id}`);
+    assert.equal(c.googleReviewCount, null, `Review count must remain null for ${c.id}`);
+    assert.equal(c.ratingStatusLabel, `${exp.toFixed(1)} / 5 Google`);
+    assert.equal(c.priceVerified, false);
+    assert.equal(c.priceStatusLabel, "Price information unavailable");
+  }
+
   const enrichedHotStag = enrichCafeWithVerifiedResearch({
     ...SEED_CAFES[0],
     openingHours: "",
     rating: 0,
-    ratingStatusLabel: "Google rating unverified",
+    googleRating: null,
+    ratingVerified: false,
+    ratingStatusLabel: "Google rating unavailable",
   });
   assert.equal(enrichedHotStag.openingHours, "12:00 PM – 11:00 PM (Daily)");
-  assert.equal(enrichedHotStag.ratingStatusLabel, "Google rating unavailable");
+  assert.equal(enrichedHotStag.googleRating, 4.8);
+  assert.equal(enrichedHotStag.rating, 4.8);
+  assert.equal(enrichedHotStag.ratingVerified, true);
+  assert.equal(enrichedHotStag.googleReviewCount, null);
+  assert.equal(enrichedHotStag.ratingSource, "Google (supplied by client)");
   assert.equal(enrichedHotStag.priceVerified, false);
   assert.equal(enrichedHotStag.priceStatusLabel, "Price information unavailable");
 });
@@ -624,9 +671,68 @@ test("Active UI screens have zero old controls, zero fabricated cafe pricing, an
     assert.ok(src.includes("Hobbies"), `${screenPath} must preserve separate Hobbies field`);
   }
 
-  // Verify CafeDetail.tsx renders exact unavailable/unverified fallbacks and never 0.0
+  // Verify CafeDetail.tsx, CafesPublic.tsx, and SavedCafes.tsx display verified static Google ratings cleanly
   const cafeDetailSrc = fs.readFileSync(path.resolve("src/pages/public/CafeDetail.tsx"), "utf8");
-  assert.ok(cafeDetailSrc.includes("Google rating unavailable"), "CafeDetail must use 'Google rating unavailable'");
+  assert.ok(cafeDetailSrc.includes("cafe.googleRating.toFixed(1)"), "CafeDetail must format googleRating to 1 decimal place");
+  assert.ok(cafeDetailSrc.includes("Google rating unavailable"), "CafeDetail must keep fallback for unrated cafés");
   assert.ok(cafeDetailSrc.includes("Hours not verified"), "CafeDetail must use 'Hours not verified'");
   assert.ok(cafeDetailSrc.includes("Price information unavailable"), "CafeDetail must use 'Price information unavailable'");
+
+  const cafesPublicSrc = fs.readFileSync(path.resolve("src/pages/public/CafesPublic.tsx"), "utf8");
+  assert.ok(cafesPublicSrc.includes("★ {c.googleRating.toFixed(1)} Google"), "CafesPublic must display Google rating badge");
+
+  const savedCafesSrc = fs.readFileSync(path.resolve("src/pages/user/SavedCafes.tsx"), "utf8");
+  assert.ok(savedCafesSrc.includes("★ ${c.googleRating.toFixed(1)} Google"), "SavedCafes must display Google rating");
+});
+
+test("mockDb listCafes & getCafe preserve exact ratings (4.8, 4.4, 5.0) across reload even when stale localStorage contains 0 / null / ratingVerified: false", () => {
+  const store = new Map<string, string>();
+  const mockStorage = {
+    getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
+    setItem: (k: string, v: string) => { store.set(k, v); },
+    removeItem: (k: string) => { store.delete(k); },
+    clear: () => { store.clear(); },
+    key: (i: number) => Array.from(store.keys())[i] ?? null,
+    get length() { return store.size; },
+  };
+  const prevStorage = (globalThis as { localStorage?: Storage }).localStorage;
+  (globalThis as { localStorage?: Storage }).localStorage = mockStorage as unknown as Storage;
+  try {
+    // Seed initial DB and inject stale cached cafe records simulating pre-update localStorage
+    const initial = mockDb.listCafes();
+    assert.equal(initial.length, 3);
+    const dbKey = Array.from(store.keys()).find((k) => k.includes("datevra"));
+    if (dbKey) {
+      const parsed = JSON.parse(store.get(dbKey)!);
+      parsed.cafes = parsed.cafes.map((c: Record<string, unknown>) => ({
+        ...c,
+        rating: 0,
+        googleRating: null,
+        googleReviewCount: null,
+        ratingVerified: false,
+        ratingStatusLabel: "Google rating unavailable",
+      }));
+      store.set(dbKey, JSON.stringify(parsed));
+    }
+
+    // Simulate reload: listCafes() and getCafe() must still return exact 4.8, 4.4, 5.0 with null review counts
+    const reloadedList = mockDb.listCafes();
+    const byId = Object.fromEntries(reloadedList.map((c) => [c.id, c]));
+    assert.equal(byId["c-hot-stag-del"]?.googleRating, 4.8);
+    assert.equal(byId["c-karmala-del"]?.googleRating, 4.4);
+    assert.equal(byId["c-yumm-club-del"]?.googleRating, 5.0);
+
+    assert.equal(mockDb.getCafe("c-hot-stag-del")?.googleRating?.toFixed(1), "4.8");
+    assert.equal(mockDb.getCafe("c-karmala-del")?.googleRating?.toFixed(1), "4.4");
+    assert.equal(mockDb.getCafe("c-yumm-club-del")?.googleRating?.toFixed(1), "5.0");
+    assert.equal(mockDb.getCafe("c-hot-stag-del")?.googleReviewCount, null);
+    assert.equal(mockDb.getCafe("c-karmala-del")?.googleReviewCount, null);
+    assert.equal(mockDb.getCafe("c-yumm-club-del")?.googleReviewCount, null);
+  } finally {
+    if (prevStorage === undefined) {
+      delete (globalThis as { localStorage?: Storage }).localStorage;
+    } else {
+      (globalThis as { localStorage?: Storage }).localStorage = prevStorage;
+    }
+  }
 });

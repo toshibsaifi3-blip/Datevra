@@ -94,7 +94,7 @@ export default function SavedCafes() {
                   <p className="text-[11px] text-mist/80 mt-1 flex items-center gap-1.5 flex-wrap">
                     <span aria-hidden>✦</span> {c.city} · {c.openingHours?.trim() ? c.openingHours : "Hours not verified"}
                     {c.ratingVerified && typeof c.googleRating === "number" && c.googleRating > 0
-                      ? ` · ★ ${c.googleRating.toFixed(1)}`
+                      ? ` · ★ ${c.googleRating.toFixed(1)} Google`
                       : ""}
                   </p>
                   {c.description ? (

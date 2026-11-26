@@ -119,7 +119,7 @@ export default function CafesPublic({ hideHero = false }: { hideHero?: boolean }
                     <div className="absolute top-4 right-4 z-20 flex gap-2 items-center pointer-events-none">
                       {c.ratingVerified && typeof c.googleRating === "number" && c.googleRating > 0 ? (
                         <Badge tone="muted">
-                          ★ {c.googleRating.toFixed(1)}
+                          ★ {c.googleRating.toFixed(1)} Google
                           {typeof c.googleReviewCount === "number" && c.googleReviewCount > 0
                             ? ` (${c.googleReviewCount})`
                             : ""}
