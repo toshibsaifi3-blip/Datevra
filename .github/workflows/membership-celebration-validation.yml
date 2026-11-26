@@ -1,0 +1,46 @@
+name: Membership Celebration Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/membershipCelebration.ts"
+      - "src/lib/supabase/db.ts"
+      - "src/pages/user/Membership.tsx"
+      - "test_membership_celebration.ts"
+      - ".github/workflows/membership-celebration-validation.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/membershipCelebration.ts"
+      - "src/lib/supabase/db.ts"
+      - "src/pages/user/Membership.tsx"
+      - "test_membership_celebration.ts"
+      - ".github/workflows/membership-celebration-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Production build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Repair regression tests
+        run: npm run test:repairs
+      - name: Master requirement tests
+        run: npx tsx test_master_requirements.ts
+      - name: Membership celebration tests
+        run: npx tsx --test test_membership_celebration.ts
