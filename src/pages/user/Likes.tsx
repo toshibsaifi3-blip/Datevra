@@ -13,6 +13,7 @@ import {
   isCompatibilityEligible,
   MIN_COMPATIBILITY_SCORE,
 } from "../../lib/compat";
+import { formatProfileLocation } from "../../lib/locationScope";
 import type { Like, MatchPreferences, UserProfile } from "../../lib/types";
 
 type Tab = "received" | "sent";
@@ -276,7 +277,7 @@ export default function Likes() {
                           <p className="text-ivory font-medium text-lg truncate">
                             {profile.firstName}, {profile.age}
                           </p>
-                          <p className="text-sm text-mist truncate">{profile.city}</p>
+                          <p className="text-sm text-mist truncate">{formatProfileLocation(profile)}</p>
                           <p className="text-xs text-mist/70 truncate">{timeAgo(like.createdAt)}</p>
                         </div>
                       </button>
@@ -390,7 +391,7 @@ export default function Likes() {
                         <p className="text-ivory font-medium text-lg truncate">
                           {profile.firstName}, {profile.age}
                         </p>
-                        <p className="text-sm text-mist truncate">{profile.city}</p>
+                        <p className="text-sm text-mist truncate">{formatProfileLocation(profile)}</p>
                         <p className="text-xs text-mist/70 truncate">Liked {timeAgo(like.createdAt)}</p>
                       </div>
                     </button>
@@ -477,7 +478,7 @@ export default function Likes() {
                   <p className="text-ivory font-display text-xl truncate">
                     {viewing.profile.firstName}, {viewing.profile.age}
                   </p>
-                  <p className="text-mist text-sm truncate">{viewing.profile.city}</p>
+                  <p className="text-mist text-sm truncate">{formatProfileLocation(viewing.profile)}</p>
                 </div>
               </div>
             </div>

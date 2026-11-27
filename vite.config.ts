@@ -13,6 +13,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes('worldLocationsData')) {
+            return 'data-world-locations';
+          }
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('react-dom') || id.includes('react-router') || id.includes('/react/')) {
             return 'vendor-react';

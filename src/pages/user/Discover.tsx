@@ -19,6 +19,7 @@ import {
 } from "../../lib/compat";
 import { RELATIONSHIP_INTENTS } from "../../data/seed";
 import { IndiaCityMultiPicker } from "../../components/IndiaLocationPicker";
+import { formatProfileLocation } from "../../lib/locationScope";
 import {
   Avatar,
   Badge,
@@ -945,7 +946,7 @@ export default function Discover() {
                   <p className="text-ivory font-display text-xl truncate">
                     {viewing.firstName}, {viewing.age}
                   </p>
-                  <p className="text-mist text-sm truncate">{viewing.city}</p>
+                  <p className="text-mist text-sm truncate">{formatProfileLocation(viewing)}</p>
                 </div>
               </div>
             </div>

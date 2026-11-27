@@ -321,7 +321,7 @@ test("Hobbies persist in exact selection order across reload and logout/login in
  * 5. CHANGES 2 & 3: ALL-INDIA CITIES COUNT (5,262) & EXACT 3 PARTNER CAFÉS
  * ============================================================================ */
 
-test("About page displays exact deduplicated India cities count (5,262) and exact 3 verified partner cafés", () => {
+test("About page displays WORLDWIDE cities stat (while India dataset preserves 5,262 deduplicated cities) and exact 3 verified partner cafés", () => {
   // Independent deduplication check by (stateCode, normalized canonical name)
   const uniqueKeys = new Set<string>();
   for (const loc of getAllIndiaLocations()) {
@@ -346,10 +346,16 @@ test("About page displays exact deduplicated India cities count (5,262) and exac
   const aboutHtml = renderToStaticMarkup(
     React.createElement(MemoryRouter, null, React.createElement(About)),
   );
-  assert.ok(aboutHtml.includes("5,262"), "About page must display exact deduplicated count 5,262");
+  assert.ok(aboutHtml.includes("WORLDWIDE"), "About page must display WORLDWIDE for Cities stat");
   assert.ok(
+    aboutHtml.includes("Explore cities and towns around the world"),
+    "About page must display worldwide supporting copy",
+  );
+  assert.equal(aboutHtml.includes("5,262"), false, "About page Cities stat must no longer display 5,262");
+  assert.equal(
     aboutHtml.includes("Across India&#x27;s cities and towns"),
-    "About page must display All-India supporting copy",
+    false,
+    "About page must replace India-specific supporting copy",
   );
   assert.ok(aboutHtml.includes("Partner cafés"), "About page must keep Partner cafés stat card");
   assert.ok(aboutHtml.includes(">3<"), "About page must display exact count 3 for Partner cafés");

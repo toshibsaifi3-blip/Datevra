@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { PageHero, Reveal, SectionHead, Stat } from "../../components/ui";
-import { getDeduplicatedIndiaLocationCount } from "../../data/indiaLocations";
 import { getVerifiedPartnerCafeCount } from "../../data/cafesVerified";
 
 const VALUES = [
@@ -91,8 +90,9 @@ export default function About() {
           <Reveal>
             <Stat
               label="Cities"
-              value={getDeduplicatedIndiaLocationCount().toLocaleString("en-IN")}
-              sub="Across India's cities and towns"
+              value="WORLDWIDE"
+              sub="Explore cities and towns around the world"
+              valueClassName="text-xl sm:text-2xl lg:text-[1.75rem] tracking-[0.04em]"
             />
           </Reveal>
           <Reveal delay={0.08}>

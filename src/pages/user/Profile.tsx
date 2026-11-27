@@ -27,6 +27,7 @@ import {
   INTERESTED_OPTIONS,
   validateBasicIdentity,
 } from "../../lib/profileFields";
+import { isWorldwideProfile, type LocationScope } from "../../lib/locationScope";
 import type { Gender, InterestedIn } from "../../lib/types";
 
 const reduceMotion =
@@ -139,6 +140,7 @@ export default function Profile() {
   const [firstName, setFirstName] = useState("");
   const [age, setAge] = useState(25);
   const [city, setCity] = useState(CITIES[0]);
+  const [locationScope, setLocationScope] = useState<LocationScope>("city");
   const [bio, setBio] = useState("");
   const [relationshipIntent, setRelationshipIntent] = useState("");
   const [gender, setGender] = useState<Gender>("woman");
@@ -154,7 +156,9 @@ export default function Profile() {
     if (!user) return;
     setFirstName(user.firstName);
     setAge(user.age);
-    setCity(user.city);
+    const isGlobal = isWorldwideProfile(user);
+    setLocationScope(isGlobal ? "worldwide" : "city");
+    setCity(isGlobal ? "" : user.city);
     setBio(user.bio);
     setRelationshipIntent(user.relationshipIntent);
     setGender(user.gender);
@@ -171,6 +175,7 @@ export default function Profile() {
     bio,
     relationshipIntent,
     city,
+    locationScope,
     interests,
     photos: user.photos ?? [],
   });
@@ -198,7 +203,8 @@ export default function Profile() {
       await db.updateUser(user.id, {
         firstName: firstName.trim(),
         age: Number(age),
-        city,
+        city: locationScope === "worldwide" ? "" : city,
+        locationScope,
         bio: bio.trim(),
         relationshipIntent,
         gender,
@@ -345,7 +351,18 @@ export default function Profile() {
                 />
               </Field>
               <Field label="City">
-                <IndiaLocationPicker value={city} onChange={setCity} />
+                <IndiaLocationPicker
+                  value={city}
+                  locationScope={locationScope}
+                  onChange={(nextCity) => {
+                    setLocationScope("city");
+                    setCity(nextCity);
+                  }}
+                  onScopeChange={(nextScope, nextCity) => {
+                    setLocationScope(nextScope);
+                    setCity(nextCity);
+                  }}
+                />
               </Field>
             </div>
             <Field label="Bio" hint="A few honest lines about you — what a great first date looks like, what you're into.">

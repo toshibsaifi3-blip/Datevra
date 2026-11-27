@@ -41,6 +41,11 @@ import type {
 } from "./types";
 import { DEMO_PROFILES, SEED_CAFES, SEED_EXPERIENCES } from "../data/seed";
 import {
+  hasConfiguredLocation,
+  normalizeLocationState,
+  type LocationScope,
+} from "./locationScope";
+import {
   computeCompatibility,
   evaluateMatchEligibility,
   MIN_COMPATIBILITY_SCORE,
@@ -676,6 +681,7 @@ export function register(input: {
   if (input.age < db.settings.minAge)
     return { ok: false, error: `You must be at least ${db.settings.minAge} to join Datevra.` };
 
+  const normalizedLoc = normalizeLocationState(input.city);
   const user: UserProfile = {
     id: uid("u"),
     email,
@@ -683,7 +689,8 @@ export function register(input: {
     age: input.age,
     gender: input.gender,
     interestedIn: input.interestedIn,
-    city: input.city,
+    city: normalizedLoc.city,
+    locationScope: normalizedLoc.locationScope,
     bio: "",
     interests: [],
     hobbies: [],
@@ -700,7 +707,7 @@ export function register(input: {
   };
   db.users.push(user);
   db.credentials[email] = { password: input.password, userId: user.id, role: "user" };
-  db.prefs[user.id] = defaultPrefs(input.city);
+  db.prefs[user.id] = defaultPrefs(normalizedLoc.locationScope === "worldwide" ? "" : normalizedLoc.city);
   db.notifications.push({
     id: uid("n"),
     userId: user.id,
@@ -745,9 +752,16 @@ export function updateUser(id: string, patch: Partial<UserProfile>): UserProfile
   if (!u) return undefined;
   const originalRegisteredCity = u.registeredCity ?? u.city;
   Object.assign(u, patch);
+  if (patch.city !== undefined || patch.locationScope !== undefined) {
+    const nextScope: LocationScope | undefined =
+      patch.locationScope ?? (patch.city !== undefined ? undefined : u.locationScope);
+    const normalized = normalizeLocationState(u.city, nextScope);
+    u.city = normalized.city;
+    u.locationScope = normalized.locationScope;
+  }
   u.registeredCity = originalRegisteredCity;
   // recompute completeness
-  const fields = [u.bio, u.relationshipIntent, u.city];
+  const fields = [u.bio, u.relationshipIntent, hasConfiguredLocation(u) ? "configured" : ""];
   const filled = fields.filter((f) => f && f.length > 0).length;
   u.profileComplete = Math.min(
     100,

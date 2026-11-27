@@ -1,4 +1,5 @@
 import { profileCompleteness } from "./supabase/mappers";
+import { hasConfiguredLocation } from "./locationScope";
 import type { Gender, InterestedIn, UserProfile } from "./types";
 
 export const GENDERS: { id: Gender; label: string }[] = [
@@ -40,11 +41,14 @@ export function addCustomTagItem(list: string[], raw: string, maxLength = 40): s
   return [...list, clean];
 }
 
-export function isProfileSetupComplete(user: Pick<UserProfile, "bio" | "relationshipIntent" | "city" | "interests" | "photos">): boolean {
+export function isProfileSetupComplete(
+  user: Pick<UserProfile, "bio" | "relationshipIntent" | "city" | "locationScope" | "interests" | "photos">,
+): boolean {
   return profileCompleteness({
     bio: user.bio || "",
     relationshipIntent: user.relationshipIntent || "",
     city: user.city || "",
+    locationScope: user.locationScope,
     interests: user.interests || [],
     photos: user.photos || [],
   }) >= 100;
@@ -52,7 +56,7 @@ export function isProfileSetupComplete(user: Pick<UserProfile, "bio" | "relation
 
 export function determineInitialOnboardingStep(user: UserProfile): number {
   const name = user.firstName?.trim() ?? "";
-  if (!name || name === "Member" || !user.age || user.age < 18 || !user.city?.trim() || !user.gender) {
+  if (!name || name === "Member" || !user.age || user.age < 18 || !hasConfiguredLocation(user) || !user.gender) {
     return 1;
   }
   if (!user.bio?.trim()) return 2;

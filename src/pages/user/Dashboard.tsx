@@ -7,6 +7,7 @@ import {
   MIN_COMPATIBILITY_SCORE,
   rankCandidates,
 } from "../../lib/compat";
+import { formatProfileLocation } from "../../lib/locationScope";
 import { PLANS } from "../../data/seed";
 import {
   Avatar,
@@ -323,7 +324,7 @@ export default function Dashboard() {
                     <p className="text-ivory font-medium text-lg truncate">
                       {profile.firstName}, {profile.age}
                     </p>
-                    <p className="text-sm text-mist truncate">{profile.city}</p>
+                    <p className="text-sm text-mist truncate">{formatProfileLocation(profile)}</p>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -372,7 +373,7 @@ export default function Dashboard() {
                       <Avatar name={profile.firstName} photo={profile.photos[0]} size={46} />
                       <div className="flex-1 min-w-0">
                         <p className="text-ivory text-sm font-medium truncate">
-                          {profile.firstName}, {profile.age} · {profile.city}
+                          {profile.firstName}, {profile.age} · {formatProfileLocation(profile)}
                         </p>
                         <p className="text-xs text-mist">{timeAgo(like.createdAt)}</p>
                       </div>

@@ -6,6 +6,7 @@ import { useAsync, useBackend } from "../../lib/data";
 import { Avatar, Badge, EmptyState, Modal, Reveal, Skeleton, useToast } from "../../components/ui";
 import { computeCompatibility } from "../../lib/compat";
 import { partnerOf, timeAgo, useDbRefresh } from "./shared";
+import { formatProfileLocation } from "../../lib/locationScope";
 import type { Match, MatchPreferences, MatchProposal, UserProfile } from "../../lib/types";
 
 interface MatchRow {
@@ -259,7 +260,7 @@ export default function Matches() {
                           <p className="text-ivory font-medium text-lg leading-tight truncate">
                             {profile.firstName}, {profile.age}
                           </p>
-                          <p className="text-xs text-ivory-dim truncate">{profile.city}</p>
+                          <p className="text-xs text-ivory-dim truncate">{formatProfileLocation(profile)}</p>
                         </div>
                       </div>
                       <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-midnight/60 backdrop-blur px-2.5 py-1 border border-champagne/30">
@@ -340,7 +341,7 @@ export default function Matches() {
                   <p className="text-ivory font-display text-xl truncate">
                     {viewing.profile.firstName}, {viewing.profile.age}
                   </p>
-                  <p className="text-mist text-sm truncate">{viewing.profile.city}</p>
+                  <p className="text-mist text-sm truncate">{formatProfileLocation(viewing.profile)}</p>
                 </div>
               </div>
             </div>

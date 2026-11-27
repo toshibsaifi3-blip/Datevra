@@ -4,6 +4,7 @@ import type {
   MatchPreferences,
   UserProfile,
 } from "./types";
+import { isWorldwideProfile } from "./locationScope";
 
 /**
  * Authoritative minimum compatibility percentage required to form a match.
@@ -131,9 +132,21 @@ export function computeCompatibility(
 
   // 4. City / location (max 10)
   // Ignore empty strings to match Migration 028 (COALESCE(city, '') <> '').
-  const myCity = typeof me.city === "string" ? me.city : "";
-  const theirCity = typeof them.city === "string" ? them.city : "";
-  if (myCity !== "" && myCity === theirCity) {
+  // Worldwide is an explicit global scope open to matching across locations.
+  const myWorldwide = isWorldwideProfile(me);
+  const theirWorldwide = isWorldwideProfile(them);
+  const myCity = myWorldwide ? "" : (typeof me.city === "string" ? me.city : "");
+  const theirCity = theirWorldwide ? "" : (typeof them.city === "string" ? them.city : "");
+  if (myWorldwide || theirWorldwide) {
+    score += 6;
+    factors.push(
+      myWorldwide && theirWorldwide
+        ? "Both open to matching worldwide"
+        : myWorldwide
+          ? `Open to matching worldwide${theirCity ? ` (${theirCity})` : ""}`
+          : `${them.firstName} is open to matching worldwide`,
+    );
+  } else if (myCity !== "" && myCity === theirCity) {
     score += 10;
     factors.push(`Both in ${myCity}`);
   } else if (
@@ -234,8 +247,14 @@ export function evaluatePairwiseCompatibility(
     concerns.push(`${userA.firstName} (${userA.age}) is outside ${userB.firstName}'s preferred age (${prefsB.ageMin}–${prefsB.ageMax}).`);
   }
 
-  // Check city mismatch (note: this is a consideration, not a hard barrier)
-  if (userA.city && userB.city && userA.city.toLowerCase() !== userB.city.toLowerCase()) {
+  // Check city mismatch (note: Worldwide scope is open across locations; city mismatch is not a hard barrier)
+  if (
+    !isWorldwideProfile(userA) &&
+    !isWorldwideProfile(userB) &&
+    userA.city &&
+    userB.city &&
+    userA.city.toLowerCase() !== userB.city.toLowerCase()
+  ) {
     const aCityMatch = prefsA?.cities?.some((c) => c.toLowerCase() === userB.city.toLowerCase());
     const bCityMatch = prefsB?.cities?.some((c) => c.toLowerCase() === userA.city.toLowerCase());
     if (!aCityMatch && !bCityMatch) {
@@ -305,7 +324,7 @@ export function matchesPreferences(
   if (candidate.age < prefs.ageMin || candidate.age > prefs.ageMax) return false;
   if (!isGenderOriented(prefs.interestedIn, candidate.gender)) return false;
 
-  if (prefs.cities.length > 0) {
+  if (prefs.cities.length > 0 && !isWorldwideProfile(candidate)) {
     const candCity = candidate.city.trim().toLowerCase();
     const ok = prefs.cities.some((c) => c.trim().toLowerCase() === candCity);
     if (!ok) return false;

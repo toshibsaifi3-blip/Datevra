@@ -315,15 +315,17 @@ export function Stat({
   label,
   value,
   sub,
+  valueClassName = "text-2xl sm:text-4xl",
 }: {
   label: string;
   value: string | number;
   sub?: string;
+  valueClassName?: string;
 }) {
   return (
     <div className="glass rounded-2xl p-4 sm:p-5 card-hover min-w-0">
       <p className="text-[0.7rem] uppercase tracking-[0.24em] text-mist">{label}</p>
-      <p className="font-display text-2xl sm:text-4xl mt-2 text-gradient-gold font-semibold break-words">{value}</p>
+      <p className={`font-display ${valueClassName} mt-2 text-gradient-gold font-semibold break-words`}>{value}</p>
       {sub && <p className="text-xs text-ivory-dim/80 mt-1">{sub}</p>}
     </div>
   );

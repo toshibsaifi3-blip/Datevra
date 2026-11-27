@@ -8,6 +8,7 @@ import {
 } from "../compat";
 import { validatePhotoFile, extensionFor, storagePathFromUrl } from "../photos";
 import { unwrapCelebrationAckRpcResult } from "../membershipCelebration";
+import { WORLDWIDE_SCOPE_TOKEN } from "../locationScope";
 import type {
   ActivityLog,
   AppNotification,
@@ -165,6 +166,7 @@ async function updateUser(id: string, patch: Partial<UserProfile>): Promise<User
     patch.bio !== undefined ||
     patch.relationshipIntent !== undefined ||
     patch.city !== undefined ||
+    patch.locationScope !== undefined ||
     patch.interests !== undefined ||
     patch.photos !== undefined
   ) {
@@ -174,12 +176,37 @@ async function updateUser(id: string, patch: Partial<UserProfile>): Promise<User
       patchWithCompleteness.profileComplete = profileCompleteness(merged);
     }
   }
-  const res = await sb()
+  const dbPatch = unmapProfilePatch(patchWithCompleteness);
+  const payload = { ...dbPatch, last_active: new Date().toISOString() };
+  let res = await sb()
     .from("profiles")
-    .update({ ...unmapProfilePatch(patchWithCompleteness), last_active: new Date().toISOString() })
+    .update(payload)
     .eq("id", id)
     .select("*")
     .maybeSingle();
+
+  // If the optional `location_scope` column has not yet been applied in PostgreSQL,
+  // retry cleanly using the explicit non-city scope token in `city` so Worldwide
+  // persists across refresh & login immediately without requiring unapproved SQL.
+  if (
+    res.error &&
+    "location_scope" in dbPatch &&
+    /location_scope|PGRST204|42703/i.test(`${res.error.code ?? ""} ${res.error.message ?? ""}`)
+  ) {
+    const fallbackPayload: Record<string, unknown> = { ...payload };
+    const scopeVal = fallbackPayload.location_scope;
+    delete fallbackPayload.location_scope;
+    if (scopeVal === "worldwide") {
+      fallbackPayload.city = WORLDWIDE_SCOPE_TOKEN;
+    }
+    res = await sb()
+      .from("profiles")
+      .update(fallbackPayload)
+      .eq("id", id)
+      .select("*")
+      .maybeSingle();
+  }
+
   if (res.error || !res.data) return undefined;
   return mapProfile(res.data as Record<string, unknown>);
 }
