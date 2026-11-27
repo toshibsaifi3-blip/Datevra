@@ -62,7 +62,6 @@ const AdminDateOffers = lazy(() => import("./pages/admin/DateOffers"));
 const AdminInvitations = lazy(() => import("./pages/admin/Invitations"));
 const AdminCafes = lazy(() => import("./pages/admin/Cafes"));
 const AdminPasses = lazy(() => import("./pages/admin/Passes"));
-const AdminVouchers = lazy(() => import("./pages/admin/Vouchers"));
 const AdminPartnerships = lazy(() => import("./pages/admin/Partnerships"));
 const AdminNotifications = lazy(() => import("./pages/admin/Notifications"));
 const AdminCms = lazy(() => import("./pages/admin/Cms"));
@@ -174,7 +173,6 @@ export default function App() {
                   <Route path="admin/invitations" element={<AdminInvitations />} />
                   <Route path="admin/cafes" element={<AdminCafes />} />
                   <Route path="admin/passes" element={<AdminPasses />} />
-                  <Route path="admin/vouchers" element={<AdminVouchers />} />
                   <Route path="admin/partnerships" element={<AdminPartnerships />} />
                   <Route path="admin/notifications" element={<AdminNotifications />} />
                   <Route path="admin/cms" element={<AdminCms />} />

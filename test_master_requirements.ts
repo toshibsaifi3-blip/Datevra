@@ -844,7 +844,7 @@ test("T30: Existing 75% compatibility threshold, designated admin-only mode, and
   assert.match(appTsx, /path="bookings"/);
   assert.match(appTsx, /path="admin\/date-offers"/);
   assert.match(appTsx, /path="admin\/invitations"/);
-  assert.match(appTsx, /path="admin\/vouchers"/);
+  assert.doesNotMatch(appTsx, /path="admin\/vouchers"/);
 });
 
 /* ==================== MIGRATION 030 HARDENING & CONCURRENCY SUITE ==================== */

@@ -32,7 +32,6 @@ import {
   X,
   ArrowUpRight,
   Mail,
-  BadgePercent,
   CalendarHeart,
   type LucideIcon,
 } from "lucide-react";
@@ -361,7 +360,7 @@ const USER_LINKS = [
   { to: "/experiences", label: "Experiences", icon: "❧" },
   { to: "/bookings", label: "Dates & invites", icon: "📅" },
   { to: "/cafes", label: "Cafés", icon: "☕" },
-  { to: "/passes", label: "Passes & vouchers", icon: "✧" },
+  { to: "/passes", label: "My passes", icon: "✧" },
   { to: "/membership", label: "Membership", icon: "♛" },
   { to: "/notifications", label: "Notifications", icon: "◉" },
   { to: "/profile", label: "Profile", icon: "❀" },
@@ -722,7 +721,6 @@ const ADMIN_LINKS: AdminNavItem[] = [
   { to: "/admin/invitations", label: "Invitations", group: "Experiences", icon: Mail },
   { to: "/admin/cafes", label: "Cafés", group: "Experiences", icon: Coffee },
   { to: "/admin/passes", label: "Comp. passes", group: "Experiences", icon: Ticket },
-  { to: "/admin/vouchers", label: "Outside-Delhi vouchers", group: "Experiences", icon: BadgePercent },
   { to: "/admin/partnerships", label: "Partnerships", group: "Experiences", icon: Handshake },
 
   // Platform
