@@ -15,7 +15,6 @@ import {
   useToast,
 } from "../../components/ui";
 import { timeAgo, useDbRefresh } from "./shared";
-import { formatProfileLocation } from "../../lib/locationScope";
 import type { Conversation, Message, UserProfile } from "../../lib/types";
 
 const REPORT_REASONS = [
@@ -318,7 +317,7 @@ export default function Chat() {
   const fillStarter = (s: string) =>
     s
       .replace("{interest}", partner?.interests[0] ?? partner?.hobbies[0] ?? "travel")
-      .replace("{city}", formatProfileLocation(partner, "your city"));
+      .replace("{city}", partner?.city || "your city");
 
   const lastPreview = (convId: string) =>
     previews.get(convId) ?? "Say hello — be kind, be yourself.";
@@ -966,7 +965,7 @@ export default function Chat() {
             <div className="flex items-center gap-4">
               <Avatar name={partner.firstName} photo={partner.photos[0]} size={64} ring />
               <div className="min-w-0 flex-1">
-                <p className="text-mist break-words">{formatProfileLocation(partner)}</p>
+                <p className="text-mist break-words">{partner?.city}</p>
                 {partner.verified && <Badge tone="green">✓ Verified</Badge>}
               </div>
             </div>

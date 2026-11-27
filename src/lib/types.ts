@@ -19,9 +19,6 @@ export interface MembershipPlan {
 export type Gender = "woman" | "man" | "nonbinary";
 export type InterestedIn = "women" | "men" | "everyone";
 
-import type { LocationScope } from "./locationScope";
-export type { LocationScope };
-
 export type VerificationStatus = "pending" | "verified" | "declined";
 
 export interface UserProfile {
@@ -32,8 +29,6 @@ export interface UserProfile {
   gender: Gender;
   interestedIn: InterestedIn;
   city: string;
-  /** Explicit location scope ("city" | "worldwide"). Worldwide is never stored as an ordinary city name. */
-  locationScope?: LocationScope;
   registeredCity?: string | null;
   bio: string;
   interests: string[];

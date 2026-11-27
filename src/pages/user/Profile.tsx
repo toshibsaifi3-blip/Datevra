@@ -27,7 +27,7 @@ import {
   INTERESTED_OPTIONS,
   validateBasicIdentity,
 } from "../../lib/profileFields";
-import { isWorldwideProfile, type LocationScope } from "../../lib/locationScope";
+import { sanitizeRealLocation } from "../../data/worldLocations";
 import type { Gender, InterestedIn } from "../../lib/types";
 
 const reduceMotion =
@@ -140,7 +140,6 @@ export default function Profile() {
   const [firstName, setFirstName] = useState("");
   const [age, setAge] = useState(25);
   const [city, setCity] = useState(CITIES[0]);
-  const [locationScope, setLocationScope] = useState<LocationScope>("city");
   const [bio, setBio] = useState("");
   const [relationshipIntent, setRelationshipIntent] = useState("");
   const [gender, setGender] = useState<Gender>("woman");
@@ -156,9 +155,7 @@ export default function Profile() {
     if (!user) return;
     setFirstName(user.firstName);
     setAge(user.age);
-    const isGlobal = isWorldwideProfile(user);
-    setLocationScope(isGlobal ? "worldwide" : "city");
-    setCity(isGlobal ? "" : user.city);
+    setCity(sanitizeRealLocation(user.city));
     setBio(user.bio);
     setRelationshipIntent(user.relationshipIntent);
     setGender(user.gender);
@@ -175,7 +172,6 @@ export default function Profile() {
     bio,
     relationshipIntent,
     city,
-    locationScope,
     interests,
     photos: user.photos ?? [],
   });
@@ -198,13 +194,16 @@ export default function Profile() {
       toast(errs.firstName || errs.age || "Please check your profile details.", "rose");
       return;
     }
+    if (!sanitizeRealLocation(city)) {
+      toast("Please select a valid city or town.", "rose");
+      return;
+    }
     setSaving(true);
     try {
       await db.updateUser(user.id, {
         firstName: firstName.trim(),
         age: Number(age),
-        city: locationScope === "worldwide" ? "" : city,
-        locationScope,
+        city: sanitizeRealLocation(city),
         bio: bio.trim(),
         relationshipIntent,
         gender,
@@ -353,15 +352,7 @@ export default function Profile() {
               <Field label="City">
                 <IndiaLocationPicker
                   value={city}
-                  locationScope={locationScope}
-                  onChange={(nextCity) => {
-                    setLocationScope("city");
-                    setCity(nextCity);
-                  }}
-                  onScopeChange={(nextScope, nextCity) => {
-                    setLocationScope(nextScope);
-                    setCity(nextCity);
-                  }}
+                  onChange={(nextCity) => setCity(nextCity)}
                 />
               </Field>
             </div>

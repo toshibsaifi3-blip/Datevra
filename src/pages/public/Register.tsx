@@ -5,7 +5,6 @@ import { Field, Logo, inputCls } from "../../components/ui";
 import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import { CITIES } from "../../data/seed";
 import { hasStoredAuthHint, useAuth } from "../../context/AuthContext";
-import { WORLDWIDE_SCOPE_TOKEN, type LocationScope } from "../../lib/locationScope";
 import type { Gender, InterestedIn } from "../../lib/types";
 
 export default function Register() {
@@ -26,7 +25,6 @@ export default function Register() {
   const [gender, setGender] = useState<Gender>("woman");
   const [interestedIn, setInterestedIn] = useState<InterestedIn>("everyone");
   const [city, setCity] = useState(CITIES[0]);
-  const [locationScope, setLocationScope] = useState<LocationScope>("city");
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,7 +70,7 @@ export default function Register() {
         age: ageNum,
         gender,
         interestedIn,
-        city: locationScope === "worldwide" ? WORLDWIDE_SCOPE_TOKEN : city,
+        city,
       });
       if (!r.ok) {
         setError(r.error);
@@ -107,7 +105,7 @@ export default function Register() {
         age: Number(age),
         gender,
         interestedIn,
-        city: locationScope === "worldwide" ? WORLDWIDE_SCOPE_TOKEN : city,
+        city,
       });
       if (!r.ok) {
         setOtpError(r.error);
@@ -286,18 +284,10 @@ export default function Register() {
             </Field>
           </div>
 
-          <Field label="City or town" hint="Worldwide or any city/town across 244 countries">
+          <Field label="City or town" hint="Any city or town across 244 countries & territories">
             <IndiaLocationPicker
               value={city}
-              locationScope={locationScope}
-              onChange={(nextCity) => {
-                setLocationScope("city");
-                setCity(nextCity);
-              }}
-              onScopeChange={(nextScope, nextCity) => {
-                setLocationScope(nextScope);
-                setCity(nextCity);
-              }}
+              onChange={(nextCity) => setCity(nextCity)}
             />
           </Field>
 

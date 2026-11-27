@@ -28,11 +28,7 @@ import {
   validateBasicIdentity,
   type BasicIdentityErrors,
 } from "../../lib/profileFields";
-import {
-  formatProfileLocation,
-  isWorldwideProfile,
-  type LocationScope,
-} from "../../lib/locationScope";
+import { sanitizeRealLocation } from "../../data/worldLocations";
 import type { Gender, InterestedIn, UserProfile } from "../../lib/types";
 
 const STEPS = [
@@ -62,7 +58,6 @@ export default function Onboarding() {
   const [age, setAge] = useState(25);
   const [gender, setGender] = useState<Gender>("woman");
   const [city, setCity] = useState(CITIES[0]);
-  const [locationScope, setLocationScope] = useState<LocationScope>("city");
   const [bio, setBio] = useState("");
   const [interestedIn, setInterestedIn] = useState<InterestedIn>("everyone");
   const [relationshipIntent, setRelationshipIntent] = useState("");
@@ -94,9 +89,7 @@ export default function Onboarding() {
     setFirstName(user.firstName || "");
     setAge(user.age >= 18 ? user.age : 18);
     setGender(user.gender || "woman");
-    const isGlobal = isWorldwideProfile(user);
-    setLocationScope(isGlobal ? "worldwide" : "city");
-    setCity(isGlobal ? "" : user.city || CITIES[0]);
+    setCity(sanitizeRealLocation(user.city) || CITIES[0]);
     setBio(user.bio || "");
     setInterestedIn(user.interestedIn || "everyone");
     setRelationshipIntent(user.relationshipIntent || "");
@@ -117,11 +110,10 @@ export default function Onboarding() {
         bio,
         relationshipIntent,
         city,
-        locationScope,
         interests,
         photos: user?.photos ?? [],
       }),
-    [bio, relationshipIntent, city, locationScope, interests, user?.photos],
+    [bio, relationshipIntent, city, interests, user?.photos],
   );
 
   const relationshipGoalOptions = useMemo(
@@ -147,8 +139,7 @@ export default function Onboarding() {
         firstName: firstName.trim(),
         age: Number(age),
         gender,
-        city: locationScope === "worldwide" ? "" : city,
-        locationScope,
+        city: sanitizeRealLocation(city) || CITIES[0],
       };
     }
     if (currentStep === 2) {
@@ -388,15 +379,7 @@ export default function Onboarding() {
                     <Field label="City">
                       <IndiaLocationPicker
                         value={city}
-                        locationScope={locationScope}
-                        onChange={(nextCity) => {
-                          setLocationScope("city");
-                          setCity(nextCity);
-                        }}
-                        onScopeChange={(nextScope, nextCity) => {
-                          setLocationScope(nextScope);
-                          setCity(nextCity);
-                        }}
+                        onChange={(nextCity) => setCity(nextCity)}
                       />
                     </Field>
                   </div>
@@ -591,7 +574,7 @@ export default function Onboarding() {
                           {user.verified && <Badge tone="green">Verified</Badge>}
                         </div>
                         <p className="text-xs text-rosegold">
-                          {formatProfileLocation({ city, locationScope })}
+                          {city}
                         </p>
                       </div>
                     </div>

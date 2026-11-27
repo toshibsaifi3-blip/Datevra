@@ -1,86 +1,72 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   formatLocationSubtitle,
-  getIndiaStatesAndUTs,
   type IndiaLocation,
 } from "../data/indiaLocations";
 import {
   findWorldLocationByValue,
   formatSelectedLocationBadge,
   formatWorldLocationSubtitle,
+  formatWorldLocationValue,
   getWorldCountries,
+  getWorldRegionsByCountry,
   POPULAR_COUNTRY_CODES,
   POPULAR_GLOBAL_CITIES,
+  sanitizeRealLocation,
+  searchWorldCountries,
   searchWorldLocations,
+  searchWorldRegions,
+  type WorldCountry,
   type WorldLocation,
+  type WorldRegion,
 } from "../data/worldLocations";
-import {
-  isWorldwideProfile,
-  WORLDWIDE_DISPLAY_LABEL,
-  WORLDWIDE_SCOPE_TOKEN,
-  type LocationScope,
-} from "../lib/locationScope";
 import { inputCls } from "./ui";
 
 export interface IndiaLocationPickerProps {
   value: string;
   onChange: (city: string, location?: IndiaLocation | WorldLocation) => void;
-  /** Explicit location scope ("city" | "worldwide"). */
-  locationScope?: LocationScope;
-  /** Called when the member chooses Worldwide or switches back to a specific city/town. */
-  onScopeChange?: (scope: LocationScope, city: string, location?: WorldLocation) => void;
-  /** Whether to show the prominent 🌍 Worldwide option at the top (default: true). */
-  allowWorldwide?: boolean;
   /** Optional override for SSR/unit tests to render with dropdown initially open. */
   defaultOpen?: boolean;
+  /** Optional initial country ISO-2 filter for tests or scoped browsing (default: "" = All Countries). */
+  defaultCountryCode?: string;
+  /** Optional initial state/province/region code filter (paired with defaultCountryCode). */
+  defaultRegionCode?: string;
   placeholder?: string;
   id?: string;
 }
 
 /**
- * Shared Worldwide & India searchable location selector.
+ * Shared Global & India searchable cascading location selector.
  *
- * Preserves the exact Datevra selector design and all 5,262 deduplicated
+ * Preserves Datevra's exact selector design and all 5,262 deduplicated
  * Government of India LGD records (28 States & 8 Union Territories) while
- * expanding to 244 countries & territories (35,621 deduplicated global city/town
- * records from GeoNames + India LGD) and an explicit `🌍 Worldwide` global scope.
+ * providing real geographical browsing & search across 244 countries & territories,
+ * 2,764 states/provinces/regions, and 35,621 deduplicated global cities & towns.
+ *
+ * Strictly selects real geographical locations (Country -> State/Province/Region -> City/Town).
  */
 export function IndiaLocationPicker({
   value,
   onChange,
-  locationScope,
-  onScopeChange,
-  allowWorldwide = true,
   defaultOpen = false,
-  placeholder = "Search city, town, region or country…",
+  defaultCountryCode = "",
+  defaultRegionCode = "",
+  placeholder = "Search country, state/province, city or town…",
   id,
 }: IndiaLocationPickerProps) {
-  const isWorldwide =
-    allowWorldwide &&
-    isWorldwideProfile({
-      locationScope,
-      city: value,
-    });
+  const cleanValue = sanitizeRealLocation(value);
 
   const matchedCurrent = useMemo(
-    () => (isWorldwide ? null : findWorldLocationByValue(value)),
-    [isWorldwide, value],
+    () => findWorldLocationByValue(cleanValue),
+    [cleanValue],
   );
 
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState("");
-  /**
-   * Country scope filter:
-   * - `"ALL"` -> All Worldwide (all 244 countries & territories)
-   * - `"IN"`  -> All India (28 States & 8 UTs, with State/UT sub-filter)
-   * - `"US"`, `"GB"`, etc. -> Specific country
-   */
-  const [countryScope, setCountryScope] = useState<string>(() => {
-    if (isWorldwide) return "ALL";
-    if (matchedCurrent) return matchedCurrent.countryCode;
-    return "IN";
-  });
-  const [indiaStateCode, setIndiaStateCode] = useState("");
+  /** Country ISO-2 filter: `""` = All Countries by default. */
+  const [countryCode, setCountryCode] = useState<string>(defaultCountryCode);
+  /** State / Province / Region code filtered by `countryCode`. */
+  const [regionCode, setRegionCode] = useState<string>(defaultRegionCode);
   const [limit, setLimit] = useState(30);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -89,49 +75,54 @@ export function IndiaLocationPicker({
   const popularCountries = useMemo(
     () =>
       POPULAR_COUNTRY_CODES.map((code) => countries.find((c) => c.code === code)).filter(
-        (c): c is NonNullable<typeof c> => Boolean(c),
+        (c): c is WorldCountry => Boolean(c),
       ),
     [countries],
   );
-  const statesAndUTs = useMemo(() => getIndiaStatesAndUTs(), []);
-  const statesOnly = useMemo(
-    () => statesAndUTs.filter((s) => s.kind === "State"),
-    [statesAndUTs],
+
+  const regionsForCountry = useMemo(
+    () => (countryCode ? getWorldRegionsByCountry(countryCode) : []),
+    [countryCode],
   );
-  const utsOnly = useMemo(
-    () => statesAndUTs.filter((s) => s.kind === "Union Territory"),
-    [statesAndUTs],
+  const indiaStatesOnly = useMemo(
+    () => (countryCode === "IN" ? regionsForCountry.filter((r) => r.kind === "State") : []),
+    [countryCode, regionsForCountry],
+  );
+  const indiaUtsOnly = useMemo(
+    () =>
+      countryCode === "IN"
+        ? regionsForCountry.filter((r) => r.kind === "Union Territory")
+        : [],
+    [countryCode, regionsForCountry],
+  );
+
+  // Quick cascading filter suggestions when user types a country or state/province name
+  const matchingCountries = useMemo(
+    () => (open && query.trim().length >= 2 && !countryCode ? searchWorldCountries(query, 4) : []),
+    [open, query, countryCode],
+  );
+  const matchingRegions = useMemo(
+    () =>
+      open && query.trim().length >= 2 && !regionCode
+        ? searchWorldRegions(query, { countryCode: countryCode || undefined, limit: 4 })
+        : [],
+    [open, query, countryCode, regionCode],
   );
 
   const results = useMemo(
     () =>
       open
         ? searchWorldLocations(query, {
-            // When user types a query while still on default All India without a state filter,
-            // check if they're browsing a specific country or All Worldwide.
-            // If countryScope === "IN" and indiaStateCode is empty, search India first; if
-            // zero India hits, fall back to global search so typing "London" or "Tokyo" works immediately!
-            countryCode: countryScope === "ALL" ? "" : countryScope,
-            indiaStateCode: countryScope === "IN" ? indiaStateCode || undefined : undefined,
+            countryCode: countryCode || undefined,
+            regionCode: regionCode || undefined,
             limit: limit + 1,
           })
         : [],
-    [open, query, countryScope, indiaStateCode, limit],
+    [open, query, countryCode, regionCode, limit],
   );
 
-  // If user is on the default India scope (no specific State/UT selected) and searches for
-  // an international city/country (e.g. "London", "New York", "Japan") that yields 0 Indian hits,
-  // seamlessly surface global GeoNames matches without forcing an extra dropdown click!
-  const effectiveResults = useMemo(() => {
-    if (!open) return [];
-    if (results.length > 0 || !query.trim() || countryScope !== "IN" || indiaStateCode) {
-      return results;
-    }
-    return searchWorldLocations(query, { countryCode: "", limit: limit + 1 });
-  }, [open, results, query, countryScope, indiaStateCode, limit]);
-
-  const hasMore = effectiveResults.length > limit;
-  const visibleResults = hasMore ? effectiveResults.slice(0, limit) : effectiveResults;
+  const hasMore = results.length > limit;
+  const visibleResults = hasMore ? results.slice(0, limit) : results;
 
   useEffect(() => {
     if (!open) return;
@@ -151,33 +142,28 @@ export function IndiaLocationPicker({
     };
   }, [open]);
 
-  const selectWorldwide = () => {
-    if (onScopeChange) {
-      onScopeChange("worldwide", "");
-    } else {
-      onChange(WORLDWIDE_SCOPE_TOKEN);
-    }
-    setOpen(false);
-    setQuery("");
-  };
-
   const selectLocation = (loc: WorldLocation) => {
-    if (onScopeChange) {
-      onScopeChange("city", loc.name, loc);
-    } else {
-      onChange(loc.name, loc.indiaLocation ?? loc);
-    }
-    setCountryScope(loc.countryCode);
+    const savedValue = formatWorldLocationValue(loc);
+    onChange(savedValue, loc.indiaLocation ?? loc);
     setOpen(false);
     setQuery("");
   };
 
-  const showWorldwideOption =
-    allowWorldwide &&
-    (!query.trim() ||
-      "worldwide".includes(query.trim().toLowerCase()) ||
-      "global".includes(query.trim().toLowerCase()) ||
-      "anywhere".includes(query.trim().toLowerCase()));
+  const applyCountryQuickFilter = (c: WorldCountry) => {
+    setCountryCode(c.code);
+    setRegionCode("");
+    setQuery("");
+    setLimit(30);
+  };
+
+  const applyRegionQuickFilter = (r: WorldRegion) => {
+    setCountryCode(r.countryCode);
+    setRegionCode(r.code);
+    setQuery("");
+    setLimit(30);
+  };
+
+  const triggerPrimaryLabel = matchedCurrent ? matchedCurrent.name : cleanValue;
 
   return (
     <div ref={containerRef} className="relative">
@@ -199,14 +185,9 @@ export function IndiaLocationPicker({
         className={`${inputCls} flex items-center justify-between gap-2 text-left cursor-pointer`}
       >
         <span className="min-w-0 truncate">
-          {isWorldwide ? (
+          {triggerPrimaryLabel ? (
             <>
-              <span className="text-ivory">🌍 {WORLDWIDE_DISPLAY_LABEL}</span>
-              <span className="text-mist/80 text-xs ml-1.5">· Open globally</span>
-            </>
-          ) : value ? (
-            <>
-              <span className="text-ivory">{value}</span>
+              <span className="text-ivory">{triggerPrimaryLabel}</span>
               {matchedCurrent && (
                 <span className="text-mist/80 text-xs ml-1.5">
                   · {formatSelectedLocationBadge(matchedCurrent)}
@@ -214,7 +195,7 @@ export function IndiaLocationPicker({
               )}
             </>
           ) : (
-            <span className="text-mist/60">Select location</span>
+            <span className="text-mist/60">Select city or town</span>
           )}
         </span>
         <span className="text-xs text-mist shrink-0" aria-hidden>
@@ -224,30 +205,7 @@ export function IndiaLocationPicker({
 
       {open && (
         <div className="mt-2 glass-strong border border-white/15 rounded-2xl p-3 space-y-2.5 shadow-2xl z-30">
-          {/* Prominent first selectable option: 🌍 Worldwide */}
-          {showWorldwideOption && (
-            <button
-              type="button"
-              role="option"
-              aria-selected={isWorldwide}
-              onClick={selectWorldwide}
-              className={`w-full text-left px-3 py-2.5 min-h-[44px] rounded-xl border flex items-center justify-between gap-2 transition-colors ${
-                isWorldwide
-                  ? "border-champagne/60 bg-champagne/15 text-champagne"
-                  : "border-white/15 bg-white/[0.04] text-ivory hover:border-champagne/40 hover:bg-white/[0.07]"
-              }`}
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate">🌍 Worldwide</p>
-                <p className="text-[11px] text-mist truncate">
-                  Open to matching across cities and countries worldwide
-                </p>
-              </div>
-              {isWorldwide && <span className="text-xs text-champagne shrink-0">✓</span>}
-            </button>
-          )}
-
-          {/* City / Country / Region / Alias search */}
+          {/* Direct global search: country, state/province, city, town, or local alias */}
           <input
             ref={searchInputRef}
             type="text"
@@ -258,22 +216,21 @@ export function IndiaLocationPicker({
               setLimit(30);
             }}
             placeholder={placeholder}
-            aria-label="Search worldwide cities, towns, regions, or countries"
+            aria-label="Search country, state, province, city, or town"
           />
 
-          {/* Scope & Country selector (All Worldwide, All India, Popular Countries, All 244 Countries) */}
+          {/* Cascading Filter 1: Country selector (All Countries by default) */}
           <select
             className={inputCls}
-            value={countryScope}
+            value={countryCode}
             onChange={(e) => {
-              setCountryScope(e.target.value);
-              setIndiaStateCode("");
+              setCountryCode(e.target.value);
+              setRegionCode("");
               setLimit(30);
             }}
-            aria-label="Browse by Worldwide, All India, or Country"
+            aria-label="Filter by Country"
           >
-            <option value="ALL">Worldwide ({countries.length} countries &amp; territories)</option>
-            <option value="IN">All India (28 States &amp; 8 Union Territories)</option>
+            <option value="">All Countries ({countries.length})</option>
             <optgroup label="Popular Countries">
               {popularCountries.map((c) => (
                 <option key={`pop-${c.code}`} value={c.code}>
@@ -290,86 +247,147 @@ export function IndiaLocationPicker({
             </optgroup>
           </select>
 
-          {/* Preserved India State / Union Territory filter when browsing India */}
-          {countryScope === "IN" && (
+          {/* Cascading Filter 2: State / Province / Region selector (filtered by selected country) */}
+          {countryCode === "IN" ? (
             <select
               className={inputCls}
-              value={indiaStateCode}
+              value={regionCode}
               onChange={(e) => {
-                setIndiaStateCode(e.target.value);
+                setRegionCode(e.target.value);
                 setLimit(30);
               }}
               aria-label="Filter by Indian State or Union Territory"
             >
-              <option value="">All India States &amp; Union Territories (36)</option>
+              <option value="">All States &amp; Union Territories (36)</option>
               <optgroup label="States (28)">
-                {statesOnly.map((s) => (
+                {indiaStatesOnly.map((s) => (
                   <option key={s.code} value={s.code}>
                     {s.name} ({s.locationCount})
                   </option>
                 ))}
               </optgroup>
               <optgroup label="Union Territories (8)">
-                {utsOnly.map((u) => (
+                {indiaUtsOnly.map((u) => (
                   <option key={u.code} value={u.code}>
                     {u.name} ({u.locationCount})
                   </option>
                 ))}
               </optgroup>
             </select>
+          ) : countryCode && regionsForCountry.length > 0 ? (
+            <select
+              className={inputCls}
+              value={regionCode}
+              onChange={(e) => {
+                setRegionCode(e.target.value);
+                setLimit(30);
+              }}
+              aria-label="Filter by State, Province, or Region"
+            >
+              <option value="">
+                All States / Provinces / Regions ({regionsForCountry.length})
+              </option>
+              {regionsForCountry.map((r) => (
+                <option key={r.id} value={r.code}>
+                  {r.name} ({r.locationCount})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              className={`${inputCls} opacity-65`}
+              value=""
+              disabled
+              aria-label="Filter by State, Province, or Region"
+            >
+              <option value="">
+                {countryCode
+                  ? "No separate states or regions for this country"
+                  : "All States / Provinces / Regions (select a country)"}
+              </option>
+            </select>
           )}
 
-          {/* Preserve legacy/existing saved value if not in dataset */}
-          {!isWorldwide && value && !matchedCurrent && (
-            <div className="text-[11px] text-champagne/90 px-2 py-1 rounded-lg bg-champagne/10 border border-champagne/25">
-              Current saved city: <strong className="text-ivory">{value}</strong> (preserved unless you pick a new location)
+          {/* Quick-drill pills when searching countries or states/provinces */}
+          {(matchingCountries.length > 0 || matchingRegions.length > 0) && (
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {matchingCountries.map((c) => (
+                <button
+                  key={`qc-${c.code}`}
+                  type="button"
+                  onClick={() => applyCountryQuickFilter(c)}
+                  className="rounded-full border border-champagne/40 bg-champagne/10 px-2.5 py-1 text-[11px] text-champagne hover:bg-champagne/20 transition-colors"
+                >
+                  Browse {c.name} ({c.locationCount.toLocaleString("en-IN")})
+                </button>
+              ))}
+              {matchingRegions.map((r) => (
+                <button
+                  key={`qr-${r.id}`}
+                  type="button"
+                  onClick={() => applyRegionQuickFilter(r)}
+                  className="rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[11px] text-ivory-dim hover:border-champagne/40 hover:text-ivory transition-colors"
+                >
+                  {r.name}, {r.countryName} ({r.locationCount})
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Results list */}
+          {/* Preserve legacy/existing saved value if not in dataset */}
+          {cleanValue && !matchedCurrent && (
+            <div className="text-[11px] text-champagne/90 px-2 py-1 rounded-lg bg-champagne/10 border border-champagne/25">
+              Current saved city: <strong className="text-ivory">{cleanValue}</strong> (preserved unless you pick a new location)
+            </div>
+          )}
+
+          {/* Cascading Filter 3: City / Town results */}
           <div
             role="listbox"
-            className="max-h-60 overflow-y-auto divide-y divide-white/5 rounded-xl border border-white/10 bg-midnight/60"
+            aria-label="Global cities and towns"
+            className="max-h-60 overflow-y-auto divide-y divide-white/5 rounded-xl border border-white/10 bg-black/25"
           >
             {visibleResults.length === 0 ? (
-              <p className="p-3 text-xs text-mist text-center">
-                No city or town matched &ldquo;{query.trim()}&rdquo;. Try searching by country, region, or alternate spelling.
+              <p className="text-xs text-mist px-3 py-4 text-center">
+                No matching locations found. Try another city, town, state/province, or switch Country to All Countries.
               </p>
             ) : (
               visibleResults.map((loc) => {
-                const isSelected =
-                  !isWorldwide && value.trim().toLowerCase() === loc.name.toLowerCase();
+                const locValue = formatWorldLocationValue(loc);
+                const selected =
+                  Boolean(matchedCurrent && matchedCurrent.id === loc.id) ||
+                  cleanValue.toLowerCase() === locValue.toLowerCase();
+                const subtitle = formatWorldLocationSubtitle(loc);
                 return (
                   <button
                     key={loc.id}
                     type="button"
                     role="option"
-                    aria-selected={isSelected}
+                    aria-selected={selected}
                     onClick={() => selectLocation(loc)}
                     className={`w-full text-left px-3 py-2.5 min-h-[44px] flex items-center justify-between gap-2 transition-colors ${
-                      isSelected
+                      selected
                         ? "bg-champagne/15 text-champagne"
-                        : "text-ivory hover:bg-white/[0.06]"
+                        : "hover:bg-white/[0.05] text-ivory"
                     }`}
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
                         {loc.name}
-                        {loc.localName && (
-                          <span className="text-xs text-mist/80 ml-1.5 font-normal">
-                            ({loc.localName})
+                        {loc.isIndia && loc.settlementType && loc.settlementType !== "Municipal Corporation" && (
+                          <span className="text-[11px] font-normal text-mist/75 ml-1.5">
+                            · {loc.settlementType}
                           </span>
                         )}
                       </p>
                       <p className="text-[11px] text-mist truncate">
-                        {loc.isIndia && loc.indiaLocation
-                          ? `${formatLocationSubtitle(loc.indiaLocation)} · India · ${loc.indiaLocation.settlementType}`
-                          : formatWorldLocationSubtitle(loc)}
+                        {subtitle}
+                        {loc.aliases.length > 0 && query.trim().length > 0 && (
+                          <span className="text-mist/70"> · aka {loc.aliases.slice(0, 2).join(", ")}</span>
+                        )}
                       </p>
                     </div>
-                    {isSelected && (
-                      <span className="text-xs text-champagne shrink-0">✓</span>
-                    )}
+                    {selected && <span className="text-xs text-champagne shrink-0">✓</span>}
                   </button>
                 );
               })
@@ -380,7 +398,7 @@ export function IndiaLocationPicker({
             <button
               type="button"
               onClick={() => setLimit((n) => n + 40)}
-              className="w-full text-center text-xs text-champagne hover:text-rosegold py-1.5"
+              className="w-full text-center text-xs text-champagne hover:text-ivory py-1.5 rounded-lg border border-white/10 hover:border-champagne/40 transition-colors"
             >
               Load more locations…
             </button>
@@ -391,121 +409,142 @@ export function IndiaLocationPicker({
   );
 }
 
-interface IndiaCityMultiPickerProps {
+export interface IndiaCityMultiPickerProps {
   selected: string[];
-  onChange: (next: string[]) => void;
+  onChange: (cities: string[]) => void;
 }
 
 /**
  * Multi-location selector for Discovery preferences filter modal.
- * Supports explicit 🌍 Worldwide (open to all locations — clears city filter)
- * as well as searching and selecting cities across all 244 countries & India's 36 States/UTs.
+ * Uses cascading Country (All Countries by default) -> State/Province/Region -> City/Town
+ * filters across all 244 countries & India's 36 States/UTs.
  */
 export function IndiaCityMultiPicker({ selected, onChange }: IndiaCityMultiPickerProps) {
   const [query, setQuery] = useState("");
   const [countryCode, setCountryCode] = useState("");
-  const [indiaStateCode, setIndiaStateCode] = useState("");
+  const [regionCode, setRegionCode] = useState("");
 
   const countries = useMemo(() => getWorldCountries(), []);
-  const statesAndUTs = useMemo(() => getIndiaStatesAndUTs(), []);
+  const popularCountries = useMemo(
+    () =>
+      POPULAR_COUNTRY_CODES.map((code) => countries.find((c) => c.code === code)).filter(
+        (c): c is WorldCountry => Boolean(c),
+      ),
+    [countries],
+  );
+  const regionsForCountry = useMemo(
+    () => (countryCode ? getWorldRegionsByCountry(countryCode) : []),
+    [countryCode],
+  );
 
   const searchResults = useMemo(() => {
-    if (!query.trim() && !countryCode && !indiaStateCode) return [];
+    if (!query.trim() && !countryCode && !regionCode) return [];
     return searchWorldLocations(query, {
       countryCode: countryCode || undefined,
-      indiaStateCode: countryCode === "IN" ? indiaStateCode || undefined : undefined,
+      regionCode: regionCode || undefined,
       limit: 24,
     });
-  }, [query, countryCode, indiaStateCode]);
+  }, [query, countryCode, regionCode]);
 
   const toggleCity = (city: string) => {
-    const lower = city.trim().toLowerCase();
+    const clean = sanitizeRealLocation(city);
+    if (!clean) return;
+    const lower = clean.toLowerCase();
     const exists = selected.some((c) => c.trim().toLowerCase() === lower);
     if (exists) {
       onChange(selected.filter((c) => c.trim().toLowerCase() !== lower));
     } else {
-      onChange([...selected, city]);
+      onChange([...selected, clean]);
     }
   };
 
-  const isWorldwideFilter = selected.length === 0;
-
   return (
     <div className="space-y-3">
-      {/* Prominent Worldwide toggle (open to all locations) + currently selected cities */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() => onChange([])}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 min-h-[36px] text-xs font-medium transition-colors ${
-            isWorldwideFilter
-              ? "border-champagne/70 bg-champagne/15 text-champagne"
-              : "border-white/15 text-mist hover:text-ivory"
-          }`}
-        >
-          <span>🌍 Worldwide (All locations)</span>
-          {isWorldwideFilter && <span>✓</span>}
-        </button>
-
-        {selected.map((city) => (
-          <span
-            key={city}
-            className="inline-flex items-center gap-1.5 rounded-full border border-champagne/60 bg-champagne/10 px-3 py-1 text-xs text-champagne"
-          >
-            <span>{city}</span>
-            <button
-              type="button"
-              onClick={() => toggleCity(city)}
-              aria-label={`Remove ${city}`}
-              className="hover:text-ivory leading-none"
+      {/* Currently selected filter cities */}
+      {selected.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          {selected.map((city) => (
+            <span
+              key={city}
+              className="inline-flex items-center gap-1.5 rounded-full border border-champagne/60 bg-champagne/10 px-3 py-1 text-xs text-champagne"
             >
-              ×
-            </button>
-          </span>
-        ))}
-      </div>
+              <span>{city}</span>
+              <button
+                type="button"
+                onClick={() => toggleCity(city)}
+                aria-label={`Remove ${city}`}
+                className="hover:text-ivory leading-none"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="text-xs text-mist hover:text-ivory underline underline-offset-2 px-1.5 py-1"
+          >
+            Clear all
+          </button>
+        </div>
+      ) : (
+        <p className="text-xs text-mist">
+          No city filter active — select one or more cities below to narrow Discover results.
+        </p>
+      )}
 
-      {/* Search any city, region or country worldwide */}
+      {/* Search + Country selector (All Countries by default) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         <input
           type="text"
           className={inputCls}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search any city, region or country…"
+          placeholder="Search country, state/province, or city…"
         />
         <select
           className={inputCls}
           value={countryCode}
           onChange={(e) => {
             setCountryCode(e.target.value);
-            setIndiaStateCode("");
+            setRegionCode("");
           }}
           aria-label="Filter cities by Country"
         >
           <option value="">All Countries ({countries.length})</option>
-          <option value="IN">India (28 States &amp; 8 UTs)</option>
-          {countries
-            .filter((c) => c.code !== "IN")
-            .map((c) => (
+          <optgroup label="Popular Countries">
+            {popularCountries.map((c) => (
+              <option key={`mpop-${c.code}`} value={c.code}>
+                {c.name}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label={`All Countries & Territories (${countries.length})`}>
+            {countries.map((c) => (
               <option key={c.code} value={c.code}>
                 {c.name}
               </option>
             ))}
+          </optgroup>
         </select>
       </div>
 
-      {countryCode === "IN" && (
+      {/* Cascading State / Province / Region selector for selected country */}
+      {countryCode && regionsForCountry.length > 0 && (
         <select
           className={inputCls}
-          value={indiaStateCode}
-          onChange={(e) => setIndiaStateCode(e.target.value)}
-          aria-label="Filter Indian cities by State or Union Territory"
+          value={regionCode}
+          onChange={(e) => setRegionCode(e.target.value)}
+          aria-label="Filter cities by State, Province, or Region"
         >
-          <option value="">All Indian States &amp; UTs (36)</option>
-          {statesAndUTs.map((s) => (
-            <option key={s.code} value={s.code}>
-              {s.name}
+          <option value="">
+            {countryCode === "IN"
+              ? "All Indian States & Union Territories (36)"
+              : `All States / Provinces / Regions (${regionsForCountry.length})`}
+          </option>
+          {regionsForCountry.map((r) => (
+            <option key={r.id} value={r.code}>
+              {r.name} ({r.locationCount})
             </option>
           ))}
         </select>
@@ -515,14 +554,17 @@ export function IndiaCityMultiPicker({ selected, onChange }: IndiaCityMultiPicke
       {searchResults.length > 0 ? (
         <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
           {searchResults.map((loc) => {
+            const locVal = formatWorldLocationValue(loc);
             const on = selected.some(
-              (c) => c.trim().toLowerCase() === loc.name.toLowerCase(),
+              (c) =>
+                c.trim().toLowerCase() === locVal.toLowerCase() ||
+                c.trim().toLowerCase() === loc.name.toLowerCase(),
             );
             return (
               <button
                 key={loc.id}
                 type="button"
-                onClick={() => toggleCity(loc.name)}
+                onClick={() => toggleCity(locVal)}
                 className={`rounded-full border px-3 py-1.5 min-h-[36px] text-xs transition-colors ${
                   on
                     ? "border-champagne/60 bg-champagne/10 text-champagne"
@@ -532,7 +574,7 @@ export function IndiaCityMultiPicker({ selected, onChange }: IndiaCityMultiPicke
                 {on ? "✓ " : "+ "}
                 {loc.name}
                 <span className="opacity-70 ml-1">
-                  ({loc.isIndia ? loc.region : loc.country})
+                  ({formatWorldLocationSubtitle(loc)})
                 </span>
               </button>
             );
@@ -565,3 +607,4 @@ export function IndiaCityMultiPicker({ selected, onChange }: IndiaCityMultiPicke
   );
 }
 
+export { formatLocationSubtitle };

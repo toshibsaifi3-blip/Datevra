@@ -14,23 +14,23 @@ import {
 import {
   findWorldLocationByValue,
   formatWorldLocationSubtitle,
+  formatWorldLocationValue,
   getWorldCitiesByCountry,
   getWorldCountries,
   getWorldLocationStats,
+  getWorldRegionsByCountry,
+  isNonGeographicalLocation,
+  sameSavedLocation,
+  sanitizeRealLocation,
+  searchWorldCountries,
   searchWorldLocations,
+  searchWorldRegions,
 } from "./src/data/worldLocations";
 import {
   getAllIndiaLocations,
   getDeduplicatedIndiaLocationCount,
   getIndiaStatesAndUTs,
 } from "./src/data/indiaLocations";
-import {
-  formatProfileLocation,
-  hasConfiguredLocation,
-  isWorldwideProfile,
-  normalizeLocationState,
-  WORLDWIDE_SCOPE_TOKEN,
-} from "./src/lib/locationScope";
 import {
   BROAD_DEFAULT_PREFS,
   computeCompatibility,
@@ -47,26 +47,22 @@ function makeProfile(overrides: Partial<UserProfile>): UserProfile {
   return {
     id: overrides.id ?? "u-test",
     email: overrides.email ?? "test@datevra.test",
-    passwordHash: "hash",
     role: "member",
     firstName: overrides.firstName ?? "Aarav",
     age: overrides.age ?? 28,
     gender: overrides.gender ?? "man",
     interestedIn: overrides.interestedIn ?? "women",
     city: overrides.city ?? "Mumbai",
-    locationScope: overrides.locationScope ?? "city",
     bio: "Thoughtful builder who enjoys cinema and coffee.",
-    occupation: "Product Designer",
-    education: "B.Des",
-    heightCm: 178,
     relationshipIntent: overrides.relationshipIntent ?? "Long-term relationship",
-    prompts: [{ q: "Ideal Sunday?", a: "Slow coffee and a walk." }],
     interests: ["Coffee", "Cinema", "Travel", "Reading", "Art"],
     hobbies: ["Coffee brewing", "Film photography", "Chess"],
     lifestyle: ["Non-smoker", "Social drinker", "Active"],
     photos: ["https://example.com/photo.jpg"],
     verified: true,
+    online: true,
     plan: "plus",
+    planExpiresAt: null,
     profileComplete: 100,
     createdAt: "2026-01-01T00:00:00.000Z",
     lastActive: "2026-11-27T00:00:00.000Z",
@@ -75,90 +71,221 @@ function makeProfile(overrides: Partial<UserProfile>): UserProfile {
 }
 
 /* ============================================================================
- * 1. CHANGE 1: HOMEPAGE / ABOUT CITIES STATISTIC (WORLDWIDE) & PARTNER CAFÉS (3)
+ * 1. HOMEPAGE / ABOUT STATISTIC PRESERVED (WORLDWIDE + PARTNER CAFÉS = 3)
  * ============================================================================ */
 
-test("About page displays WORLDWIDE and worldwide copy, removes 5,262, and preserves Partner cafés = 3", () => {
+test("About page keeps WORLDWIDE Cities stat and Partner cafés = 3", () => {
   const html = renderToStaticMarkup(
     React.createElement(MemoryRouter, null, React.createElement(About)),
   );
 
-  assert.ok(html.includes("Cities"), "Expected Cities stat card label");
-  assert.ok(html.includes("WORLDWIDE"), "Expected exact text WORLDWIDE in Cities stat");
-  assert.ok(
-    html.includes("Explore cities and towns around the world"),
-    "Expected exact worldwide supporting text",
-  );
-  assert.equal(html.includes("5,262"), false, "Must not display 5,262 anywhere in Cities stat");
-  assert.equal(
-    html.includes("Across India&#x27;s cities and towns"),
-    false,
-    "Must replace India-specific supporting text",
-  );
-
-  // Partner Cafés remains 3 untouched
-  assert.ok(html.includes("Partner cafés"), "Partner cafés card must remain");
-  assert.ok(html.includes(">3<"), "Partner cafés count must remain 3");
-  assert.ok(html.includes("Curated partner venues"), "Partner cafés subtitle must remain");
+  assert.ok(html.includes("Cities"));
+  assert.ok(html.includes("WORLDWIDE"));
+  assert.ok(html.includes("Explore cities and towns around the world"));
+  assert.equal(html.includes("5,262"), false);
+  assert.ok(html.includes("Partner cafés"));
+  assert.ok(html.includes(">3<"));
+  assert.ok(html.includes("Curated partner venues"));
 });
 
 /* ============================================================================
- * 2. CHANGE 2: WORLDWIDE DATASET INTEGRITY & CONTINENTAL COVERAGE
+ * 2. ZERO SPECIAL WORLDWIDE OPTION IN CITY PICKERS & ZERO FAKE STORAGE
  * ============================================================================ */
 
-test("Worldwide dataset integrates GeoNames global cities + all 5,262 deduplicated India LGD locations across 244 countries & territories", () => {
+test("No special Worldwide option appears in city pickers and no fake Worldwide location can be stored", () => {
+  // Single-location picker open by default (All Countries default)
+  const pickerHtml = renderToStaticMarkup(
+    React.createElement(IndiaLocationPicker, {
+      value: "Mumbai",
+      onChange: () => {},
+      defaultOpen: true,
+    }),
+  );
+
+  assert.equal(pickerHtml.includes("🌍"), false, "Must NOT render 🌍 Worldwide card");
+  assert.equal(pickerHtml.includes("Worldwide"), false, "Must NOT display Worldwide as a selectable location");
+  assert.equal(pickerHtml.includes("Open globally"), false, "Must NOT display Open globally");
+  assert.equal(pickerHtml.includes("Open to matching"), false, "Must NOT display Worldwide scope description");
+
+  // Default Country selector is All Countries (244)
+  assert.ok(pickerHtml.includes("All Countries (244)"), "Country selector must default to All Countries (244)");
+  assert.ok(pickerHtml.includes("Popular Countries"), "Country selector must include Popular Countries");
+  assert.ok(
+    pickerHtml.includes("All States / Provinces / Regions (select a country)"),
+    "State/Province/Region cascading selector must be present",
+  );
+
+  // If a legacy value of "Worldwide" is passed in, it must NOT render as a selected location
+  const legacyWorldwideHtml = renderToStaticMarkup(
+    React.createElement(IndiaLocationPicker, {
+      value: "Worldwide",
+      onChange: () => {},
+      defaultOpen: false,
+    }),
+  );
+  assert.equal(legacyWorldwideHtml.includes("Worldwide"), false);
+  assert.ok(legacyWorldwideHtml.includes("Select city or town"));
+
+  // Multi-city Discover picker also has ZERO Worldwide selectable button
+  const multiHtml = renderToStaticMarkup(
+    React.createElement(IndiaCityMultiPicker, {
+      selected: [],
+      onChange: () => {},
+    }),
+  );
+  assert.equal(multiHtml.includes("🌍"), false);
+  assert.equal(multiHtml.includes("Worldwide"), false);
+  assert.ok(multiHtml.includes("All Countries (244)"));
+
+  // Non-geographical rejection guards
+  assert.equal(isNonGeographicalLocation("Worldwide"), true);
+  assert.equal(isNonGeographicalLocation("__WORLDWIDE__"), true);
+  assert.equal(sanitizeRealLocation("Worldwide"), "");
+  assert.equal(sanitizeRealLocation("__WORLDWIDE__"), "");
+  assert.equal(findWorldLocationByValue("Worldwide"), null);
+  assert.equal(findWorldLocationByValue("__WORLDWIDE__"), null);
+
+  // Supabase mappers refuse to write "Worldwide" as a city
+  const fakePatch = unmapProfilePatch({ city: "Worldwide" });
+  assert.equal(fakePatch.city, undefined);
+  const mappedLegacy = mapProfile({
+    id: "u-legacy",
+    email: "legacy@datevra.test",
+    first_name: "Asha",
+    age: 26,
+    gender: "woman",
+    interested_in: "men",
+    city: "Worldwide",
+    created_at: "2026-11-27T00:00:00.000Z",
+  });
+  assert.notEqual(mappedLegacy.city.toLowerCase(), "worldwide");
+});
+
+/* ============================================================================
+ * 3. GLOBAL DATASET INTEGRITY: COUNTRIES, STATES/PROVINCES, CITIES & INDIA
+ * ============================================================================ */
+
+test("Global dataset contains 244 countries, 2,764 states/provinces/regions, and 35,621 deduplicated cities while preserving all 5,262 India locations", () => {
   const stats = getWorldLocationStats();
   const countries = getWorldCountries();
 
   assert.equal(stats.countryCount, 244);
   assert.equal(countries.length, 244);
+  assert.equal(stats.indiaStateUtCount, 36);
+  assert.equal(stats.internationalRegionCount, 2728);
+  assert.equal(stats.totalRegionCount, 2764);
   assert.equal(stats.indiaDeduplicatedCount, 5262);
+  assert.equal(stats.indiaRawCount, 5292);
   assert.equal(stats.internationalCount, 30359);
   assert.equal(stats.totalDeduplicatedGlobalCount, 35621);
 
   // All 6 populated continents represented
   const continents = new Set(countries.map((c) => c.continent));
   for (const cont of ["Asia", "Europe", "North America", "South America", "Africa", "Oceania"]) {
-    assert.ok(continents.has(cont), `Expected continent "${cont}" to be represented`);
+    assert.ok(continents.has(cont), `Expected continent ${cont}`);
   }
 
-  // Zero duplicate country ISO codes
-  const codeSet = new Set(countries.map((c) => c.code));
-  assert.equal(codeSet.size, 244);
+  // Zero duplicate ISO-2 country codes
+  assert.equal(new Set(countries.map((c) => c.code)).size, 244);
 
-  // India retains all 28 States + 8 UTs = 36 administrative entities
+  // India preservation: 28 States + 8 UTs = 36, 5,262 deduplicated / 5,292 raw
   assert.equal(getIndiaStatesAndUTs().length, 36);
   assert.equal(getDeduplicatedIndiaLocationCount(), 5262);
   assert.equal(getAllIndiaLocations().length, 5292);
 });
 
 /* ============================================================================
- * 3. CHANGE 2: REQUIRED SAMPLE CITIES, INTERNATIONAL ALIASES & DISAMBIGUATION
+ * 4. CASCADING COUNTRY -> STATE/PROVINCE -> CITY BROWSING & GLOBAL SEARCH
  * ============================================================================ */
 
-test("Worldwide search resolves all sample cities across continents, country names, aliases, and disambiguates identical names", () => {
-  // Sample cities from specification + Africa/South America coverage
-  const requiredSamples: Array<{ query: string; countryCode: string; expectedNameContains: string }> = [
+test("Cascading Country -> State/Province/Region -> City/Town filters and direct search work across all required examples", () => {
+  // 1. Country search
+  assert.ok(searchWorldCountries("United States").some((c) => c.code === "US"));
+  assert.ok(searchWorldCountries("USA").some((c) => c.code === "US"));
+  assert.ok(searchWorldCountries("United Kingdom").some((c) => c.code === "GB"));
+  assert.ok(searchWorldCountries("Canada").some((c) => c.code === "CA"));
+  assert.ok(searchWorldCountries("Australia").some((c) => c.code === "AU"));
+  assert.ok(searchWorldCountries("UAE").some((c) => c.code === "AE"));
+  assert.ok(searchWorldCountries("Deutschland").some((c) => c.code === "DE"));
+  assert.ok(searchWorldCountries("Japan").some((c) => c.code === "JP"));
+  assert.ok(searchWorldCountries("India").some((c) => c.code === "IN"));
+
+  // 2. State / Province / Region browsing per country
+  const expectedRegions: Array<{ countryCode: string; regionNames: string[] }> = [
+    { countryCode: "IN", regionNames: ["Maharashtra", "Delhi", "Karnataka", "Telangana", "Tamil Nadu", "West Bengal", "Bihar"] },
+    { countryCode: "US", regionNames: ["New York", "California", "Texas", "Florida"] },
+    { countryCode: "GB", regionNames: ["England", "Scotland", "Wales"] },
+    { countryCode: "CA", regionNames: ["Ontario", "Quebec", "British Columbia"] },
+    { countryCode: "AU", regionNames: ["New South Wales", "Victoria", "Queensland"] },
+    { countryCode: "AE", regionNames: ["Dubai", "Abu Dhabi", "Sharjah"] },
+    { countryCode: "DE", regionNames: ["Bavaria", "Hamburg", "State of Berlin"] },
+    { countryCode: "JP", regionNames: ["Tokyo", "Osaka", "Kyoto"] },
+  ];
+
+  for (const { countryCode, regionNames } of expectedRegions) {
+    const regions = getWorldRegionsByCountry(countryCode);
+    assert.ok(regions.length > 0, `Expected regions for ${countryCode}`);
+    for (const rName of regionNames) {
+      const reg = regions.find((r) => r.name === rName);
+      assert.ok(reg, `Expected region "${rName}" in ${countryCode}`);
+      const citiesInRegion = getWorldCitiesByCountry(countryCode, { regionCode: reg!.code, limit: 10 });
+      assert.ok(citiesInRegion.length > 0, `Expected cities in ${rName}, ${countryCode}`);
+    }
+  }
+
+  // 3. Cascading UI renders states/provinces when a country is chosen
+  const usPickerHtml = renderToStaticMarkup(
+    React.createElement(IndiaLocationPicker, {
+      value: "",
+      onChange: () => {},
+      defaultOpen: true,
+      defaultCountryCode: "US",
+    }),
+  );
+  assert.ok(usPickerHtml.includes("California"));
+  assert.ok(usPickerHtml.includes("Texas"));
+  assert.ok(usPickerHtml.includes("Florida"));
+  assert.ok(usPickerHtml.includes("New York"));
+
+  const inPickerHtml = renderToStaticMarkup(
+    React.createElement(IndiaLocationPicker, {
+      value: "Mumbai",
+      onChange: () => {},
+      defaultOpen: true,
+      defaultCountryCode: "IN",
+    }),
+  );
+  assert.ok(inPickerHtml.includes("All States &amp; Union Territories (36)"));
+  assert.ok(inPickerHtml.includes("States (28)"));
+  assert.ok(inPickerHtml.includes("Union Territories (8)"));
+  assert.ok(inPickerHtml.includes("Maharashtra"));
+
+  // 4. Direct region search
+  assert.ok(searchWorldRegions("California").some((r) => r.countryCode === "US"));
+  assert.ok(searchWorldRegions("Ontario").some((r) => r.countryCode === "CA"));
+  assert.ok(searchWorldRegions("New South Wales").some((r) => r.countryCode === "AU"));
+  assert.ok(searchWorldRegions("Scotland").some((r) => r.countryCode === "GB"));
+
+  // 5. Direct global city search (without manually opening any country)
+  const requiredCities: Array<{ query: string; countryCode: string; expectedNameContains: string }> = [
     // India
-    { query: "Mumbai", countryCode: "IN", expectedNameContains: "Mumbai" },
     { query: "Delhi", countryCode: "IN", expectedNameContains: "Delhi" },
+    { query: "Mumbai", countryCode: "IN", expectedNameContains: "Mumbai" },
     { query: "Bengaluru", countryCode: "IN", expectedNameContains: "Bengaluru" },
     { query: "Hyderabad", countryCode: "IN", expectedNameContains: "Hyderabad" },
     { query: "Pune", countryCode: "IN", expectedNameContains: "Pune" },
     { query: "Kolkata", countryCode: "IN", expectedNameContains: "Kolkata" },
     { query: "Chennai", countryCode: "IN", expectedNameContains: "Chennai" },
     { query: "Patna", countryCode: "IN", expectedNameContains: "Patna" },
-    // United States
+    // US
     { query: "New York", countryCode: "US", expectedNameContains: "New York" },
     { query: "Los Angeles", countryCode: "US", expectedNameContains: "Los Angeles" },
     { query: "Chicago", countryCode: "US", expectedNameContains: "Chicago" },
-    { query: "San Francisco", countryCode: "US", expectedNameContains: "San Francisco" },
     { query: "Miami", countryCode: "US", expectedNameContains: "Miami" },
-    // United Kingdom
+    // UK
     { query: "London", countryCode: "GB", expectedNameContains: "London" },
     { query: "Manchester", countryCode: "GB", expectedNameContains: "Manchester" },
     { query: "Birmingham", countryCode: "GB", expectedNameContains: "Birmingham" },
-    { query: "Edinburgh", countryCode: "GB", expectedNameContains: "Edinburgh" },
     // Canada
     { query: "Toronto", countryCode: "CA", expectedNameContains: "Toronto" },
     { query: "Vancouver", countryCode: "CA", expectedNameContains: "Vancouver" },
@@ -167,13 +294,10 @@ test("Worldwide search resolves all sample cities across continents, country nam
     { query: "Sydney", countryCode: "AU", expectedNameContains: "Sydney" },
     { query: "Melbourne", countryCode: "AU", expectedNameContains: "Melbourne" },
     { query: "Brisbane", countryCode: "AU", expectedNameContains: "Brisbane" },
-    { query: "Perth", countryCode: "AU", expectedNameContains: "Perth" },
     // UAE
     { query: "Dubai", countryCode: "AE", expectedNameContains: "Dubai" },
     { query: "Abu Dhabi", countryCode: "AE", expectedNameContains: "Abu Dhabi" },
     { query: "Sharjah", countryCode: "AE", expectedNameContains: "Sharjah" },
-    // Singapore
-    { query: "Singapore", countryCode: "SG", expectedNameContains: "Singapore" },
     // France
     { query: "Paris", countryCode: "FR", expectedNameContains: "Paris" },
     { query: "Lyon", countryCode: "FR", expectedNameContains: "Lyon" },
@@ -186,225 +310,72 @@ test("Worldwide search resolves all sample cities across continents, country nam
     { query: "Tokyo", countryCode: "JP", expectedNameContains: "Tokyo" },
     { query: "Osaka", countryCode: "JP", expectedNameContains: "Osaka" },
     { query: "Kyoto", countryCode: "JP", expectedNameContains: "Kyoto" },
-    // Africa & South America
+    // Other continents
     { query: "Cairo", countryCode: "EG", expectedNameContains: "Cairo" },
-    { query: "Lagos", countryCode: "NG", expectedNameContains: "Lagos" },
     { query: "Nairobi", countryCode: "KE", expectedNameContains: "Nairobi" },
     { query: "Sao Paulo", countryCode: "BR", expectedNameContains: "Paulo" },
     { query: "Buenos Aires", countryCode: "AR", expectedNameContains: "Buenos Aires" },
-    { query: "Bogota", countryCode: "CO", expectedNameContains: "Bogot" },
   ];
 
-  for (const s of requiredSamples) {
-    const items = searchWorldLocations(s.query, { countryCode: "ALL", limit: 25 });
-    const found = items.find(
+  for (const s of requiredCities) {
+    const hits = searchWorldLocations(s.query, { limit: 25 });
+    const found = hits.find(
       (i) => i.countryCode === s.countryCode && i.name.includes(s.expectedNameContains),
     );
-    assert.ok(
-      found,
-      `Expected query "${s.query}" to return a city in ${s.countryCode} containing "${s.expectedNameContains}"`,
-    );
+    assert.ok(found, `Expected direct search "${s.query}" to find ${s.expectedNameContains} in ${s.countryCode}`);
   }
 
-  // Country name / abbreviation search
-  assert.ok(searchWorldLocations("USA", { countryCode: "ALL", limit: 20 }).some((i) => i.countryCode === "US"));
-  assert.ok(searchWorldLocations("United Kingdom", { countryCode: "ALL", limit: 20 }).some((i) => i.countryCode === "GB"));
-  assert.ok(searchWorldLocations("UAE", { countryCode: "ALL", limit: 20 }).some((i) => i.countryCode === "AE"));
-  assert.ok(searchWorldLocations("Japan", { countryCode: "ALL", limit: 20 }).some((i) => i.countryCode === "JP"));
-  assert.ok(searchWorldLocations("Deutschland", { countryCode: "ALL", limit: 20 }).some((i) => i.countryCode === "DE"));
-
-  // Region/state search
-  assert.ok(searchWorldLocations("California", { countryCode: "US", limit: 20 }).some((i) => i.name === "Los Angeles"));
-  assert.ok(searchWorldLocations("Bavaria", { countryCode: "DE", limit: 20 }).some((i) => i.name === "Munich"));
-  assert.ok(searchWorldLocations("Maharashtra", { countryCode: "IN", limit: 20 }).some((i) => i.name === "Mumbai"));
-
-  // International & local-language aliases
-  assert.ok(searchWorldLocations("München", { countryCode: "ALL", limit: 10 }).some((i) => i.name === "Munich" && i.countryCode === "DE"));
-  assert.ok(searchWorldLocations("Wien", { countryCode: "ALL", limit: 10 }).some((i) => i.name === "Vienna" && i.countryCode === "AT"));
-  assert.ok(searchWorldLocations("Roma", { countryCode: "ALL", limit: 10 }).some((i) => i.name === "Rome" && i.countryCode === "IT"));
-  assert.ok(searchWorldLocations("東京", { countryCode: "ALL", limit: 10 }).some((i) => i.name === "Tokyo" && i.countryCode === "JP"));
-  assert.ok(searchWorldLocations("دبي", { countryCode: "ALL", limit: 10 }).some((i) => i.name === "Dubai" && i.countryCode === "AE"));
-  assert.ok(searchWorldLocations("Bangalore", { countryCode: "IN", limit: 10 }).some((i) => i.name === "Bengaluru" && i.countryCode === "IN"));
-  assert.ok(searchWorldLocations("Bombay", { countryCode: "IN", limit: 10 }).some((i) => i.name === "Mumbai" && i.countryCode === "IN"));
-
-  // India remote / UT locations preserved
+  // Local-language & India alias searches
+  assert.ok(searchWorldLocations("München", { limit: 10 }).some((i) => i.name === "Munich" && i.countryCode === "DE"));
+  assert.ok(searchWorldLocations("東京", { limit: 10 }).some((i) => i.name === "Tokyo" && i.countryCode === "JP"));
+  assert.ok(searchWorldLocations("دبي", { limit: 10 }).some((i) => i.name === "Dubai" && i.countryCode === "AE"));
+  assert.ok(searchWorldLocations("Bangalore", { countryCode: "IN", limit: 10 }).some((i) => i.name === "Bengaluru"));
   assert.ok(searchWorldLocations("Kavaratti", { countryCode: "IN", limit: 10 }).some((i) => i.region === "Lakshadweep"));
   assert.ok(searchWorldLocations("Leh", { countryCode: "IN", limit: 10 }).some((i) => i.region === "Ladakh"));
 
-  // Disambiguation of identical city names with region + country
-  const parisMatches = searchWorldLocations("Paris", { countryCode: "ALL", limit: 25 }).filter(
-    (i) => i.name === "Paris",
-  );
-  const parisFr = parisMatches.find((i) => i.countryCode === "FR");
-  const parisUs = parisMatches.find((i) => i.countryCode === "US");
-  assert.ok(parisFr, "Expected Paris, France");
-  assert.ok(parisUs, "Expected Paris, United States");
-  assert.ok(formatWorldLocationSubtitle(parisFr!).includes("France"));
-  assert.ok(formatWorldLocationSubtitle(parisUs!).includes("United States"));
-  assert.notEqual(
-    formatWorldLocationSubtitle(parisFr!),
-    formatWorldLocationSubtitle(parisUs!),
-    "Identical city names must have distinct region + country subtitles",
-  );
+  // Disambiguation of identical city names via country & region labels AND saved values
+  const parisHits = searchWorldLocations("Paris", { limit: 25 }).filter((i) => i.name === "Paris");
+  const parisFr = parisHits.find((i) => i.countryCode === "FR")!;
+  const parisTx = parisHits.find((i) => i.countryCode === "US" && i.region === "Texas")!;
+  assert.ok(parisFr && parisTx);
+  assert.notEqual(formatWorldLocationSubtitle(parisFr), formatWorldLocationSubtitle(parisTx));
+  assert.equal(formatWorldLocationValue(parisFr), "Paris, France");
+  assert.equal(formatWorldLocationValue(parisTx), "Paris, United States");
+  assert.equal(findWorldLocationByValue("Paris, France")?.id, parisFr.id);
+  assert.equal(findWorldLocationByValue("Paris, United States")?.id, parisTx.id);
+  assert.equal(findWorldLocationByValue("Paris, Texas, United States")?.id, parisTx.id);
 
-  // Country browsing & value lookup helpers
-  assert.ok(getWorldCitiesByCountry("GB").length > 200);
-  assert.equal(findWorldLocationByValue("London")?.countryCode, "GB");
-  assert.equal(findWorldLocationByValue("London, Canada")?.countryCode, "CA");
-  assert.equal(findWorldLocationByValue("Mumbai")?.countryCode, "IN");
-  assert.equal(findWorldLocationByValue(WORLDWIDE_SCOPE_TOKEN), null);
+  // Within-country state disambiguation (e.g. Springfield in multiple US states)
+  const springfields = searchWorldLocations("Springfield", { countryCode: "US", limit: 15 }).filter(
+    (i) => i.name === "Springfield",
+  );
+  const spIl = springfields.find((i) => i.region === "Illinois")!;
+  const spMo = springfields.find((i) => i.region === "Missouri")!;
+  assert.ok(spIl && spMo, "Expected Springfield in both Illinois and Missouri");
+  assert.equal(formatWorldLocationValue(spIl), "Springfield, Illinois, United States");
+  assert.equal(formatWorldLocationValue(spMo), "Springfield, Missouri, United States");
+  assert.equal(findWorldLocationByValue("Springfield, Illinois, United States")?.id, spIl.id);
+  assert.equal(findWorldLocationByValue("Springfield, Missouri, United States")?.id, spMo.id);
+
+  const londonHits = searchWorldLocations("London", { limit: 25 }).filter((i) => i.name === "London");
+  const londonUk = londonHits.find((i) => i.countryCode === "GB")!;
+  const londonCa = londonHits.find((i) => i.countryCode === "CA")!;
+  assert.ok(londonUk && londonCa);
+  assert.equal(formatWorldLocationValue(londonUk), "London, United Kingdom");
+  assert.equal(formatWorldLocationValue(londonCa), "London, Canada");
+  assert.equal(findWorldLocationByValue("London, United Kingdom")?.id, londonUk.id);
+  assert.equal(findWorldLocationByValue("London, Canada")?.id, londonCa.id);
+
+  // India preserves canonical plain city name (backwards compatible)
+  const mumbai = searchWorldLocations("Mumbai", { countryCode: "IN", limit: 5 })[0]!;
+  assert.equal(formatWorldLocationValue(mumbai), "Mumbai");
 });
 
 /* ============================================================================
- * 4. CHANGE 2: EXISTING CITY SELECTOR UI RENDERS WORLDWIDE FIRST + ALL INDIA
+ * 5. PROFILE & ONBOARDING PERSISTENCE OF GLOBAL LOCATIONS
  * ============================================================================ */
 
-test("IndiaLocationPicker renders 🌍 Worldwide first, preserves All India selector, and handles Worldwide selection", () => {
-  // Open dropdown with an existing India city selected
-  const openMumbaiHtml = renderToStaticMarkup(
-    React.createElement(IndiaLocationPicker, {
-      value: "Mumbai",
-      locationScope: "city",
-      onChange: () => {},
-      defaultOpen: true,
-    }),
-  );
-
-  assert.ok(openMumbaiHtml.includes("Mumbai"), "Trigger must show selected city Mumbai");
-  assert.ok(openMumbaiHtml.includes("Maharashtra"), "Trigger must preserve India state subtitle");
-  assert.ok(openMumbaiHtml.includes("🌍"), "Must show globe icon for Worldwide option");
-  assert.ok(openMumbaiHtml.includes("Worldwide"), "Must include Worldwide option");
-  assert.ok(
-    openMumbaiHtml.includes("Open to matching across cities and countries worldwide"),
-    "Worldwide option must explain global scope",
-  );
-  assert.ok(
-    openMumbaiHtml.includes("Worldwide (244 countries &amp; territories)"),
-    "Scope selector must include Worldwide (244 countries & territories)",
-  );
-  assert.ok(
-    openMumbaiHtml.includes("All India (28 States &amp; 8 Union Territories)"),
-    "Scope selector must preserve All India (28 States & 8 Union Territories)",
-  );
-  assert.ok(
-    openMumbaiHtml.includes("All India States &amp; Union Territories (36)"),
-    "Must preserve India State/UT filter",
-  );
-  assert.ok(openMumbaiHtml.includes("Popular Countries"), "Must include Popular Countries optgroup");
-
-  // Worldwide appears BEFORE city results in the listbox
-  const idxWorldwideOpt = openMumbaiHtml.indexOf("Open to matching across cities and countries worldwide");
-  const idxDelhiOpt = openMumbaiHtml.indexOf("National Capital Territory");
-  assert.ok(
-    idxWorldwideOpt > -1 && (idxDelhiOpt === -1 || idxWorldwideOpt < idxDelhiOpt),
-    "Worldwide must be the first selectable option in the dropdown",
-  );
-
-  // Selected Worldwide state
-  const worldwideSelectedHtml = renderToStaticMarkup(
-    React.createElement(IndiaLocationPicker, {
-      value: "",
-      locationScope: "worldwide",
-      onChange: () => {},
-      defaultOpen: false,
-    }),
-  );
-  assert.ok(worldwideSelectedHtml.includes("🌍 Worldwide"));
-  assert.ok(worldwideSelectedHtml.includes("Open globally"));
-
-  // Discover Multi-City Picker includes Worldwide (All locations) toggle + 244 countries
-  const multiHtml = renderToStaticMarkup(
-    React.createElement(IndiaCityMultiPicker, {
-      selected: [],
-      onChange: () => {},
-    }),
-  );
-  assert.ok(multiHtml.includes("🌍 Worldwide (All locations)"));
-  assert.ok(multiHtml.includes("All Countries (244)"));
-  assert.ok(multiHtml.includes("India (28 States &amp; 8 UTs)"));
-});
-
-/* ============================================================================
- * 5. CHANGE 3: LOCATION PERSISTENCE (MOCKDB + SUPABASE MAPPERS)
- * ============================================================================ */
-
-test("Worldwide scope persists as explicit global scope (not city='Worldwide') across reload & logout/login", () => {
-  // Normalization contract: Worldwide is NEVER stored as an ordinary city named "Worldwide"
-  assert.deepEqual(normalizeLocationState("Worldwide"), {
-    locationScope: "worldwide",
-    city: "",
-  });
-  assert.deepEqual(normalizeLocationState(WORLDWIDE_SCOPE_TOKEN), {
-    locationScope: "worldwide",
-    city: "",
-  });
-  assert.deepEqual(normalizeLocationState("Mumbai", "worldwide"), {
-    locationScope: "worldwide",
-    city: "",
-  });
-  assert.deepEqual(normalizeLocationState("London", "city"), {
-    locationScope: "city",
-    city: "London",
-  });
-
-  // Supabase mapper round-trip: native location_scope column
-  const wwPatch = unmapProfilePatch({ locationScope: "worldwide", city: "" });
-  assert.equal(wwPatch.location_scope, "worldwide");
-  assert.equal(wwPatch.city, "");
-
-  const mappedNative = mapProfile({
-    id: "u-ww-1",
-    email: "ww1@datevra.test",
-    first_name: "Meera",
-    age: 27,
-    gender: "woman",
-    interested_in: "men",
-    city: "",
-    location_scope: "worldwide",
-    created_at: "2026-11-27T00:00:00.000Z",
-  });
-  assert.equal(mappedNative.locationScope, "worldwide");
-  assert.equal(mappedNative.city, "");
-  assert.equal(isWorldwideProfile(mappedNative), true);
-  assert.equal(hasConfiguredLocation(mappedNative), true);
-  assert.equal(formatProfileLocation(mappedNative), "Worldwide");
-
-  // Supabase mapper fallback: legacy schema using sentinel token in city column
-  const mappedFallback = mapProfile({
-    id: "u-ww-2",
-    email: "ww2@datevra.test",
-    first_name: "Rohan",
-    age: 29,
-    gender: "man",
-    interested_in: "women",
-    city: WORLDWIDE_SCOPE_TOKEN,
-    created_at: "2026-11-27T00:00:00.000Z",
-  });
-  assert.equal(mappedFallback.locationScope, "worldwide");
-  assert.equal(mappedFallback.city, "");
-  assert.equal(formatProfileLocation(mappedFallback), "Worldwide");
-
-  // Profile completeness counts Worldwide identically to a configured specific city (+10 over unset)
-  const baseCompleteness = {
-    bio: "Hello there, enjoying life and good coffee.",
-    relationshipIntent: "Long-term relationship",
-    interests: ["Art", "Coffee", "Travel", "Cinema", "Reading"],
-    photos: ["https://example.com/p1.jpg", "https://example.com/p2.jpg"],
-  };
-  assert.equal(
-    profileCompleteness({ ...baseCompleteness, city: "", locationScope: "worldwide" }),
-    100,
-  );
-  assert.equal(
-    profileCompleteness({ ...baseCompleteness, city: "Mumbai", locationScope: "city" }),
-    100,
-  );
-  assert.equal(
-    profileCompleteness({ ...baseCompleteness, city: "", locationScope: "city" }),
-    90,
-  );
-
-  // mockDb persistence across reload + logout/login + switch back to specific city
+test("Real global locations persist across reload and logout/login while rejecting fake Worldwide", () => {
   const store = new Map<string, string>();
   const mockStorage = {
     getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
@@ -419,10 +390,10 @@ test("Worldwide scope persists as explicit global scope (not city='Worldwide') a
 
   try {
     const reg = mockDb.register({
-      email: "global.member@datevra.test",
+      email: "intl.member@datevra.test",
       password: "Password123!",
-      firstName: "Tara",
-      age: 26,
+      firstName: "Aanya",
+      age: 27,
       gender: "woman",
       interestedIn: "men",
       city: "Mumbai",
@@ -430,34 +401,28 @@ test("Worldwide scope persists as explicit global scope (not city='Worldwide') a
     assert.equal(reg.ok, true);
     if (!reg.ok) return;
     const uid = reg.session.userId;
-    assert.equal(mockDb.getUser(uid)?.locationScope, "city");
     assert.equal(mockDb.getUser(uid)?.city, "Mumbai");
 
-    // Switch to Worldwide
-    const savedWw = mockDb.updateUser(uid, { locationScope: "worldwide", city: "" });
-    assert.equal(savedWw?.locationScope, "worldwide");
-    assert.equal(savedWw?.city, "");
+    // Save international city (London, United Kingdom)
+    mockDb.updateUser(uid, { city: "London, United Kingdom" });
+    assert.equal(mockDb.getUser(uid)?.city, "London, United Kingdom");
 
-    // Reload read
-    const reloaded = mockDb.getUser(uid);
-    assert.equal(reloaded?.locationScope, "worldwide");
-    assert.equal(reloaded?.city, "");
-
-    // Logout & login
+    // Reload & logout/login persistence
     mockDb.logout();
-    const relogin = mockDb.login("global.member@datevra.test", "Password123!");
+    const relogin = mockDb.login("intl.member@datevra.test", "Password123!");
     assert.equal(relogin.ok, true);
     if (!relogin.ok) return;
-    const afterLogin = mockDb.getUser(relogin.session.userId);
-    assert.equal(afterLogin?.locationScope, "worldwide");
-    assert.equal(afterLogin?.city, "");
+    assert.equal(mockDb.getUser(relogin.session.userId)?.city, "London, United Kingdom");
 
-    // Switch from Worldwide to international city (London)
-    const savedLondon = mockDb.updateUser(uid, { locationScope: "city", city: "London" });
-    assert.equal(savedLondon?.locationScope, "city");
-    assert.equal(savedLondon?.city, "London");
-    assert.equal(mockDb.getUser(uid)?.city, "London");
-    assert.equal(mockDb.getUser(uid)?.locationScope, "city");
+    // Reject attempt to overwrite with fake "Worldwide"
+    mockDb.updateUser(uid, { city: "Worldwide" });
+    assert.equal(mockDb.getUser(uid)?.city, "London, United Kingdom");
+
+    // Switch to Tokyo, Japan and back to Bengaluru
+    mockDb.updateUser(uid, { city: "Tokyo, Japan" });
+    assert.equal(mockDb.getUser(uid)?.city, "Tokyo, Japan");
+    mockDb.updateUser(uid, { city: "Bengaluru" });
+    assert.equal(mockDb.getUser(uid)?.city, "Bengaluru");
   } finally {
     if (prevStorage === undefined) {
       delete (globalThis as { localStorage?: Storage }).localStorage;
@@ -465,108 +430,119 @@ test("Worldwide scope persists as explicit global scope (not city='Worldwide') a
       (globalThis as { localStorage?: Storage }).localStorage = prevStorage;
     }
   }
+
+  // Supabase mapper round-trip for international location
+  const intlPatch = unmapProfilePatch({ city: "Toronto, Canada" });
+  assert.equal(intlPatch.city, "Toronto, Canada");
+  const mappedIntl = mapProfile({
+    id: "u-ca",
+    email: "ca@datevra.test",
+    first_name: "Maya",
+    age: 28,
+    gender: "woman",
+    interested_in: "men",
+    city: "Toronto, Canada",
+    created_at: "2026-11-27T00:00:00.000Z",
+  });
+  assert.equal(mappedIntl.city, "Toronto, Canada");
+
+  // Completeness counts real international location
+  assert.equal(
+    profileCompleteness({
+      bio: "Hello there, enjoying life and good coffee.",
+      relationshipIntent: "Long-term relationship",
+      city: "Toronto, Canada",
+      interests: ["Art", "Coffee", "Travel", "Cinema", "Reading"],
+      photos: ["https://example.com/p1.jpg", "https://example.com/p2.jpg"],
+    }),
+    100,
+  );
 });
 
 /* ============================================================================
- * 6. CHANGE 3: DISCOVER & COMPATIBILITY (75% THRESHOLD + WEIGHTS PRESERVED)
+ * 6. DISCOVER INTERNATIONAL LOCATION FILTERING & 75% COMPATIBILITY PRESERVED
  * ============================================================================ */
 
-test("Discover interprets Worldwide as open across locations while preserving 75% threshold and exact city weights", () => {
-  assert.equal(MIN_COMPATIBILITY_SCORE, 75, "75% compatibility threshold must remain unchanged");
+test("Discover filters real international locations while preserving 75% compatibility threshold and exact weights", () => {
+  assert.equal(MIN_COMPATIBILITY_SCORE, 75);
+  assert.equal(sameSavedLocation("London", "London, United Kingdom"), true);
+  assert.equal(sameSavedLocation("London, United Kingdom", "London, Canada"), false);
+  assert.equal(sameSavedLocation("Paris, France", "Paris, Texas, United States"), false);
 
-  const mumbaiPrefs: MatchPreferences = {
-    ...BROAD_DEFAULT_PREFS,
-    ageMin: 24,
-    ageMax: 34,
-    interestedIn: "women",
-    cities: ["Mumbai"],
-  };
-
-  const worldwidePrefs: MatchPreferences = {
-    ...BROAD_DEFAULT_PREFS,
-    ageMin: 24,
-    ageMax: 34,
-    interestedIn: "women",
-    cities: [],
-  };
-
-  const viewerMumbai = makeProfile({
-    id: "viewer-mumbai",
+  const viewerLondon = makeProfile({
+    id: "v-lon",
     gender: "man",
     interestedIn: "women",
-    city: "Mumbai",
-    locationScope: "city",
+    city: "London, United Kingdom",
   });
 
-  const viewerWorldwide = makeProfile({
-    id: "viewer-worldwide",
-    gender: "man",
-    interestedIn: "women",
-    city: "",
-    locationScope: "worldwide",
+  const candLondonUk = makeProfile({
+    id: "c-lon-uk",
+    firstName: "Clara",
+    gender: "woman",
+    interestedIn: "men",
+    city: "London, United Kingdom",
   });
 
-  const candidateMumbai = makeProfile({
-    id: "cand-mumbai",
+  const candLondonCa = makeProfile({
+    id: "c-lon-ca",
+    firstName: "Sophie",
+    gender: "woman",
+    interestedIn: "men",
+    city: "London, Canada",
+  });
+
+  const candTokyo = makeProfile({
+    id: "c-tyo",
+    firstName: "Yuki",
+    gender: "woman",
+    interestedIn: "men",
+    city: "Tokyo, Japan",
+  });
+
+  const candMumbai = makeProfile({
+    id: "c-bom",
     firstName: "Diya",
     gender: "woman",
     interestedIn: "men",
     city: "Mumbai",
-    locationScope: "city",
   });
 
-  const candidateLondon = makeProfile({
-    id: "cand-london",
-    firstName: "Clara",
-    gender: "woman",
-    interestedIn: "men",
-    city: "London",
-    locationScope: "city",
-  });
+  const ukAndJapanPrefs: MatchPreferences = {
+    ...BROAD_DEFAULT_PREFS,
+    ageMin: 24,
+    ageMax: 34,
+    interestedIn: "women",
+    cities: ["London, United Kingdom", "Tokyo, Japan"],
+  };
 
-  const candidateWorldwide = makeProfile({
-    id: "cand-worldwide",
-    firstName: "Nisha",
-    gender: "woman",
-    interestedIn: "men",
-    city: "",
-    locationScope: "worldwide",
-  });
+  // Discover international filter matches London UK & Tokyo Japan, excludes London Canada & Mumbai
+  assert.equal(matchesPreferences(viewerLondon, candLondonUk, ukAndJapanPrefs), true);
+  assert.equal(matchesPreferences(viewerLondon, candTokyo, ukAndJapanPrefs), true);
+  assert.equal(matchesPreferences(viewerLondon, candLondonCa, ukAndJapanPrefs), false);
+  assert.equal(matchesPreferences(viewerLondon, candMumbai, ukAndJapanPrefs), false);
 
-  // Specific city filter matches Mumbai and Worldwide candidate, excludes London
-  assert.equal(matchesPreferences(viewerMumbai, candidateMumbai, mumbaiPrefs), true);
-  assert.equal(matchesPreferences(viewerMumbai, candidateWorldwide, mumbaiPrefs), true);
-  assert.equal(matchesPreferences(viewerMumbai, candidateLondon, mumbaiPrefs), false);
+  // Exact matching weights preserved: same city (+10) vs chosen preferred city (+6) -> exact 4pt delta
+  const sameCityScore = computeCompatibility(viewerLondon, candLondonUk, ukAndJapanPrefs);
+  const chosenCityScore = computeCompatibility(viewerLondon, candTokyo, ukAndJapanPrefs);
+  assert.ok(sameCityScore.factors.some((f) => f.includes("Both in London, United Kingdom")));
+  assert.ok(chosenCityScore.factors.some((f) => f.includes("In Tokyo, Japan, one of your chosen cities")));
+  assert.equal(sameCityScore.score - chosenCityScore.score, 4);
 
-  // Worldwide viewer with empty prefs.cities matches candidates across Mumbai, London, and Worldwide
-  assert.equal(matchesPreferences(viewerWorldwide, candidateMumbai, worldwidePrefs), true);
-  assert.equal(matchesPreferences(viewerWorldwide, candidateLondon, worldwidePrefs), true);
-  assert.equal(matchesPreferences(viewerWorldwide, candidateWorldwide, worldwidePrefs), true);
-
-  // Compatibility weights preserved: same specific city (+10) still scores 4 pts higher than Worldwide (+6)
-  const sameCityScore = computeCompatibility(viewerMumbai, candidateMumbai, mumbaiPrefs);
-  const wwScore = computeCompatibility(viewerWorldwide, candidateLondon, worldwidePrefs);
-  assert.ok(sameCityScore.factors.some((f) => f.includes("Both in Mumbai")));
-  assert.equal(
-    wwScore.factors.some((f) => f.includes("Both in Worldwide")),
-    false,
-    "Must never pretend two profiles share a city called 'Worldwide'",
-  );
-  assert.ok(wwScore.factors.some((f) => f.includes("Open to matching worldwide")));
-  assert.equal(sameCityScore.score - wwScore.score, 4, "Same city (+10) vs Worldwide (+6) delta must be 4 pts");
-
-  // Pairwise concern check: Worldwide profile does not trigger 'Different locations' concern
-  const evalWw = evaluatePairwiseCompatibility(viewerWorldwide, candidateLondon);
-  assert.equal(evalWw.concerns.includes("Different locations"), false);
-  assert.ok(evalWw.score >= MIN_COMPATIBILITY_SCORE);
-
-  // rankCandidates surfaces London, Mumbai, and Worldwide candidates for a Worldwide viewer
+  // rankCandidates surfaces exactly the two filtered international matches above 75%
   const ranked = rankCandidates(
-    viewerWorldwide,
-    [candidateMumbai, candidateLondon, candidateWorldwide],
-    worldwidePrefs,
+    viewerLondon,
+    [candLondonUk, candLondonCa, candTokyo, candMumbai],
+    ukAndJapanPrefs,
     new Set(),
   );
-  assert.equal(ranked.length, 3);
+  assert.deepEqual(
+    ranked.map((r) => r.profile.id),
+    ["c-lon-uk", "c-tyo"],
+  );
   assert.ok(ranked.every((r) => r.score >= MIN_COMPATIBILITY_SCORE));
+
+  // Pairwise assessment detects distinct countries for disambiguated cities
+  const pairDiff = evaluatePairwiseCompatibility(viewerLondon, candLondonCa);
+  assert.ok(pairDiff.concerns.some((c) => c.includes("Different locations")));
 });

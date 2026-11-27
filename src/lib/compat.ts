@@ -4,7 +4,7 @@ import type {
   MatchPreferences,
   UserProfile,
 } from "./types";
-import { isWorldwideProfile } from "./locationScope";
+import { sameSavedLocation, sanitizeRealLocation } from "../data/worldLocations";
 
 /**
  * Authoritative minimum compatibility percentage required to form a match.
@@ -132,27 +132,15 @@ export function computeCompatibility(
 
   // 4. City / location (max 10)
   // Ignore empty strings to match Migration 028 (COALESCE(city, '') <> '').
-  // Worldwide is an explicit global scope open to matching across locations.
-  const myWorldwide = isWorldwideProfile(me);
-  const theirWorldwide = isWorldwideProfile(them);
-  const myCity = myWorldwide ? "" : (typeof me.city === "string" ? me.city : "");
-  const theirCity = theirWorldwide ? "" : (typeof them.city === "string" ? them.city : "");
-  if (myWorldwide || theirWorldwide) {
-    score += 6;
-    factors.push(
-      myWorldwide && theirWorldwide
-        ? "Both open to matching worldwide"
-        : myWorldwide
-          ? `Open to matching worldwide${theirCity ? ` (${theirCity})` : ""}`
-          : `${them.firstName} is open to matching worldwide`,
-    );
-  } else if (myCity !== "" && myCity === theirCity) {
+  const myCity = sanitizeRealLocation(typeof me.city === "string" ? me.city : "");
+  const theirCity = sanitizeRealLocation(typeof them.city === "string" ? them.city : "");
+  if (myCity !== "" && sameSavedLocation(myCity, theirCity)) {
     score += 10;
     factors.push(`Both in ${myCity}`);
   } else if (
     theirCity !== "" &&
     prefs &&
-    (prefs.cities ?? []).some((c) => typeof c === "string" && c !== "" && c === theirCity)
+    (prefs.cities ?? []).some((c) => typeof c === "string" && c !== "" && sameSavedLocation(c, theirCity))
   ) {
     score += 6;
     factors.push(`In ${theirCity}, one of your chosen cities`);
@@ -247,18 +235,14 @@ export function evaluatePairwiseCompatibility(
     concerns.push(`${userA.firstName} (${userA.age}) is outside ${userB.firstName}'s preferred age (${prefsB.ageMin}–${prefsB.ageMax}).`);
   }
 
-  // Check city mismatch (note: Worldwide scope is open across locations; city mismatch is not a hard barrier)
-  if (
-    !isWorldwideProfile(userA) &&
-    !isWorldwideProfile(userB) &&
-    userA.city &&
-    userB.city &&
-    userA.city.toLowerCase() !== userB.city.toLowerCase()
-  ) {
-    const aCityMatch = prefsA?.cities?.some((c) => c.toLowerCase() === userB.city.toLowerCase());
-    const bCityMatch = prefsB?.cities?.some((c) => c.toLowerCase() === userA.city.toLowerCase());
+  // Check city mismatch (informational concern, not a hard barrier)
+  const cityA = sanitizeRealLocation(userA.city);
+  const cityB = sanitizeRealLocation(userB.city);
+  if (cityA && cityB && !sameSavedLocation(cityA, cityB)) {
+    const aCityMatch = prefsA?.cities?.some((c) => sameSavedLocation(c, cityB));
+    const bCityMatch = prefsB?.cities?.some((c) => sameSavedLocation(c, cityA));
     if (!aCityMatch && !bCityMatch) {
-      concerns.push(`Different locations: ${userA.firstName} in ${userA.city}, ${userB.firstName} in ${userB.city}.`);
+      concerns.push(`Different locations: ${userA.firstName} in ${cityA}, ${userB.firstName} in ${cityB}.`);
     }
   }
 
@@ -324,9 +308,9 @@ export function matchesPreferences(
   if (candidate.age < prefs.ageMin || candidate.age > prefs.ageMax) return false;
   if (!isGenderOriented(prefs.interestedIn, candidate.gender)) return false;
 
-  if (prefs.cities.length > 0 && !isWorldwideProfile(candidate)) {
-    const candCity = candidate.city.trim().toLowerCase();
-    const ok = prefs.cities.some((c) => c.trim().toLowerCase() === candCity);
+  if (prefs.cities.length > 0) {
+    const candCity = sanitizeRealLocation(candidate.city);
+    const ok = Boolean(candCity) && prefs.cities.some((c) => sameSavedLocation(c, candCity));
     if (!ok) return false;
   }
 

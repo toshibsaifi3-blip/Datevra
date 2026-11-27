@@ -33,11 +33,7 @@ import type {
   VoucherOtpStatusRecord,
   VoucherSettings,
 } from "../types";
-import {
-  hasConfiguredLocation,
-  isWorldwideToken,
-  type LocationScope,
-} from "../locationScope";
+import { sanitizeRealLocation } from "../../data/worldLocations";
 
 /* Row → domain mappers (snake_case Supabase rows → camelCase app types).
  * All mappers are defensive: missing/nullable columns fall back to sane
@@ -60,12 +56,7 @@ const isoNull = (v: unknown): string | null =>
   typeof v === "string" ? v : null;
 
 export function mapProfile(r: Row): UserProfile {
-  const rawScope =
-    typeof r.location_scope === "string" ? r.location_scope.trim().toLowerCase() : "";
-  const rawCity = str(r.city, "");
-  const isWorldwide = rawScope === "worldwide" || isWorldwideToken(rawCity);
-  const locationScope: LocationScope = isWorldwide ? "worldwide" : "city";
-  const city = isWorldwide ? "" : rawCity || "Mumbai";
+  const city = sanitizeRealLocation(str(r.city, "")) || "Mumbai";
 
   return {
     id: str(r.id),
@@ -75,7 +66,6 @@ export function mapProfile(r: Row): UserProfile {
     gender: (str(r.gender, "woman") as UserProfile["gender"]),
     interestedIn: (str(r.interested_in, "everyone") as UserProfile["interestedIn"]),
     city,
-    locationScope,
     registeredCity: isoNull(r.registered_city),
     bio: str(r.bio),
     interests: arr(r.interests),
@@ -105,12 +95,9 @@ export function unmapProfilePatch(patch: Partial<UserProfile>): Row {
   if (patch.age !== undefined) out.age = patch.age;
   if (patch.gender !== undefined) out.gender = patch.gender;
   if (patch.interestedIn !== undefined) out.interested_in = patch.interestedIn;
-  if (patch.locationScope === "worldwide" || isWorldwideToken(patch.city)) {
-    out.location_scope = "worldwide";
-    out.city = "";
-  } else {
-    if (patch.locationScope === "city") out.location_scope = "city";
-    if (patch.city !== undefined) out.city = patch.city;
+  if (patch.city !== undefined) {
+    const cleanCity = sanitizeRealLocation(patch.city);
+    if (cleanCity) out.city = cleanCity;
   }
   if (patch.bio !== undefined) out.bio = patch.bio;
   if (patch.interests !== undefined) out.interests = patch.interests;
@@ -134,14 +121,13 @@ export function profileCompleteness(u: {
   bio: string;
   relationshipIntent: string;
   city: string;
-  locationScope?: LocationScope;
   interests: string[];
   photos: string[];
 }): number {
   const filled = [
     u.bio,
     u.relationshipIntent,
-    hasConfiguredLocation(u) ? "configured" : "",
+    sanitizeRealLocation(u.city),
   ].filter((f) => f && f.length > 0).length;
   return Math.min(
     100,

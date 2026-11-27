@@ -197,7 +197,6 @@ export default function Cafes() {
                 <Field label="City">
                   <IndiaLocationPicker
                     value={form.city}
-                    allowWorldwide={false}
                     onChange={(city) => setForm({ ...form, city })}
                   />
                 </Field>

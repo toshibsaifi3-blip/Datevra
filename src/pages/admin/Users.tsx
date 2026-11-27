@@ -18,7 +18,6 @@ import {
   X,
 } from "lucide-react";
 import type { UserProfile, Payment, Match, Subscription } from "../../lib/types";
-import { formatProfileLocation } from "../../lib/locationScope";
 import { useAsync, useBackend } from "../../lib/data";
 import { useAuth } from "../../context/AuthContext";
 import {
@@ -124,7 +123,7 @@ export default function Users() {
           const nameMatch = u.firstName.toLowerCase().includes(q);
           const emailMatch = u.email.toLowerCase().includes(q);
           const idMatch = u.id.toLowerCase().includes(q);
-          const cityMatch = formatProfileLocation(u, "").toLowerCase().includes(q);
+          const cityMatch = (u.city || "").toLowerCase().includes(q);
           if (!nameMatch && !emailMatch && !idMatch && !cityMatch) return false;
         }
 
@@ -488,7 +487,7 @@ export default function Users() {
 
                       {/* City & Age */}
                       <td className={`${tdCls} whitespace-nowrap text-xs text-ivory-dim`}>
-                        <span>{formatProfileLocation(u, "—")}</span>
+                        <span>{u.city || "—"}</span>
                         <span className="text-mist ml-1.5">({u.age} yrs)</span>
                       </td>
 
@@ -602,7 +601,7 @@ export default function Users() {
                   <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-3 mt-2 text-xs text-mist">
                     <span className="flex items-center gap-1">
                       <MapPin size={12} className="text-rosegold shrink-0" />
-                      {formatProfileLocation(detailUser, "No city set")}
+                      {detailUser.city || "No city set"}
                     </span>
                     <span className="hidden sm:inline">•</span>
                     <span className="flex items-center gap-1 font-mono break-all">
