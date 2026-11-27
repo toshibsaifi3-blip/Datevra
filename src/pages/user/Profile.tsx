@@ -8,6 +8,7 @@ import { INTEREST_CATEGORIES } from "../../data/interests";
 import { LIFESTYLE_CATEGORIES } from "../../data/lifestyle";
 import { relationshipGoalOptionsWithLegacy } from "../../data/relationshipGoals";
 import { CatalogTagPicker } from "../../components/CatalogTagPicker";
+import { HobbiesPicker } from "../../components/HobbiesPicker";
 import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import {
   Avatar,
@@ -24,8 +25,6 @@ import { profileCompleteness } from "../../lib/supabase/mappers";
 import {
   GENDERS,
   INTERESTED_OPTIONS,
-  addCustomTagItem,
-  toggleTag,
   validateBasicIdentity,
 } from "../../lib/profileFields";
 import type { Gender, InterestedIn } from "../../lib/types";
@@ -131,41 +130,6 @@ function SectionTitle({ kicker, title, sub }: { kicker: string; title: string; s
   );
 }
 
-function ChipList({
-  items,
-  onRemove,
-  empty,
-  tone,
-}: {
-  items: string[];
-  onRemove: (item: string) => void;
-  empty: string;
-  tone: "champagne" | "rosegold" | "mist";
-}) {
-  const toneCls =
-    tone === "champagne"
-      ? "border-champagne/50 bg-champagne/10 text-champagne"
-      : tone === "rosegold"
-        ? "border-rosegold/50 bg-rosegold/10 text-rosegold"
-        : "border-white/20 bg-white/5 text-ivory-dim";
-  return (
-    <div className="flex flex-wrap gap-2 mb-3">
-      {items.map((i) => (
-        <motion.button
-          key={i}
-          type="button"
-          onClick={() => onRemove(i)}
-          whileTap={{ scale: 0.94 }}
-          className={`rounded-full border px-3.5 py-1.5 text-sm transition-all hover:brightness-125 ${toneCls}`}
-        >
-          {i} <span aria-hidden>×</span>
-        </motion.button>
-      ))}
-      {items.length === 0 && <span className="text-sm text-mist">{empty}</span>}
-    </div>
-  );
-}
-
 export default function Profile() {
   const { user, refresh } = useAuth();
   const { toast } = useToast();
@@ -183,7 +147,6 @@ export default function Profile() {
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState<string[]>([]);
   const [online, setOnline] = useState(true);
-  const [hobbyInput, setHobbyInput] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Sync form when the user record changes (e.g. after save).
@@ -212,17 +175,14 @@ export default function Profile() {
     photos: user.photos ?? [],
   });
 
-  const toggle = (list: string[], set: (v: string[]) => void, item: string) =>
-    set(toggleTag(list, item));
-
-  const addFree = (
-    list: string[],
-    set: (v: string[]) => void,
-    raw: string,
-    clear: () => void,
-  ) => {
-    set(addCustomTagItem(list, raw));
-    clear();
+  const saveHobbies = async (nextHobbies: string[]) => {
+    const updated = await db.updateUser(user.id, { hobbies: nextHobbies });
+    if (!updated) {
+      throw new Error("Could not save your hobbies. Please try again.");
+    }
+    setHobbies(nextHobbies);
+    await refresh();
+    toast("Hobbies saved.");
   };
 
   const relationshipGoalOptions = relationshipGoalOptionsWithLegacy(relationshipIntent);
@@ -463,30 +423,17 @@ export default function Profile() {
 
             <div className="hairline" />
 
-            <Field label="Hobbies" hint="Things you love doing in your free time.">
-              <ChipList items={hobbies} onRemove={(h) => toggle(hobbies, setHobbies, h)} empty="None yet." tone="rosegold" />
-              <div className="flex gap-2">
-                <input
-                  className={`${inputCls} min-w-0 flex-1`}
-                  placeholder="e.g. Weekend cycling, film photography…"
-                  value={hobbyInput}
-                  onChange={(e) => setHobbyInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addFree(hobbies, setHobbies, hobbyInput, () => setHobbyInput(""));
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn-ghost rounded-xl px-4 min-h-[44px] text-sm shrink-0"
-                  onClick={() => addFree(hobbies, setHobbies, hobbyInput, () => setHobbyInput(""))}
-                >
-                  Add
-                </button>
+            <div className="block">
+              <span className="text-[0.72rem] uppercase tracking-[0.2em] text-mist">
+                Hobbies{hobbies.length > 0 ? ` (${hobbies.length}/5)` : ""}
+              </span>
+              <div className="mt-2">
+                <HobbiesPicker value={hobbies} onSave={saveHobbies} />
               </div>
-            </Field>
+              <span className="block mt-1.5 text-xs text-mist/80">
+                Choose 3 to 5 hobbies you genuinely enjoy — displayed in your chosen order.
+              </span>
+            </div>
 
             <div className="hairline" />
 

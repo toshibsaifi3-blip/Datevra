@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { PageHero, Reveal, SectionHead, Stat } from "../../components/ui";
+import { getDeduplicatedIndiaLocationCount } from "../../data/indiaLocations";
+import { getVerifiedPartnerCafeCount } from "../../data/cafesVerified";
 
 const VALUES = [
   {
@@ -86,8 +88,20 @@ export default function About() {
 
       <section className="max-w-6xl mx-auto px-4 sm:px-5 py-10 sm:py-14">
         <div className="grid grid-cols-1 min-[380px]:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Reveal><Stat label="Cities" value="6" sub="Mumbai · Delhi · Bengaluru · Pune · Jaipur · Hyderabad" /></Reveal>
-          <Reveal delay={0.08}><Stat label="Partner cafés" value="180+" sub="held tables & concierge booking" /></Reveal>
+          <Reveal>
+            <Stat
+              label="Cities"
+              value={getDeduplicatedIndiaLocationCount().toLocaleString("en-IN")}
+              sub="Across India's cities and towns"
+            />
+          </Reveal>
+          <Reveal delay={0.08}>
+            <Stat
+              label="Partner cafés"
+              value={getVerifiedPartnerCafeCount()}
+              sub="Curated partner venues"
+            />
+          </Reveal>
           <Reveal delay={0.16}><Stat label="Evenings curated" value="3,200+" sub="each arranged by a human" /></Reveal>
           <Reveal delay={0.24}><Stat label="Reports reviewed" value="100%" sub="every single one, by hand" /></Reveal>
         </div>

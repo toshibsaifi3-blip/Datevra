@@ -95,6 +95,10 @@ export const VERIFIED_CAFE_RESEARCH: Readonly<Record<string, VerifiedCafeResearc
   },
 };
 
+export function getVerifiedPartnerCafeCount(): number {
+  return new Set(Object.values(VERIFIED_CAFE_RESEARCH).map((c) => c.id)).size;
+}
+
 export function getVerifiedCafeResearch(
   cafeOrId: string | { id?: string; name?: string; address?: string } | null | undefined,
 ): VerifiedCafeResearch | undefined {

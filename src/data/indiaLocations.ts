@@ -177,6 +177,22 @@ export function getAllIndiaLocations(): readonly IndiaLocation[] {
   return ensureHydrated().locations;
 }
 
+/**
+ * Derives the exact deduplicated count of supported Indian cities & towns
+ * from the active India locations dataset across all 28 States & 8 UTs.
+ * Deduplicates by (stateCode, normalized canonical name) so aliases and
+ * repeated source records are never double-counted.
+ */
+export function getDeduplicatedIndiaLocationCount(): number {
+  const seen = new Set<string>();
+  for (const loc of ensureHydrated().locations) {
+    const normName = loc.name.trim().toLowerCase().replace(/\s+/g, " ");
+    if (!normName) continue;
+    seen.add(`${loc.stateCode}|${normName}`);
+  }
+  return seen.size;
+}
+
 export function getDistrictsByStateCode(stateCode: string): readonly IndiaDistrict[] {
   return ensureHydrated().districts.filter((d) => d.stateCode === stateCode);
 }

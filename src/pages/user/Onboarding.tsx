@@ -8,6 +8,7 @@ import { INTEREST_CATEGORIES } from "../../data/interests";
 import { LIFESTYLE_CATEGORIES } from "../../data/lifestyle";
 import { relationshipGoalOptionsWithLegacy } from "../../data/relationshipGoals";
 import { CatalogTagPicker } from "../../components/CatalogTagPicker";
+import { HobbiesPicker } from "../../components/HobbiesPicker";
 import { IndiaLocationPicker } from "../../components/IndiaLocationPicker";
 import {
   Avatar,
@@ -22,10 +23,8 @@ import { profileCompleteness } from "../../lib/supabase/mappers";
 import {
   GENDERS,
   INTERESTED_OPTIONS,
-  addCustomTagItem,
   determineInitialOnboardingStep,
   isProfileSetupComplete,
-  toggleTag,
   validateBasicIdentity,
   type BasicIdentityErrors,
 } from "../../lib/profileFields";
@@ -64,7 +63,6 @@ export default function Onboarding() {
   const [interests, setInterests] = useState<string[]>([]);
   const [hobbies, setHobbies] = useState<string[]>([]);
   const [lifestyle, setLifestyle] = useState<string[]>([]);
-  const [hobbyInput, setHobbyInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<BasicIdentityErrors>({});
   const [error, setError] = useState("");
@@ -123,6 +121,16 @@ export default function Onboarding() {
   );
 
   if (!user) return null;
+
+  const saveHobbies = async (nextHobbies: string[]) => {
+    const updated = await db.updateUser(user.id, { hobbies: nextHobbies });
+    if (!updated) {
+      throw new Error("Could not save your hobbies. Please try again.");
+    }
+    setHobbies(nextHobbies);
+    await refresh();
+    toast("Hobbies saved.");
+  };
 
   const buildPatchForStep = (currentStep: number): Partial<UserProfile> | null => {
     if (currentStep === 1) {
@@ -483,48 +491,17 @@ export default function Onboarding() {
 
                   <div className="hairline" />
 
-                  <Field label="Hobbies (optional)" hint="Things you enjoy in your free time.">
-                    {hobbies.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-2.5">
-                        {hobbies.map((h) => (
-                          <button
-                            key={h}
-                            type="button"
-                            onClick={() => setHobbies((prev) => toggleTag(prev, h))}
-                            className="rounded-full bg-rosegold/15 border border-rosegold/40 text-rosegold text-xs px-3 py-1.5 flex items-center gap-1.5"
-                          >
-                            <span>{h}</span>
-                            <span aria-hidden>×</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex gap-2">
-                      <input
-                        className={`${inputCls} min-w-0 flex-1`}
-                        placeholder="e.g. Weekend cycling, film photography…"
-                        value={hobbyInput}
-                        onChange={(e) => setHobbyInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            setHobbies((prev) => addCustomTagItem(prev, hobbyInput));
-                            setHobbyInput("");
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setHobbies((prev) => addCustomTagItem(prev, hobbyInput));
-                          setHobbyInput("");
-                        }}
-                        className="btn-ghost rounded-xl px-4 min-h-[44px] text-xs shrink-0"
-                      >
-                        Add
-                      </button>
+                  <div className="block">
+                    <span className="text-[0.72rem] uppercase tracking-[0.2em] text-mist">
+                      Hobbies{hobbies.length > 0 ? ` (${hobbies.length}/5)` : ""} (optional)
+                    </span>
+                    <div className="mt-2">
+                      <HobbiesPicker value={hobbies} onSave={saveHobbies} />
                     </div>
-                  </Field>
+                    <span className="block mt-1.5 text-xs text-mist/80">
+                      Choose 3 to 5 hobbies you genuinely enjoy — displayed in your chosen order.
+                    </span>
+                  </div>
 
                   <div className="hairline" />
 
